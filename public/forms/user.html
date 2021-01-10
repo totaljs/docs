@@ -1,0 +1,60 @@
+<div data---="form__common.form2__if:userform;width:600;submit:userform/submit;autofocus:1;icon:far fa-user;title:@(Administrator)" class="hidden">
+
+	<div data-scope="userform">
+		<div class="padding bg-smoke">
+			<div data---="input__?.name__placeholder:@(Peter Sirka);required:1;maxlength:30" class="m">@(User name)</div>
+			<div data---="checkbox__?.sa" class="b">@(Super administrator)</div>
+			<div data---="checkbox__?.isdisabled">@(Deny access)</div>
+			<div data---="checkbox__?.iswelcome__null__true">@(Send welcome email)</div>
+		</div>
+		<div class="padding npb">
+			<div class="row">
+				<div class="col-md-6 m">
+					<div data---="input__?.email__required:1;type:email__'@'">@(E-mail address)</div>
+					<div class="help">@(Will be used as a login name)</div>
+				</div>
+				<div class="col-md-6 m">
+					<div data---="input__?.password__maxlength:30;camouflage:*__GUID(10)">@(Login password)</div>
+					<div class="help"><span class="link exec" data-exec="userform/password">@(Generate password)</span></div>
+				</div>
+			</div>
+		</div>
+		<div data-bind="?.sa__hide" class="hidden">
+			<hr class="nmt nmb" />
+			<div class="padding npb">
+				<div data---="checkboxlist__?.libraries__datasource:common.libraries" class="m">@(Libraries)</div>
+			</div>
+		</div>
+	</div>
+
+	<nav data---="validation__userform">
+		<button name="submit"><i class="far fa-check-circle"></i>@(SAVE)</button>
+		<button name="cancel">@(Cancel)</button>
+	</nav>
+
+</div>
+
+<script>
+
+	PLUGIN('userform', function(exports) {
+
+		exports.password = function() {
+			SET('?.password', GUID(10));
+		};
+
+		exports.make = function() {
+			SET('?.login', (userform.name || '').slug().replace(/\-/g, ''));
+		};
+
+		exports.submit = function(hide) {
+			var model = GET('? @reset');
+			SETTER('loading/show');
+			AJAX('POST /api/users/' + (model.id || ''), model, ASETTER('message/response', '@(Profile has been saved successfully.)', function() {
+				SETTER('loading/hide', 1000);
+				EXEC('settingsform/refresh_users');
+				hide();
+			}));
+		};
+	});
+
+</script>

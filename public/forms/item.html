@@ -1,0 +1,112 @@
+<div data---="largeform__common.form__if:itemform;icon:far fa-code-branch;autofocus:true;reload:itemform/reload;scrollbar:1;submit:itemform/submit;width:800" class="hidden">
+	<div data-scope="itemform">
+		<div class="padding bg-smoke">
+			<div data---="radiobutton__?.type__items:@(Text)|text,@(Property)|property,@(Delegate)|delegate,@(Method)|method,@(Event)|event,@(Command)|command,@(REST endpoint)|rest,@(FAQ)|faq,@(Help)|help,@(Glossary)|glossary" class="m"></div>
+
+			<div class="row">
+				<div class="col-md-8 m">
+					<div data---="input__?.name__required:1__''" class="m">@(Name)</div>
+				</div>
+				<div class="col-md-4 m">
+					<div data---="dropdowncheckbox__?.pageid__datasource:common.pagessorted;required:1">@(Section)</div>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-8 m">
+					<div data---="input__?.changelog__''">@(Changelog)</div>
+				</div>
+				<div class="col-md-3 m">
+					<div data---="input__?.version__maxlength:20;align:1__''">@(Version)</div>
+				</div>
+			</div>
+		</div>
+		<div class="padding">
+			<div class="row">
+				<div class="col-md-3 m">
+					<div data---="input__?.icon__type:icon__''">@(Icon)</div>
+				</div>
+				<div class="col-md-3 m">
+					<div data---="input__?.color__type:color__''">@(Color)</div>
+				</div>
+				<div class="col-md-6 m">
+					<div data---="input__?.note__null__''">@(Note)</div>
+				</div>
+			</div>
+			<div data---="checkbox__?.newbie__null__false">@(Highlight as newbie)</div>
+			<div data---="checkbox__?.deprecated__null__false">@(Deprecated)</div>
+			<div data-bind="?.type__show:value==='text'" class="hidden">
+				<div data---="checkbox__?.bottom__null__false">@(Put to bottom)</div>
+			</div>
+			<hr />
+			<div data---="codemirror__?.body__required:1;type:markdown;height:450;linenumbers:0;drop:?/drop__''" class="m">@(Body)</div>
+		</div>
+	</div>
+	<nav data---="validation__itemform">
+		<button name="submit" disabled><i class="fa fa-check-circle"></i>@(SUBMIT)</button>
+		<button name="cancel">@(Cancel)</button>
+	</nav>
+</div>
+
+<script>
+
+	PLUGIN('itemform', function(exports) {
+
+		exports.reload = function(com) {
+			var model = GET('?');
+			var id = model ? model.id : null;
+			com.reconfigure({ title: id ? '@(Update item)' : '@(Create item)' });
+		};
+
+		exports.drop = function(e, editor) {
+			var data = new FormData();
+			var files = e.dataTransfer.files;
+
+			for (var i = 0, length = files.length; i < length; i++)
+				data.append('file' + i, files[i]);
+
+			UPLOAD('/api/upload/', data, function(response, err) {
+
+				var file = response;
+				var md;
+
+				if (file.width && file.height)
+					md = '![' + file.name + '](' + file.url + ')';
+				else
+					md = '[' + file.name + ' (' + (file.size / 1024).toFixed(2) + ' kB)](' + file.url + ')';
+
+				editor.replaceSelection(md);
+			});
+
+		};
+
+		exports.submit = function(hide) {
+			var model = GET('? @reset');
+			common.lasttype = model.type;
+			AJAX('POST /api/items/', model, ASETTER('message/response', function(response) {
+				if (model.id) {
+					var index = common.items.findIndex('id', model.id);
+					if (index !== -1) {
+						var item = common.items[index];
+						if (model.pageid.indexOf(common.page.id) !== -1)
+							COPY(model, item);
+						else
+							common.items.splice(index, 1);
+						common.items.quicksort('name');
+						UPD('common.items');
+					}
+				} else {
+					model.id = response.value;
+					model.dtcreated = new Date();
+					model.creator = user.name;
+					common.items.push(model);
+					common.items.quicksort('name');
+					UPD('common.items');
+				}
+
+				hide();
+			}));
+		};
+
+	});
+
+</script>

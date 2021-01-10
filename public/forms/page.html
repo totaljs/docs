@@ -1,0 +1,68 @@
+<div data---="largeform__common.form__if:pageform;icon:far fa-file-alt;autofocus:true;reload:pageform/reload;scrollbar:1;submit:pageform/submit;width:600" class="hidden">
+	<div data-scope="pageform">
+		<div class="padding bg-smoke">
+			<div class="row">
+				<div class="col-md-6 m">
+					<div data---="input__?.name__required:1__''">@(Name)</div>
+				</div>
+				<div class="col-md-6 m">
+					<div data---="input__?.group__dirsource:common.groups;dirplaceholder:@(Search);dirempty:@(No group)__''">@(Group)</div>
+				</div>
+			</div>
+		</div>
+		<div class="padding">
+			<div class="row">
+				<div class="col-md-4 m">
+					<div data---="input__?.version__maxlength:20;align:1__''">@(Version)</div>
+				</div>
+				<div class="col-md-4 m">
+					<div data---="input__?.icon__type:icon__''">@(Icon)</div>
+				</div>
+				<div class="col-md-4 m">
+					<div data---="input__?.color__type:color__''">@(Color)</div>
+				</div>
+			</div>
+			<div data---="checkbox__?.newbie__null__false">@(Highlight as newbie)</div>
+			<div data---="checkbox__?.deprecated__null__false">@(Deprecated)</div>
+			<div data---="checkbox__?.welcome__null__false">@(Set as start page)</div>
+		</div>
+	</div>
+	<nav data---="validation__pageform">
+		<button name="submit" disabled><i class="fa fa-check-circle"></i>@(SUBMIT)</button>
+		<button name="cancel">@(Cancel)</button>
+	</nav>
+</div>
+
+<script>
+
+	PLUGIN('pageform', function(exports) {
+
+		exports.reload = function(com) {
+			var model = GET('?');
+			var id = model ? model.id : null;
+			com.reconfigure({ title: id ? '@(Update page)' : '@(Create page)' });
+			AJAX('GET /api/libraries/{0}/groups/'.format(common.libraryid), '%groups');
+		};
+
+		exports.submit = function(hide) {
+			var model = GET('? @reset');
+			AJAX('POST /api/pages/', model, ASETTER('message/response', function(response) {
+
+				var item = common.pages.findItem('id', model.id);
+				if (item) {
+					COPY(model, item);
+					UPD('common.pages');
+				} else {
+					model.id = response.value;
+					model.sortindex = Date.now();
+					PUSH('common.pages', model);
+				}
+
+				EXEC('common/refreshpages');
+				hide();
+			}));
+		};
+
+	});
+
+</script>

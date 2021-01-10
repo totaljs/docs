@@ -1,0 +1,96 @@
+<div data---="centered__common.form__if:login;closeesc:1;closeoutside:.centered-form;reload:login/setpage">
+	<div data-scope="login__null__{ page: 'signin' }" style="max-width:650px;margin:0 auto;text-align:left" class="centered-form" >
+
+		<div data-bind="login.page__show:value=='signin'" style="max-width:350px;width:100%;margin:0 auto" class="hidden">
+			<div class="form">
+				<label><i class="far fa-lock"></i> @(Sign-in)</label>
+				<div data-scope="signin" class="padding">
+					<div data---="enter__?">
+						<div data---="input__?.email__type:email;required:1;$id:signup_signininput__'@'" class="m">@(Email address)</div>
+						<div data---="input__?.password__type:password;required:1;maxlength:30__''" class="m">@(Password)</div>
+
+						<!--
+						<nav class="links m">
+							<span class="exec" data-exec="?1/reset"><i class="fa fa-caret-right"></i>@(Reset password)</span>
+						</nav>-->
+
+						<div data---="validation__?">
+							<button class="button b exec button-login" name="submit" disabled data-exec="?1/login_submit">@(Sign in)</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="hidden" data-bind="?.page__show:value==='reset'" style="max-width:350px;width:100%;margin:0 auto">
+			<div class="form">
+				<label><i class="far fa-envelope"></i>@(Reset password)</label>
+				<div data-scope="reset" class="padding">
+					<div data---="enter__?">
+						<div data---="input__?.email__type:email;required:1;$id:signup_resetinput__'@'" class="m">@(Email address)</div>
+
+						<nav class="links m">
+							<span class="exec" data-exec="?1/login"><i class="fa fa-caret-right"></i>@(Back to sign-in)</span>
+						</nav>
+
+						<div data---="validation__?">
+							<button class="button b exec" name="submit" disabled data-exec="?1/reset_submit">@(Reset)</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</div>
+</div>
+
+<script>
+	PLUGIN('login', function(exports) {
+
+		exports.setpage = function() {
+			SET('?.page', 'signin');
+		};
+
+		exports.login = function() {
+
+			!isMOBILE && FIND('#signup_signininput', function(com) {
+				setTimeout(function() {
+					com.find('input').focus();
+				}, 1000);
+			});
+
+			SET('?.page', 'signin');
+		};
+
+		exports.login_submit = function() {
+			var model = GETR('?.signin @reset');
+			AJAX('POST /api/login/', model, ASETTER('message/response', function(response) {
+				exports.scope();
+				SET('?.signin @default', {});
+				if (response.success) {
+					AJAX('GET /api/profile/', 'user');
+					NULL('common.form');
+				}
+			}));
+		};
+
+		exports.reset = function() {
+
+			!isMOBILE && FIND('#signup_resetinput', function(com) {
+				setTimeout(function() {
+					com.find('input').focus();
+				}, 1000);
+			});
+
+			SET('?.page', 'reset');
+		};
+
+		exports.reset_submit = function() {
+			var model = GETR('?.reset @reset');
+				AJAX('POST /api/account/password/', model, ASETTER('message/response', '@(We have sent you a mail message with a confirmation link to your account.)', function(response) {
+				exports.scope();
+				SET('?.reset @default', {});
+			}));
+		};
+
+	});
+</script>

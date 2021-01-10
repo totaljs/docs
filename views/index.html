@@ -1,0 +1,568 @@
+@{title(CONF.name)}
+@{layout('')}
+
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=10" />
+	<meta name="format-detection" content="telephone=no" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
+	<meta name="robots" content="all,follow" />
+	<link rel="stylesheet" href="https://cdn.componentator.com/spa.min@18pro.css" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" />
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js"></script>
+	<script src="https://cdn.componentator.com/spa.min@18.js"></script>
+	<!--<script src="https://cdn.componentator.com/livereload.js"></script>-->
+	@{import('meta', 'head', 'default.css + ui.css', 'default.js + ui.js', 'favicon.ico')}
+</head>
+<body data---="exec">
+
+	<div data---="LAZY loading__null__style:2" class="hidden"></div>
+	<div data---="LAZY message__null__style:2"></div>
+	<div data---="LAZY approve__null"></div>
+	<div data---="LAZY colorpicker"></div>
+	<div data---="LAZY faicons"></div>
+	<div data---="LAZY menu"></div>
+	<div data---="LAZY spotlight"></div>
+	<div data---="LAZY directory__null"></div>
+	<div data---="markdown"></div>
+	<div data---="backtotop"></div>
+
+	<div data---="layout__common.layout__parent:window" class="invisible">
+
+		<script type="text/plain">
+			{
+				left: { size: 200 },
+				right: { size: 250 },
+				main: {}
+			}
+		</script>
+		<section data-type="left">
+			<div data---="viewbox__null__parent:.ui-layout-section;scrollbar:1;visibleY:0;margin:45">
+				<a href="/" class="logo jR">
+					@{CONF.name}
+				</a>
+				<nav class="nav nmt" data---="movable__null__selector:.jR;exec:common/movelibrary">
+					<div class="hidden" data-bind="user__show">
+						<div class="item exec" data-exec="common/options"><i class="far fa-cog"></i><div>@(Options)</div></div>
+						<hr />
+					</div>
+					<div data-bind="common.libraries2__template" data---="selected__common.libraryid__selector:.jR">
+					<script type="text/html">
+						{{ foreach n in value }}
+							{{ if n.name }}
+								<div class="group">{{ n.name }}</div>
+							{{ fi }}
+							<div class="m">
+							{{ foreach m in n.items }}
+								<a href="/{{ m.linker }}/" class="jR" data-if="{{ m.id }}"{{ if m.draggable }} draggable="true"{{ fi }}><b class="exec" data-exec="common/editlibrary" data-prevent="true"><i class="far fa-pencil"></i></b><i class="{{ if m.icon }}{{ m.icon }}{{ else }}far fa-book{{ fi }}"{{ if m.color }} style="color:{{ m.color }}"{{ fi }}></i><span>{{ m.name }}{{ if m.newbie }}<b>@(new)</b>{{ fi }}</span></a>
+							{{ end }}
+							</div>
+						{{ end }}
+					</script>
+					</div>
+				</nav>
+			</div>
+			<footer>
+				<div class="loginbutton exec" data-exec="common/login" data-bind="user__hide" title="@(Administration area)"><i class="far fa-user"></i></div>
+				<b>Powered by</b><br /><a href="https://www.totaljs.com" target="_blank">Total.js Platform</a> &copy; @{NOW.getFullYear()}
+			</footer>
+		</section>
+
+		<section data-type="right2">
+			<div class="search exec" data-exec="common/search">
+				<i class="far fa-search"></i>
+				<!-- <div><input type="text" placeholder="@(Search)" /></div> -->
+				<div>@(Search items)</div>
+			</div>
+			<div data---="viewbox__common.pages2__parent:.ui-layout-section;scrollbar:1;visibleY:0;margin:47" data-bind="common.libraryid__exec:common/permissions">
+
+				<nav class="nav nav2 nmt" data---="movable__null__selector:.jR;exec:common/movepage">
+					<div data-bind="common.pages2__template" data---="selected__common.pageid__selector:.jR">
+						<script type="text/html">
+						{{ foreach n in value }}
+							{{ if n.name }}
+								<div class="group">{{ n.name }}</div>
+							{{ fi }}
+							<div class="m">
+							{{ foreach m in n.items }}
+								<a href="{{ m.linker }}" class="jR" data-if="{{ m.id }}"{{ if m.draggable }} draggable="true"{{ fi }}><b class="exec" data-exec="common/editpage" data-prevent="true"><i class="far fa-pencil"></i></b><i class="{{ if m.icon }}{{ m.icon }}{{ else }}far fa-file-alt{{ fi }}"{{ if m.color }} style="color:{{ m.color }}"{{ fi }}></i><span>{{ m.name }}{{ if m.newbie }}<b>@(new)</b>{{ fi }}</span></a>
+							{{ end }}
+							</div>
+						{{ end }}
+						</script>
+					</div>
+				</nav>
+				<!-- <div data---="nav__common.pageid__datasource:common.pages;edit:common/editpage"></div> -->
+			</div>
+		</section>
+
+		<section data-type="main">
+			<div data---="viewbox__common.page__parent:.ui-layout-section;scrollbar:1;scrolltop:1" data-bind="common.libraryid__exec:common/permissions">
+				<header>
+					<h1 data-bind="common.page.name__text"></h1>
+				</header>
+				<div data---="items__common.items__edit:common/edititem"></div>
+				<br />
+			</div>
+		</section>
+	</div>
+
+	<div data---="importer__common.form__url:/forms/item.html;if:itemform"></div>
+	<div data---="importer__common.form__url:/forms/page.html;if:pageform"></div>
+	<div data---="importer__common.form__url:/forms/library.html;if:libraryform"></div>
+	<div data---="importer__common.form__url:/forms/settings.html;if:settingsform"></div>
+	<div data---="importer__common.form__url:/forms/profile.html;if:profileform"></div>
+	<div data---="importer__common.form__url:/forms/login.html;if:login"></div>
+
+	@{json(user, 'userdata')}
+	@{json(PREF.settings.groups, 'groupsdata')}
+
+	<script src="https://cdn.componentator.com/visitors.min@1.js" async defer></script>
+
+	<script>
+
+		var common = { library: 'total4', admin: true, maingroups: PARSE('#groupsdata') || EMPTYARRAY };
+		var user = PARSE('#userdata');
+
+		common.title = document.title;
+		DEF.dateformat = 'yyyy-MM-dd HH:mm';
+
+		PLUGIN('common', function(exports) {
+
+			exports.refresh = function() {
+			};
+
+			exports.refresh_libraries = function() {
+				AJAX('GET /api/libraries/', function(response) {
+
+					var arr = [];
+
+					for (var i = 0; i < common.maingroups.length; i++) {
+						var g = common.maingroups[i];
+						var item = { id: g, name: g };
+						item.items = response.findAll('group', g);
+						item.items.quicksort('sortindex');
+						arr.push(item);
+					}
+
+					var uncategorized = [];
+					for (var i = 0; i < response.length; i++) {
+						var item = response[i];
+						if (!item.group || common.maingroups.indexOf(item.group) === -1)
+							uncategorized.push(item);
+						item.draggable = W.user && W.user.sa;
+					}
+
+					uncategorized.quicksort('sortindex');
+					arr.unshift({ name: '', items: uncategorized });
+					SET('?.libraries', response);
+					SET('?.libraries2', arr);
+					UPD('?.libraryid');
+				});
+			};
+
+			exports.addlibrary = function() {
+				SET('libraryform @default', {});
+				SET('common.form', 'libraryform');
+			};
+
+			exports.addpage = function() {
+				var model = {};
+				model.libraryid = common.library.id;
+				SET('pageform @default', model);
+				SET('common.form', 'pageform');
+			};
+
+			exports.additem = function() {
+				var model = {};
+				model.pageid = [common.pageid];
+				model.libraryid = common.library.id;
+				model.type = common.lasttype || 'text';
+				SET('itemform @default', model);
+				SET('common.form', 'itemform');
+			};
+
+			exports.loadlibrary = function(id, callback, force) {
+
+				if (!force && common.library && common.library.linker === id) {
+					callback && callback();
+					return;
+				}
+
+				if (!force) {
+					common.library = common.libraries.findItem('linker', id);
+					if (!common.library)
+						return;
+				}
+
+				common.url = '/' + id + '/';
+				AJAX('GET /api/pages/?library=' + common.library.id, function(response) {
+					if (!common.library.groups)
+						common.library.groups = EMPTYARRAY;
+					SET('common.libraryid', common.library.id);
+					SET('common.pages', response);
+					SET('common.groups', common.library.groups);
+
+					var pages = response.slice(0);
+					pages.quicksort('name');
+					SET('common.pagessorted', pages);
+					NUL('common.items');
+					NUL('common.page');
+					exports.refreshpages();
+					callback && callback();
+					maketitle();
+				});
+			};
+
+			function maketitle() {
+
+				var name = [];
+
+				if (common.page)
+					name.push(common.page.name);
+
+				if (common.library)
+					name.push(common.library.name);
+
+				document.title = (name.length ? name.join(' / ') : common.title);
+			}
+
+			exports.refreshpages = function() {
+				var response = common.pages;
+				var arr = [];
+
+				for (var i = 0; i < common.library.groups.length; i++) {
+					var g = common.library.groups[i];
+					var item = { name: g };
+					item.items = response.findAll('group', g);
+					item.items.quicksort('sortindex');
+					arr.push(item);
+				}
+
+				var uncategorized = [];
+				for (var i = 0; i < response.length; i++) {
+					var item = response[i];
+					if (!item.group || common.library.groups.indexOf(item.group) === -1)
+						uncategorized.push(item);
+					item.linker = '/' + common.library.linker + '/' + item.id + '/';
+					item.draggable = W.user && W.user.sa;
+				}
+
+				arr.unshift({ name: '', items: uncategorized });
+				uncategorized.quicksort('sortindex');
+
+				SET('common.pages2', arr);
+
+				var pages = response.slice(0);
+				pages.quicksort('name');
+				SET('common.pagessorted', pages);
+			};
+
+			exports.movepage = function(list) {
+
+				if (!W.user || !W.user.sa)
+					return;
+
+				var id = [];
+				for (var i = 0; i < list.length; i++)
+					id.push(list[i].getAttribute('data-if'));
+				AJAX('GET /api/pages/reindex/?id=' + id.join(','), ASETTER('message/response', NOOP));
+			};
+
+			exports.movelibrary = function(list) {
+
+				if (!W.user || !W.user.sa)
+					return;
+
+				var id = [];
+				for (var i = 0; i < list.length; i++)
+					id.push(list[i].getAttribute('data-if'));
+				AJAX('GET /api/libraries/reindex/?id=' + id.join(','), ASETTER('message/response', NOOP));
+			};
+
+			exports.loadpage = function(id, callback) {
+
+				// if (common.page && common.page.id === id) {
+				// 	callback && callback();
+				// 	return;
+				// }
+
+				SET('common.page', common.pages.findItem('id', id));
+				SET('common.pageid', id);
+
+				maketitle();
+
+				AJAX('GET /api/items/?library={0}&page={1}'.format(common.library.id, id), function(response) {
+					SET('common.items', response);
+					callback && callback();
+				});
+			};
+
+			exports.editpage = function(el) {
+
+				var id = el.closest('a').attrd('if');
+				var opt = {};
+				opt.element = el;
+				opt.items = [];
+				opt.align = 'right';
+				opt.offsetY = -7;
+				opt.items.push({ id: 'add', name: '@(Add item)', icon: 'far fa-plus-circle green', classname: 'b' });
+				opt.items.push('-');
+				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'far fa-pencil' });
+				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'far fa-trash-o red' });
+
+				opt.callback = function(item) {
+
+					if (item.id === 'add') {
+						exports.additem();
+						return;
+					}
+
+					if (item.id === 'edit') {
+						AJAX('GET /api/pages/{0}/'.format(id), function(response) {
+							SET('pageform @reset', response);
+							SET('common.form', 'pageform');
+						});
+					} else if (item.id === 'remove') {
+						SETTER('approve/show', '@(Are you sure you want to remove selected page?)', '"trash-o" @(Remove)', function() {
+							AJAX('DELETE /api/pages/{0}/'.format(id), function() {
+								common.pages = common.pages.remove('id', id);
+								UPD('common.pages');
+								exports.refreshpages();
+							});
+						});
+					}
+				};
+
+				SETTER('menu/show', opt);
+			};
+
+			exports.editlibrary = function(el) {
+
+				if (!user.sa)
+					return;
+
+				var id = el.closest('.jR').attrd('if');
+				var opt = {};
+				opt.element = el;
+				opt.items = [];
+				opt.align = 'right';
+				opt.offsetY = -7;
+				opt.items.push({ id: 'add', name: '@(Add page)', icon: 'far fa-plus-circle green', classname: 'b' });
+				opt.items.push('-');
+				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'far fa-pencil' });
+				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'far fa-trash-o red' });
+
+				opt.callback = function(item) {
+
+					if (item.id === 'add') {
+						exports.addpage();
+						return;
+					}
+
+					if (item.id === 'edit') {
+						AJAX('GET /api/libraries/{0}/'.format(id), function(response) {
+							SET('libraryform @reset', response);
+							SET('common.form', 'libraryform');
+						});
+					} else if (item.id === 'remove') {
+						SETTER('approve/show', '@(Are you sure you want to remove selected library?)', '"trash-o" @(Remove)', function() {
+							AJAX('DELETE /api/libraries/{0}/'.format(id), function() {
+								common.libraries = common.libraries.remove('id', id);
+								UPD('common.libraries');
+								if (common.libraryid === id)
+									NULL('common.libraryid');
+							});
+						});
+					}
+
+				};
+
+				SETTER('menu/show', opt);
+			};
+
+			exports.edititem = function(el, id, e) {
+
+				var opt = {};
+
+				if (e) {
+					opt.x = e.pageX;
+					opt.y = e.pageY;
+				} else
+					opt.element = el;
+
+				opt.items = [];
+				opt.align = 'right';
+				opt.offsetY = -7;
+				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'far fa-pencil' });
+				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'far fa-trash-o red' });
+
+				opt.callback = function(item) {
+					if (item.id === 'edit') {
+						AJAX('GET /api/items/{0}/'.format(id), function(response) {
+							SET('itemform @reset', response);
+							SET('common.form', 'itemform');
+						});
+					} else if (item.id === 'remove') {
+						SETTER('approve/show', '@(Are you sure you want to remove selected item?)', '"trash-o" @(Remove)', function() {
+							AJAX('DELETE /api/items/{0}/'.format(id), function() {
+								common.items = common.items.remove('id', id);
+								UPD('common.items');
+							});
+						});
+					}
+				};
+
+				SETTER('menu/show', opt);
+			};
+
+			exports.options = function(el) {
+				var opt = {};
+				opt.element = el;
+				opt.items = [];
+
+				if (user.sa)
+					opt.items.push({ id: 'addlibrary', name: '@(Add library)', icon: 'far fa-book', classname: 'b' });
+
+				if (common.libraryid && (user.sa || user.libraries.indexOf(common.libraryid) !== -1)) {
+					opt.items.push({ id: 'addpage', name: '@(Add page)', icon: 'far fa-file-alt' });
+
+					if (common.page)
+						opt.items.push({ id: 'additem', name: '@(Add item)', icon: 'far fa-code-branch' });
+				}
+
+				if (W.user) {
+					opt.items.push({ id: 'profile', name: '@(My profile)', icon: 'far fa-user-circle' });
+					W.user.sa && opt.items.push({ id: 'settings', name: '@(Settings)', classname: 'b', icon: 'far fa-wrench' });
+				}
+
+				opt.items.push('-');
+				opt.items.push({ id: 'logoff', name: '@(Sign out)', icon: 'far fa-power-off red' });
+				opt.offsetY = -10;
+				opt.callback = function(item) {
+					exports[item.id]();
+				};
+
+				SETTER('menu/show', opt);
+			};
+
+			exports.logoff = function() {
+				location.href = '/logoff/';
+			};
+
+			exports.profile = function() {
+				SETTER('loading/show');
+				SETTER('loading/hide', 1000);
+				AJAX('GET /api/profile/', ASETTER('message/response', function(response) {
+					SET('profileform @reset', response);
+					SET('common.form', 'profileform');
+				}));
+			};
+
+			exports.settings = function() {
+				user.sa && AJAX('GET /api/settings/', ASETTER('message/response', function(response) {
+					SET('settingsform.main @reset', response);
+					SET('common.form', 'settingsform');
+				}));
+			};
+
+			exports.login = function() {
+				SET('common.form', 'login');
+			};
+
+			exports.refresh_libraries();
+			exports.refresh();
+
+			ROUTE('/', ['libraries'], function() {
+				if (common.libraries2 && common.libraries2.length) {
+					var library = common.libraries2[0];
+					if (library.items && library.items.length)
+						REDIRECT('/' + library.items[0].linker + '/');
+				}
+			});
+
+			ROUTE('/{libraryid}/', ['libraries'], function(libraryid) {
+				exports.loadlibrary(libraryid, function() {
+					if (common.library && common.library.pageid)
+						REDIRECT('/' + libraryid + '/' + common.library.pageid + '/');
+				});
+			});
+
+			ROUTE('/{libraryid}/{pageid}/', ['libraries'], function(libraryid, pageid) {
+				exports.loadlibrary(libraryid, function() {
+					exports.loadpage(pageid);
+
+					var id = location.hash.substring(1);
+					if (id) {
+						setTimeout(function() {
+							var el = $('.ui-items-topic[data-id="{0}"]'.format(id));
+							if (el.length) {
+								el.find('label').trigger('click');
+								el.closest('.ui-scrollbar-area').scrollTop(el.offset().top - 50);
+							}
+						}, 1000);
+					}
+				});
+			});
+
+			exports.permissions = function(id, path, el) {
+				var user = W.user;
+				el.tclass('admin', !!(id && user && user.libraries && user.libraries.indexOf(id) !== -1));
+			};
+
+			exports.search = function(el) {
+
+				if (!common.libraryid)
+					return;
+
+				var opt = {};
+
+				opt.id = common.libraryid;
+				opt.delay = 400;
+
+				opt.search = function(value, next) {
+					AJAX('GET /api/items/?library={0}&q={1}'.format(common.libraryid, encodeURIComponent(value)), function(response) {
+						for (var i = 0; i < response.length; i++) {
+							var item = response[i];
+							if (item.page)
+								item.name = '<span class="gray">' + item.page.name + '</span> / ' + item.name;
+						}
+
+						next(response);
+					});
+				};
+
+				opt.callback = function(item) {
+					REDIRECT('/{0}/{1}/#{2}'.format(common.library.linker, item.pageid[0], item.id));
+				};
+
+				SETTER('spotlight/show', opt);
+			};
+
+		});
+
+		WATCH('user', function(path, value) {
+			$('body').tclass('admin', value && value.sa ? true : false);
+			if (value && common.libraryid && !value.sa)
+				UPD('common.libraryid');
+			RECONFIGURE('movable', 'disabled:' + (value && value.sa ? '0':  '1'));
+		}, true);
+
+		MIDDLEWARE('libraries', function(next) {
+			var fn = function() {
+				if (common.libraries)
+					next();
+				else
+					setTimeout(fn, 100);
+			};
+			fn();
+		});
+
+		NAV.clientside('.jR');
+
+	</script>
+
+</body>
+</html>

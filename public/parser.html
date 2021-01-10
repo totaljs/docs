@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=10" />
+	<meta name="format-detection" content="telephone=no" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
+	<meta name="robots" content="all,follow" />
+	<link rel="stylesheet" href="https://cdn.componentator.com/spa.min@18.css" />
+	<script src="https://cdn.componentator.com/spa.min@18.js"></script>
+</head>
+<body>
+
+	<div data---="textarea__common.code__height:300"></div>
+	<pre><code></code></pre>
+
+
+	<script>
+		WATCH('common.code', function(path, value, type) {
+
+			if (type !== 2)
+				return;
+
+			var builder = [];
+			var lines = (value.trim() + '\n').split('\n');
+
+			builder.push(lines[0]);
+
+			for (var i = 1; i < lines.length; i++) {
+				var line = lines[i];
+
+				if (!line || line.indexOf('CHANGELOG') !== -1 || line.indexOf('+v') !== -1 || line.indexOf('returns ') !== -1 || line.indexOf('Default value:') !== -1)
+					continue;
+
+				// 1. name
+				// 2. type + description
+
+				var type = (lines[i + 1] || '');
+				var description = '';
+				var index = type.indexOf('\t');
+				if (index === -1)
+					index = type.indexOf(' ');
+				if (index !== -1) {
+					description = type.substring(index).replace('optional', '').trim();
+					type = type.substring(0, index).trim();
+				}
+
+				var next = lines[i + 2] || '';
+				if (next.indexOf('function ') !== -1) {
+					index = next.indexOf('(');
+					var end = next.indexOf(')', index);
+					next = next.substring(index, end + 1);
+					type += next;
+					i += next.split('.').length + 2;
+				}
+
+				builder.push((('// @' + line.trim() + ' {' + type.trim() + '} ' + description).trim()).replace(/\t/g, ' ').replace(/\s{2,}/g, ' '));
+				i += 1;
+			}
+
+			for (var i = 1; i < lines.length; i++) {
+				var line = lines[i];
+				if (line.indexOf('returns ') !== -1) {
+					builder.push('// ' + line);
+					break;
+				}
+			}
+
+			builder.push('');
+			$('code').text('```js\n' + (builder.join('\n') + '\n').trim() + '\n```');
+		});
+	</script>
+
+</body>
+</html>

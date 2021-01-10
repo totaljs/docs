@@ -1,2 +1,2 @@
-# docs
-Total.js documentation
+# Documentation: Total.js Platform
+

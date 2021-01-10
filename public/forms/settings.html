@@ -1,0 +1,106 @@
+<div data---="largeform__common.form__if:settingsform;icon:wrench;title:@(Settings);autofocus:true;reload:settingsform/reload;scrollbar:1;width:700" class="hidden">
+	<div data-scope="settingsform">
+		<div class="padding bg-smoke" data-scope="main">
+			<div data---="input__?.name__required:1;maxlength:50__''">@(Name)</div>
+			<div class="help m">@(Type a name of documentation)</div>
+			<div data---="textboxlist__?.groups__movable:1;placeholder:@(Type a group name and press enter)" class="m">@(Groups)</div>
+			<div data---="validation__?">
+				<button name="submit" disabled class="button exec button-small b" data-exec="?1/submit"><i class="fa fa-check-circle"></i>@(Save settings)</button>
+			</div>
+		</div>
+
+		<div class="padding">
+
+			<div class="pull-right">
+				<span class="link exec fs12" style="margin-top:2px" data-exec="?/adduser"><i class="fa fa-plus-circle green mr5"></i>@(Add user)</span>
+			</div>
+			<div class="caption"><i class="far fa-users"></i>@(Users)</div>
+
+			<div data---="table__?.users__highlight:0;flat:1">
+
+				<script type="text/html" data-size="0,80px">
+					<tr data-id="{{ id }}">
+						<td>{{ if sa }}<span class="badge badge-red mr5 pull-right" style="margin-top:1px">@(sa)</span>{{ fi }}{{ if isdisabled }}<i class="fa fa-lock mr5 red"></i>{{ fi }}{{ name }} {{ libraries | userlibraries }}</td>
+						<td class="right"><button class="exec" data-exec="?/upduser"><i class="far fa-pencil"></i></button><button class="exec" data-exec="?/remuser"><i class="far fa-trash-alt red"></i></button></td>
+					</tr>
+				</script>
+
+				<script type="text/html" data-type="empty">
+					@(No data)
+				</script>
+
+			</div>
+
+		</div>
+	</div>
+	<nav>
+		<button name="cancel" style="width:100%">@(Cancel)</button>
+	</nav>
+</div>
+
+<div data---="importer__common.form2__url:/forms/user.html;if:userform"></div>
+
+<script>
+
+	PLUGIN('settingsform', function(exports) {
+
+		exports.reload = function(com) {
+			exports.refresh_users();
+		};
+
+		exports.refresh_users = function() {
+			AJAX('GET /api/users/', '?.users');
+		};
+
+		exports.adduser = function() {
+			SET('userform @default', {});
+			SET('common.form2', 'userform');
+		};
+
+		exports.upduser = function(el) {
+			var id = el.closest('tr').attrd('id');
+			SETTER('loading/show');
+			AJAX('GET /api/users/' + id, ASETTER('message/response', function(response) {
+				SETTER('loading/hide', 500);
+				response.iswelcome = false;
+				response.password = '*******';
+				SET('userform @reset', response);
+				SET('common.form2', 'userform');
+			}));
+		};
+
+		exports.remuser = function(el) {
+			var id = el.closest('tr').attrd('id');
+			var name = GET('?.users').findValue('id', id, 'name', '').encode();
+			SETTER('approve/show', '@(Are you sure you want to remove <b>{0}</b>?)'.format(name), '"trash-o" @(Remove)', function() {
+				SETTER('loading/show');
+				AJAX('DELETE /api/users/' + id, ASETTER('message/response', function(response) {
+					SETTER('loading/hide', 500);
+					exports.refresh_users();
+				}));
+			});
+		};
+
+		exports.submit = function() {
+			AJAX('POST /api/settings/', GET('?.main @reset'), ASETTER('message/response', '@(Settings have been saved successfully)', function() {
+				NULL('common.form');
+			}));
+		};
+
+	});
+
+	Thelpers.userlibraries = function(arr) {
+
+		if (!arr || !arr.length)
+			return '';
+
+		var builder = [];
+		for (var i = 0; i < arr.length; i++) {
+			var name = common.libraries.findValue('id', arr[i], 'name', '');
+			name && builder.push('<span class="badge badge-silver mr5">{0}</span>'.format(name.encode()));
+		}
+
+		return builder.join('');
+	};
+
+</script>
