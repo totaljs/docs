@@ -1,0 +1,2 @@
+# docs
+Total.js documentation
