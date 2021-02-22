@@ -26,7 +26,6 @@ NEWSCHEMA('Items', function(schema) {
 			builder.search('search', $.query.q.toSearch());
 			builder.where('type', '<>', 'text');
 			builder.fields('id,pageid,name,type,icon,color');
-			builder.join('page', 'db').on('id', 'pageid').fields('name').first();
 			builder.take(50);
 		} else
 			builder.in('pageid', [$.query.page]);

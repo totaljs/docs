@@ -1,0 +1,157 @@
+<div data---="largeform__common.form__if:requestform;title:@(Create a request);icon:far fa-alien-monster;autofocus:true;reload:?/reload;scrollbar:1;submit:?/submit;width:800;$assign:requestlargeform" class="hidden" data-scope="requestform">
+	<div class="padding npt requestform">
+		<p class="gray"><b>@(IMPORTANT)</b>:<br />@(Server can process max. &lt; 5 kB response.)</p>
+		<div class="url"><b data-bind="?.method__text"></b> <span data-bind="?.url__text"></span></div>
+		<div data---="properties2__?.data"></div>
+		<div data-bind="?.method__show:value!=='GET' && value !== 'DELETE'" class="help"><span class="link exec" data-exec="?/fake"><i class="fab fa-wpforms"></i>@(Fill fake data)</span></div>
+	</div>
+	<div data-bind="?.response.body__html div__show" class="response">
+		<label>@(Response status) <b data-bind="?.response.status__text">---</b>:</label>
+		<div></div>
+	</div>
+	<nav>
+		<button name="submit"><i class="fa fa-check-circle"></i>@(MAKE REQUEST)</button>
+		<button name="cancel">@(Cancel)</button>
+	</nav>
+</div>
+
+<script>
+
+	PLUGIN('requestform', function(exports) {
+
+		exports.reload = function(com) {
+			var model = GET('?');
+			model.target = common.url + model.url;
+
+			var data = [];
+			var cache = CACHE(common.id) || EMPTYOBJECT;
+			var cachekey = common.id + '_' + HASH(model.url).toString(36);
+			var cachedata = CACHE(cachekey) || {};
+
+			if (!cachedata.body)
+				cachedata.body = {};
+
+			if (!cachedata.query)
+				cachedata.query = {};
+
+			if (!cachedata.args)
+				cachedata.args = {};
+
+			data.push({ x: 'headers', group: 'Headers', type: 'string', label: 'Authorization', name: '$hauthorization', value: cache.authorization || '', placeholder: 'Type a header value' });
+			data.push({ x: 'headers', group: 'Headers', type: 'string', label: 'X-Token', name: '$htoken', value: cache.token || '', placeholder: 'Type a header value' });
+			data.push({ x: 'headers', group: 'Headers', type: 'string', label: 'Cookie', name: '$hcookie', value: cache.cookie || '', placeholder: 'key=value, key=value' });
+			data.push({ x: 'headers', group: 'Headers', type: 'string', label: 'User-Agent', name: '$hua', value: cache.ua || '', placeholder: 'Type a header value' });
+
+			var arg = model.url.match(/\{.*?\}/g);
+			if (arg) {
+				for (var i = 0; i < arg.length; i++) {
+					var n = arg[0].replace(/\{|\}/g, '');
+					data.push({ x: 'args', group: 'URL arguments', type: 'string', label: n, name: '$u' + n, value: cachedata.args[n] || '', placeholder: 'Type a value', required: true });
+				}
+			}
+
+			if (model.query) {
+				for (var i = 0; i < model.query.length; i++) {
+					var n = model.query[i];
+					data.push({ x: 'query', group: 'Query arguments', type: 'string', label: n, name: '$q' + n, value: cachedata.query[n] || '', placeholder: 'Type a value' });
+				}
+			}
+
+			if ((model.method === 'POST' || model.method === 'PUT' || model.method === 'PATCH') && model.fields && model.fields.length) {
+				for (var i = 0; i < model.fields.length; i++) {
+					var n = model.fields[i];
+					var type = n.type.toLowerCase().replace(/\(.*?\)/g, '');
+					switch (type) {
+						case 'number':
+						case 'boolean':
+						case 'date':
+						case 'string':
+						case 'object':
+						case 'color':
+							break;
+						default:
+							type = 'string';
+							break;
+					}
+					data.push({ x: 'data', group: 'Data', type: type, label: n.name + ' <code>' + n.type + '</code>', name: n.name, value: cachedata.body[n.name] || '', required: n.required == true, placeholder: 'Type a value' });
+				}
+			}
+
+			SET('?.data', data);
+		};
+
+		exports.fake = function() {
+			var items = GET('?.data');
+			var is = false;
+			for (var i = 0; i < items.length; i++) {
+				var item = items[i];
+				if (item.x === 'data') {
+					item.value = FUNC.makefake(item.type, 25, item.name);
+					is = true;
+				}
+			}
+			is && UPD('?.data');
+		};
+
+		exports.submit = function(hide) {
+
+			if (BLOCKED('request', 2000))
+				return;
+
+			var model = GET('?');
+			var items = model.data;
+			var cache = CACHE(common.id) || {};
+			var data = {};
+			var headers = [];
+
+			for (var i = 0; i < items.length; i++) {
+				var item = items[i];
+
+				if (item.x === 'headers') {
+					var n = item.name.substring(2);
+					if (item.value) {
+						cache[n] = item.value;
+						if (n === 'ua')
+							n = 'User-Agent';
+						headers.push({ name: n, value: item.value });
+					}
+				} else if (item.x === 'args') {
+					if (!data.args)
+						data.args = {};
+					data.args[item.name.substring(2)] = item.value;
+				} else if (item.x === 'query') {
+					if (!data.query)
+						data.query = [];
+					data.query.push(item.name.substring(2) + '=' + encodeURIComponent(item.value));
+				} else if (item.x === 'data') {
+					if (!data.body)
+						data.body = {};
+					data.body[item.name] = item.value;
+				}
+			}
+
+			data.method = model.method;
+			data.url = common.url + model.url;
+			data.action = model.operation;
+
+			if (headers.length)
+				data.headers = headers;
+
+			if (data.query)
+				data.query = data.query.join('&');
+
+			var cachekey = common.id + '_' + HASH(model.url).toString(36);
+			CACHE(common.id, cache, '1 year');
+			CACHE(cachekey, { query: data.query, args: data.args, body: data.body }, '1 year');
+
+			// hide();
+			AJAX('POST /api/request/ @showloading', data, function(response) {
+				var value = response.value;
+				SET('?.response @hideloading', { status: value.status, body: FUNC.formatjson(typeof(value.body) === 'string' ? PARSE(value.body) : response.encode()) });
+				requestlargeform.scrollbar.resize();
+			});
+		};
+
+	});
+
+</script>

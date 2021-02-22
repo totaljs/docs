@@ -13,19 +13,20 @@
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" />
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js"></script>
 	<script src="https://cdn.componentator.com/spa.min@18.js"></script>
-	<!--<script src="https://cdn.componentator.com/livereload.js"></script>-->
 	@{import('meta', 'head', 'default.css + ui.css', 'default.js + ui.js', 'favicon.ico')}
 </head>
-<body data---="exec">
+<body data---="exec"@{if query.darkmode==='1'} class="ui-dark"@{fi}>
 
 	<div data---="LAZY loading__null__style:2" class="hidden"></div>
 	<div data---="LAZY message__null__style:2"></div>
 	<div data---="LAZY approve__null"></div>
 	<div data---="LAZY colorpicker"></div>
 	<div data---="LAZY faicons"></div>
-	<div data---="LAZY menu"></div>
+	<div data---="LAZY menu__null__style:2"></div>
 	<div data---="LAZY spotlight"></div>
-	<div data---="LAZY directory__null"></div>
+	<div data---="LAZY directory"></div>
+	<div data---="LAZY clipboard"></div>
+	<div data---="shortcuts"></div>
 	<div data---="markdown"></div>
 	<div data---="backtotop"></div>
 
@@ -35,9 +36,53 @@
 			{
 				left: { size: 200 },
 				right: { size: 250 },
-				main: {}
+				bottom: { show: false },
+				main: {},
+				xs: {
+					left: { show: false },
+					right: { show: false },
+					bottom: { show: true, height: 35 },
+					main: {}
+				},
+				pages: {
+					lg: {
+						left: { show: true },
+						right: { show: true },
+						bottom: { show: false },
+						main: { show: true }
+					},
+					xs: {
+						left: { show: false },
+						right: { show: true, width: '100%' },
+						bottom: { show: true, height: 35 },
+						main: { show: false }
+					}
+				},
+				libraries: {
+					lg: {
+						left: { show: true },
+						right: { show: true },
+						bottom: { show: false },
+						main: { show: true }
+					},
+					xs: {
+						left: { show: true, width: '100%' },
+						right: { show: false },
+						bottom: { show: true, height: 35 },
+						main: { show: false }
+					}
+				}
 			}
 		</script>
+
+		<section data-type="bottom">
+			<nav class="mobilenavigation" data---="selected__common.layout__selector:button">
+				<button class="exec" data-exec="common/layout" data-if="libraries">@(Libraries)</button>
+				<button class="exec" data-exec="common/layout" data-if="pages">@(Pages)</button>
+				<button class="exec" data-exec="common/layout" data-if="">@(Content)</button>
+			</nav>
+		</section>
+
 		<section data-type="left">
 			<div data---="viewbox__null__parent:.ui-layout-section;scrollbar:1;visibleY:0;margin:45">
 				<a href="/" class="logo jR">
@@ -74,7 +119,7 @@
 			<div class="search exec" data-exec="common/search">
 				<i class="far fa-search"></i>
 				<!-- <div><input type="text" placeholder="@(Search)" /></div> -->
-				<div>@(Search items)</div>
+				<div><span>F1</span>@(Search items)</div>
 			</div>
 			<div data---="viewbox__common.pages2__parent:.ui-layout-section;scrollbar:1;visibleY:0;margin:47" data-bind="common.libraryid__exec:common/permissions">
 
@@ -132,6 +177,18 @@
 		PLUGIN('common', function(exports) {
 
 			exports.refresh = function() {
+			};
+
+			exports.copytoclipboard = function(el) {
+				var lines = el.parent().prev().text().split('\n');
+				for (var i = 0; i < lines.length; i++) {
+					var line = lines[i];
+					lines[i] = lines[i].replace(/^\s+/g, function(text) {
+						return text.replace(/\s{4}/g, '\t');
+					});
+				}
+
+				SETTER('clipboard/copy', lines.join('\n'));
 			};
 
 			exports.refresh_libraries = function() {
@@ -291,7 +348,7 @@
 
 				SET('common.page', common.pages.findItem('id', id));
 				SET('common.pageid', id);
-
+				SET('common.layout', '');
 				maketitle();
 
 				AJAX('GET /api/items/?library={0}&page={1}'.format(common.library.id, id), function(response) {
@@ -397,11 +454,14 @@
 				opt.align = 'right';
 				opt.offsetY = -7;
 				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'far fa-pencil' });
+				opt.items.push({ id: 'clone', name: '@(Clone)', icon: 'far fa-clone' });
 				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'far fa-trash-o red' });
 
 				opt.callback = function(item) {
-					if (item.id === 'edit') {
+					if (item.id === 'edit' || item.id === 'clone') {
 						AJAX('GET /api/items/{0}/'.format(id), function(response) {
+							if (item.id === 'clone')
+								response.id = '';
 							SET('itemform @reset', response);
 							SET('common.form', 'itemform');
 						});
@@ -475,25 +535,41 @@
 			exports.refresh_libraries();
 			exports.refresh();
 
+			exports.loadfirst = function() {
+				if (common.library && WIDTH() !== 'xs') {
+
+					var pageid;
+
+					if (common.library.pageid) {
+						pageid = common.library.pageid;
+						if (pageid instanceof Array)
+							pageid = pageid[0];
+					}
+
+					if (!pageid)
+						pageid = common.pages && common.pages.length ? common.pages[0].id : '';
+
+					pageid && exports.loadpage(pageid);
+				}
+			};
+
 			ROUTE('/', ['libraries'], function() {
 				if (common.libraries2 && common.libraries2.length) {
 					var library = common.libraries2[0];
 					if (library.items && library.items.length)
 						REDIRECT('/' + library.items[0].linker + '/');
-				}
+				} else
+					SET('common.layout', 'libraries');
 			});
 
 			ROUTE('/{libraryid}/', ['libraries'], function(libraryid) {
-				exports.loadlibrary(libraryid, function() {
-					if (common.library && common.library.pageid)
-						REDIRECT('/' + libraryid + '/' + common.library.pageid + '/');
-				});
+				SET('common.layout', 'pages');
+				exports.loadlibrary(libraryid, exports.loadfirst);
 			});
 
 			ROUTE('/{libraryid}/{pageid}/', ['libraries'], function(libraryid, pageid) {
 				exports.loadlibrary(libraryid, function() {
 					exports.loadpage(pageid);
-
 					var id = location.hash.substring(1);
 					if (id) {
 						setTimeout(function() {
@@ -501,11 +577,19 @@
 							if (el.length) {
 								el.find('label').trigger('click');
 								el.closest('.ui-scrollbar-area').scrollTop(el.offset().top - 50);
+							} else {
+								el = $('#' + id);
+								if (el.length)
+									el.closest('.ui-scrollbar-area').scrollTop(el.offset().top - 50);
 							}
 						}, 1000);
 					}
 				});
 			});
+
+			exports.layout = function(el) {
+				SET('common.layout', el.attrd('if'));
+			};
 
 			exports.permissions = function(id, path, el) {
 				var user = W.user;
@@ -526,8 +610,11 @@
 					AJAX('GET /api/items/?library={0}&q={1}'.format(common.libraryid, encodeURIComponent(value)), function(response) {
 						for (var i = 0; i < response.length; i++) {
 							var item = response[i];
-							if (item.page)
-								item.name = '<span class="gray">' + item.page.name + '</span> / ' + item.name;
+							if (item.pageid) {
+								var page = common.pages.findValue('id', item.pageid[0], 'name');
+								if (page)
+									item.name = '<span class="gray">' + page + '</span> / ' + item.name;
+							}
 						}
 
 						next(response);
@@ -543,12 +630,24 @@
 
 		});
 
+		ON('@flag showloading', function() {
+			SETTER('loading/show');
+		});
+
+		ON('@flag hideloading', function() {
+			SETTER('loading/hide', 1000);
+		});
+
 		WATCH('user', function(path, value) {
 			$('body').tclass('admin', value && value.sa ? true : false);
 			if (value && common.libraryid && !value.sa)
 				UPD('common.libraryid');
 			RECONFIGURE('movable', 'disabled:' + (value && value.sa ? '0':  '1'));
 		}, true);
+
+		$(document).on('click', 'h1,h2,h3', function() {
+			location.hash = $(this).attr('id');
+		});
 
 		MIDDLEWARE('libraries', function(next) {
 			var fn = function() {
@@ -558,6 +657,10 @@
 					setTimeout(fn, 100);
 			};
 			fn();
+		});
+
+		SETTER(true, 'shortcuts/register', 'F1', function() {
+			EXEC('common/search');
 		});
 
 		NAV.clientside('.jR');

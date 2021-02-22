@@ -1,0 +1,67 @@
+@{layout('')}
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>External Wiki</title>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=11" />
+	<meta name="format-detection" content="telephone=no" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<meta name="robots" content="all,follow" />
+	<link href="https://cdn.componentator.com/spa.min@18pro.css" rel="stylesheet" type="text/css" />
+	<link href="https://cdn.componentator.com/highlight.min@914.css" rel="stylesheet" type="text/css" />
+	<script src="https://cdn.componentator.com/spa.min@18.js"></script>
+	<script src="https://cdn.componentator.com/highlight.min@914.js"></script>
+	@{import('favicon.ico', 'wiki.css', 'wiki.js')}
+</head>
+<body data---="exec">
+
+	<div data---="markdown"></div>
+	<div data---="backtotop"></div>
+	<div data---="loading__null__style:2" class="hidden"></div>
+
+	<div class="content">
+		<div class="panel invisible">
+
+			<div class="search">
+				<i class="fa fa-search"></i>
+				<div><input type="text" id="search" placeholder="Search" name="new-password" autocomplete="Off" /></div>
+			</div>
+
+			<div data---="viewbox__null__parent:window;margin:120;scrollbar:1">
+				<nav id="headlines"></nav>
+			</div>
+			<div id="readingtime"><i class="far fa-clock fa-spin"></i>Reading time: <span style="color:#000000"></span></div>
+		</div>
+		<div class="body">
+			<div id="markdown" style="padding:20px 0">
+<script type="text/html">
+@{!model}
+</script>
+			</div>
+		</div>
+		<footer>
+			All rights reserved &copy; @{NOW.getFullYear()}, <a href="https://www.totaljs.com" target="_blank">Total.js Platform</a><br />
+		</footer>
+	</div>
+
+	<div data---="importer__common.form__if:requestform;url:/forms/request.html"></div>
+
+	<script src="https://cdn.componentator.com/visitors.min@1.js" async defer></script>
+
+	<script>
+		var filename = 'readme.md';
+
+		ON('@flag showloading', function() {
+			SETTER('loading/show');
+		});
+
+		ON('@flag hideloading', function() {
+			SETTER('loading/hide', 1000);
+		});
+
+	</script>
+
+</body>
+</html>

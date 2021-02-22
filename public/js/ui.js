@@ -612,7 +612,7 @@ COMPONENT('markdown', function (self) {
 
 	(function Markdown() {
 
-		var keywords = /\{.*?\}\(.*?\)/g;
+		var keywords = /(^|\s)\{.*?\}\(.*?\)/g;
 		var linksexternal = /(https|http):\/\//;
 		var format = /__.*?__|_.*?_|\*\*.*?\*\*|\*.*?\*|~~.*?~~|~.*?~/g;
 		var ordered = /^[a-z|0-9]{1}\.\s|^-\s/i;
@@ -700,9 +700,18 @@ COMPONENT('markdown', function (self) {
 		}
 
 		function markdown_keywords(value) {
-			var keyword = value.substring(1, value.indexOf('}'));
+
+			var plus = value.charAt(0);
+			var f = 2;
+
+			if (plus === '{') {
+				f = 1;
+				plus = '';
+			}
+
+			var keyword = value.substring(f, value.indexOf('}'));
 			var type = value.substring(value.lastIndexOf('(') + 1, value.lastIndexOf(')'));
-			return '<span class="markdown-keyword" data-type="{0}">{1}</span>'.format(type, keyword);
+			return plus + '<span class="markdown-keyword" data-type="{0}">{1}</span>'.format(type, keyword);
 		}
 
 		function markdown_links2(value) {
@@ -917,6 +926,7 @@ COMPONENT('markdown', function (self) {
 				if (W.hljs) {
 					t.$mdloaded = 1;
 					W.hljs.highlightBlock(block);
+					$(t).parent().parent().append('<div class="help"><span class="link exec" data-exec="common/copytoclipboard"><i class="far fa-copy"></i>{0}</span></div>'.format('Copy to clipboard'));
 				}
 			});
 
@@ -3217,15 +3227,15 @@ COMPONENT('codemirror', 'linenumbers:true;required:false;trim:false;tabs:true;he
 
 		});
 
-		editor.on('drop',function(editor, e) {
-			config.drop && SEEX(self.makepath(config.drop), e, editor);
-		});
-
 		if (config.disabled) {
 			self.aclass('ui-disabled');
 			editor.readOnly = true;
 			editor.refresh();
 		}
+
+		editor.on('drop',function(editor, e) {
+			config.drop && self.SEEX(config.drop, e, editor);
+		});
 
 		var can = {};
 		can['+input'] = can['+delete'] = can.undo = can.redo = can.paste = can.cut = can.clear = true;
@@ -3286,6 +3296,7 @@ COMPONENT('codemirror', 'linenumbers:true;required:false;trim:false;tabs:true;he
 		self.$oldstate = invalid;
 		container.tclass(cls + '-invalid', invalid);
 	};
+
 }, ['//cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.css', '//cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.js', '//cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/mode/javascript/javascript.min.js', '//cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/mode/htmlmixed/htmlmixed.min.js', '//cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/mode/xml/xml.min.js', '//cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/mode/css/css.min.js', '//cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/mode/markdown/markdown.min.js', function(next) {
 
 	CodeMirror.defineMode('totaljsresources', function() {
@@ -3818,7 +3829,7 @@ COMPONENT('menu', function(self, config, cls) {
 	var ul, children, prevsub, parentclass;
 
 	self.make = function() {
-		self.aclass(cls + ' hidden');
+		self.aclass(cls + ' hidden ' + cls + '-style-' + (config.style || 1));
 		self.append('<div class="{0}-items"><ul></ul></div><div class="{0}-submenu hidden"><ul></ul></div>'.format(cls));
 		ul = self.find(cls2 + '-items').find('ul');
 		children = self.find(cls2 + '-submenu');
@@ -3829,7 +3840,7 @@ COMPONENT('menu', function(self, config, cls) {
 
 			var el = $(this);
 			if (!el.hclass(cls + '-divider') && !el.hclass(cls + '-disabled')) {
-
+				self.opt.scope && M.scope(self.opt.scope);
 				var index = el.attrd('index').split('-');
 				if (index.length > 1) {
 					// submenu
@@ -3850,9 +3861,7 @@ COMPONENT('menu', function(self, config, cls) {
 		};
 
 		self.event('scroll', events.hide);
-		self.on('reflow', events.hide);
-		self.on('scroll', events.hide);
-		self.on('resize', events.hide);
+		self.on('reflow + scroll + resize + resize2', events.hide);
 
 		events.click = function(e) {
 			if (is && !isopen && (!self.target || (self.target !== e.target && !self.target.contains(e.target))))
@@ -3915,17 +3924,15 @@ COMPONENT('menu', function(self, config, cls) {
 
 	self.bindevents = function() {
 		events.is = true;
-		$(document).on('touchstart mouseenter mousedown', cls2 + '-children', events.children);
-		$(document).on('touchstart mousedown', events.click);
-		$(window).on('scroll', events.hide);
+		$(document).on('touchstart mouseenter mousedown', cls2 + '-children', events.children).on('touchstart mousedown', events.click);
+		$(W).on('scroll', events.hide);
 		self.element.on('mouseenter', 'li', events.hidechildren);
 	};
 
 	self.unbindevents = function() {
 		events.is = false;
-		$(document).off('touchstart mouseenter mousedown', cls2 + '-children', events.children);
-		$(document).off('touchstart mousedown', events.click);
-		$(window).off('scroll', events.hide);
+		$(document).off('touchstart mouseenter mousedown', cls2 + '-children', events.children).off('touchstart mousedown', events.click);
+		$(W).off('scroll', events.hide);
 		self.element.off('mouseenter', 'li', events.hidechildren);
 	};
 
@@ -4010,6 +4017,7 @@ COMPONENT('menu', function(self, config, cls) {
 
 		self.target = tmp;
 		self.opt = opt;
+		opt.scope = M.scope();
 
 		if (parentclass && opt.classname !== parentclass) {
 			self.rclass(parentclass);
@@ -4078,6 +4086,19 @@ COMPONENT('menu', function(self, config, cls) {
 
 		if (opt.offsetY)
 			css.top += opt.offsetY;
+
+		var mw = w;
+		var mh = self.height();
+
+		if (css.left < 0)
+			css.left = 10;
+		else if ((mw + css.left) > WW)
+			css.left = (WW - mw) - 10;
+
+		if (css.top < 0)
+			css.top = 10;
+		else if ((mh + css.top) > WH)
+			css.top = (WH - mh) - 10;
 
 		self.element.css(css);
 	};
@@ -6162,3 +6183,581 @@ COMPONENT('radiobutton', 'inline:1', function(self, config, cls) {
 	};
 });
 
+COMPONENT('clipboard', function(self) {
+
+	var container;
+
+	self.singleton();
+	self.readonly();
+	self.nocompile && self.nocompile();
+
+	self.copy = function(value) {
+		container.val(value);
+		container.focus();
+		container.select();
+		document.execCommand('copy');
+		container.blur();
+	};
+
+	self.make = function() {
+		var id = 'clipboard' + self.id;
+		$(document.body).append('<textarea id="{0}" class="ui-clipboard"></textarea>'.format(id));
+		container = $('#' + id);
+	};
+
+	self.setter = function(value) {
+		value && self.copy(value);
+	};
+});
+
+COMPONENT('shortcuts', function(self) {
+
+	var items = [];
+	var length = 0;
+	var keys = {};
+	var keys_session = {};
+	var issession = false;
+
+	self.singleton();
+	self.readonly();
+	self.blind();
+	self.nocompile && self.nocompile();
+
+	var cb = function(o, e) {
+		o.callback(e, o.owner);
+	};
+
+	self.make = function() {
+
+		$(W).on('keydown', function(e) {
+
+			var f = e.key;
+			var c = e.keyCode;
+
+			if (f.length > 1 && f.charAt(0) === 'F')
+				c = 0;
+			else
+				f = '-';
+
+			// ctrl,alt,shift,meta,fkey,code
+			var key = (e.ctrlKey ? 1 : 0) + '' + (e.altKey ? 1 : 0) + '' + (e.shiftKey ? 1 : 0) + '' + (e.metaKey ? 1 : 0) + f + c;
+
+			if (issession) {
+				if (!keys_session[key])
+					return;
+			} else {
+				if (!keys[key])
+					return;
+			}
+
+			if (length && !e.isPropagationStopped()) {
+				for (var i = 0; i < length; i++) {
+					var o = items[i];
+					if (o.fn(e)) {
+						if (o.prevent) {
+							e.preventDefault();
+							e.stopPropagation();
+						}
+						setTimeout(cb, 100, o, e);
+						return;
+					}
+				}
+			}
+		});
+
+		ON('component + knockknock', self.refresh);
+	};
+
+	self.refreshforce = function() {
+
+		var arr = document.querySelectorAll('.shortcut');
+		var index = 0;
+
+		while (true) {
+			var item = items[index++];
+			if (item == null)
+				break;
+			if (item.owner) {
+				index--;
+				items.splice(index, 1);
+			}
+		}
+
+		for (var i = 0; i < arr.length; i++) {
+			var shortcut = arr[i].getAttribute('data-shortcut');
+			shortcut && self.register(shortcut, self.execshortcut, true, arr[i]);
+		}
+	};
+
+	self.session = function(callback) {
+		issession = true;
+		keys_session = {};
+		callback(self.register);
+	};
+
+	self.end = function() {
+		issession = false;
+	};
+
+	self.execshortcut = function(e, owner) {
+		$(owner).trigger('click');
+	};
+
+	self.refresh = function() {
+		setTimeout2(self.ID, self.refreshforce, 500);
+	};
+
+	self.exec = function(shortcut) {
+		var item = items.findItem('shortcut', shortcut.toLowerCase().replace(/\s/g, ''));
+		item && item.callback(EMPTYOBJECT, item.owner);
+	};
+
+	self.register = function(shortcut, callback, prevent, owner) {
+
+		var currentkeys = issession ? keys_session : keys;
+
+		shortcut.split(',').trim().forEach(function(shortcut) {
+
+			var builder = [];
+			var alias = [];
+			var cachekey = [0, 0, 0, 0, '-', 0]; // ctrl,alt,shift,meta,fkey,code
+
+			shortcut.split('+').trim().forEach(function(item) {
+				var lower = item.toLowerCase();
+				alias.push(lower);
+
+				switch (lower) {
+					case 'ctrl':
+						cachekey[0] = 1;
+						break;
+					case 'alt':
+						cachekey[1] = 1;
+						break;
+					case 'shift':
+						cachekey[2] = 1;
+						break;
+					case 'win':
+					case 'meta':
+					case 'cmd':
+						cachekey[3] = 1;
+						break;
+				}
+
+				switch (lower) {
+					case 'ctrl':
+					case 'alt':
+					case 'shift':
+						builder.push('e.{0}Key'.format(lower));
+						return;
+					case 'win':
+					case 'meta':
+					case 'cmd':
+						builder.push('e.metaKey');
+						return;
+					case 'ins':
+						builder.push('e.keyCode===45');
+						cachekey[5] = 45;
+						return;
+					case 'space':
+						builder.push('e.keyCode===32');
+						cachekey[5] = 32;
+						return;
+					case 'tab':
+						builder.push('e.keyCode===9');
+						cachekey[5] = 9;
+						return;
+					case 'esc':
+						builder.push('e.keyCode===27');
+						cachekey[5] = 27;
+						return;
+					case 'enter':
+						builder.push('e.keyCode===13');
+						cachekey[5] = 13;
+						return;
+					case 'backspace':
+						builder.push('e.keyCode===8');
+						cachekey[5] = 8;
+						break;
+					case 'del':
+					case 'delete':
+						builder.push('e.keyCode===46');
+						cachekey[5] = 46;
+						return;
+					case 'save':
+						builder.push('(e.metaKey&&e.keyCode===115)');
+						cachekey[5] = -1;
+						return;
+					case 'remove':
+						builder.push('((e.metaKey&&e.keyCode===8)||e.keyCode===46)');
+						cachekey[5] = -1;
+						return;
+					case 'up':
+						builder.push('e.keyCode===38');
+						cachekey[5] = 38;
+						return;
+					case 'down':
+						builder.push('e.keyCode===40');
+						cachekey[5] = 40;
+						return;
+					case 'right':
+						builder.push('e.keyCode===39');
+						cachekey[5] = 39;
+						return;
+					case 'left':
+						builder.push('e.keyCode===37');
+						cachekey[5] = 37;
+						return;
+					case 'f1':
+					case 'f2':
+					case 'f3':
+					case 'f4':
+					case 'f5':
+					case 'f6':
+					case 'f7':
+					case 'f8':
+					case 'f9':
+					case 'f10':
+					case 'f11':
+					case 'f12':
+						var a = item.toUpperCase();
+						builder.push('e.key===\'{0}\''.format(a));
+						cachekey[4] = a;
+						return;
+					case 'capslock':
+						builder.push('e.which===20');
+						cachekey[5] = 20;
+						return;
+				}
+
+				var num = item.parseInt();
+				if (num) {
+					builder.push('e.which===' + num);
+					cachekey[5] = num;
+				} else {
+					num = item.toUpperCase().charCodeAt(0);
+					cachekey[5] = num;
+					builder.push('e.keyCode==={0}'.format(num));
+				}
+			});
+
+			items.push({ shortcut: alias.join('+'), fn: new Function('e', 'return ' + builder.join('&&')), callback: callback, prevent: prevent, owner: owner });
+			length = items.length;
+
+			var k;
+
+			// Remove
+			if (cachekey[5] === -1) {
+				cachekey[5] = 8;
+				k = cachekey.join('');
+				currentkeys[k] = 1;
+				cachekey[5] = 46;
+			}
+
+			k = cachekey.join('');
+			currentkeys[k] = 1;
+		});
+
+		if (!owner)
+			self.refresh();
+
+		return self;
+	};
+});
+
+COMPONENT('dropdowncheckbox', 'checkicon:check;visible:0;alltext:All selected;limit:0;selectedtext:{0} selected', function(self, config, cls) {
+
+	var cls2 = '.' + cls;
+	var data = [], render = '';
+	var container, values, content, datasource = null;
+	var prepared = false;
+	var W = window;
+
+	!W.$dropdowncheckboxtemplate && (W.$dropdowncheckboxtemplate = Tangular.compile('<div class="' + cls + '-item" data-index="{{ index }}"><div><i class="fa fa-{{ $.checkicon }}"></i></div><span>{{ text }}</span></div>'));
+	var template = W.$dropdowncheckboxtemplate;
+
+	self.nocompile && self.nocompile();
+
+	self.validate = function(value) {
+		return config.disabled || !config.required ? true : value && value.length > 0;
+	};
+
+	self.configure = function(key, value, init) {
+
+		if (init)
+			return;
+
+		var redraw = false;
+
+		switch (key) {
+
+			case 'type':
+				self.type = value;
+				break;
+
+			case 'required':
+				self.tclass(cls + '-required', config.required);
+				break;
+
+			case 'label':
+				content = value;
+				redraw = true;
+				break;
+
+			case 'disabled':
+				self.tclass('ui-disabled', value);
+				self.reset();
+				break;
+
+			case 'checkicon':
+				self.find('i').rclass().aclass(value.indexOf(' ') === -1 ? ('fa fa-' + value) : value);
+				break;
+
+			case 'icon':
+				redraw = true;
+				break;
+
+			case 'datasource':
+				self.datasource(value, self.bind);
+				datasource && self.refresh();
+				datasource = value;
+				break;
+
+			case 'items':
+
+				if (value instanceof Array) {
+					self.bind('', value);
+					return;
+				}
+
+				var items = [];
+				value.split(',').forEach(function(item) {
+					item = item.trim().split('|');
+					var val = (item[1] == null ? item[0] : item[1]).trim();
+					if (config.type === 'number')
+						val = +val;
+					items.push({ name: item[0].trim(), id: val });
+				});
+
+				self.bind('', items);
+				self.refresh();
+				break;
+		}
+
+		redraw && setTimeout2(self.id + '.redraw', self.redraw, 100);
+	};
+
+	self.redraw = function() {
+
+		var html = '<div class="{0}"><i class="fa fa-angle-down"></i><div class="{0}-selected"></div></div><div class="{0}-values hidden">{1}</div>'.format(cls, render);
+		if (content.length)
+			self.html('<div class="{0}-label">{1}{2}:</div>'.format(cls, config.icon ? ('<i class="' + (config.icon.indexOf(' ') === -1 ? ('fa fa-' + config.icon) : config.icon) + '"></i>') : '', content) + html);
+		else
+			self.html(html);
+
+		container = self.find(cls2 + '-values');
+		values = self.find(cls2 + '-selected');
+		prepared && self.refresh();
+		self.tclass('ui-disabled', config.disabled === true);
+		self.tclass(cls + '-required', config.required === true);
+	};
+
+	self.make = function() {
+
+		self.type = config.type;
+
+		content = self.html();
+		self.aclass(cls + '-container');
+		self.redraw();
+
+		if (config.items)
+			self.reconfigure({ items: config.items });
+		else if (config.datasource)
+			self.reconfigure({ datasource: config.datasource });
+		else
+			self.bind('', null);
+
+		self.event('click', cls2, function(e) {
+
+			if (config.disabled)
+				return;
+
+			container.tclass('hidden');
+
+			if (W.$dropdowncheckboxelement) {
+				W.$dropdowncheckboxelement.aclass('hidden');
+				W.$dropdowncheckboxelement = null;
+			}
+
+			!container.hclass('hidden') && (W.$dropdowncheckboxelement = container);
+			e.stopPropagation();
+		});
+
+		self.event('click', cls2 + '-item', function(e) {
+
+			e.stopPropagation();
+
+			if (config.disabled)
+				return;
+
+			var el = $(this);
+			var is = !el.hclass(cls + '-checked');
+			var index = +el.attrd('index');
+			var value = data[index];
+
+			if (value === undefined)
+				return;
+
+			value = value.value;
+
+			var arr = self.get();
+
+			if (!(arr instanceof Array))
+				arr = [];
+
+			var index = arr.indexOf(value);
+
+			if (is) {
+				if (config.limit && arr.length === config.limit)
+					return;
+				index === -1 && arr.push(value);
+			} else {
+				index !== -1 && arr.splice(index, 1);
+			}
+
+			self.set(arr);
+			self.change(true);
+		});
+	};
+
+	self.bind = function(path, value) {
+		var clsempty = cls + '-values-empty';
+
+		if (value !== undefined)
+			prepared = true;
+
+		if (!value || !value.length) {
+			var h = config.empty || '&nbsp;';
+			if (h === self.old)
+				return;
+			container.aclass(clsempty).html(h);
+			self.old = h;
+			return;
+		}
+
+		var kv = config.value || 'id';
+		var kt = config.text || 'name';
+
+		render = '';
+		data = [];
+
+		for (var i = 0, length = value.length; i < length; i++) {
+			var isString = typeof(value[i]) === 'string';
+			var item = { value: isString ? value[i] : value[i][kv], text: isString ? value[i] : value[i][kt], index: i };
+			render += template(item, config);
+			data.push(item);
+		}
+
+		var h = HASH(render);
+		if (h === self.old)
+			return;
+
+		self.old = h;
+
+		if (render)
+			container.rclass(clsempty).html(render);
+		else
+			container.aclass(clsempty).html(config.empty);
+
+		self.refresh();
+	};
+
+	self.setter = function(value) {
+
+		if (!prepared)
+			return;
+
+		var label = '';
+		var count = value == null || !value.length ? undefined : value.length;
+
+		if (value && count) {
+			var remove = [];
+			for (var i = 0; i < count; i++) {
+				var selected = value[i];
+				var index = 0;
+				var is = false;
+				while (true) {
+					var item = data[index++];
+					if (item === undefined)
+						break;
+					if (item.value != selected)
+						continue;
+					label += (label ? ', ' : '') + item.text;
+					is = true;
+				}
+				!is && remove.push(selected);
+			}
+
+			if (config.cleaner !== false && value) {
+				var refresh = false;
+				while (true) {
+					var item = remove.shift();
+					if (item === undefined)
+						break;
+					value.splice(value.indexOf(item), 1);
+					refresh = true;
+				}
+				refresh && self.set(value);
+			}
+		}
+
+		container.find(cls2 + '-item').each(function() {
+			var el = $(this);
+			var index = +el.attrd('index');
+			var checked = false;
+			if (!value || !value.length)
+				checked = false;
+			else if (data[index])
+				checked = data[index];
+			checked && (checked = value.indexOf(checked.value) !== -1);
+			el.tclass(cls + '-checked', checked);
+		});
+
+		if (!label && value && config.cleaner !== false) {
+			// invalid data
+			// it updates model without notification
+			self.rewrite([]);
+		}
+
+		if (!label && config.placeholder) {
+			values.rattr('title', '');
+			values.html('<span class="{1}-placeholder">{0}</span>'.format(config.placeholder, cls));
+		} else {
+			if (count == data.length && config.alltext !== 'null' && config.alltext)
+				label = config.alltext;
+			else if (config.visible && count > config.visible)
+				label = config.selectedtext.format(count, data.length);
+			values.attr('title', label);
+			values.html(label);
+		}
+	};
+
+	self.state = function(type) {
+		if (!type)
+			return;
+		var invalid = config.required ? self.isInvalid() : false;
+		if (invalid === self.$oldstate)
+			return;
+		self.$oldstate = invalid;
+		self.tclass(cls + '-invalid', invalid);
+	};
+
+	if (!W.$dropdowncheckboxevent) {
+		W.$dropdowncheckboxevent = true;
+		$(document).on('click', function() {
+			if (W.$dropdowncheckboxelement) {
+				W.$dropdowncheckboxelement.aclass('hidden');
+				W.$dropdowncheckboxelement = null;
+			}
+		});
+	}
+});
