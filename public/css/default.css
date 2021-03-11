@@ -2,6 +2,9 @@
 
 $color      : #4285F4;
 $monospace  : Menlo,Menlo2,Consolas,monospace;
+:root {
+	--radius: 5px;
+}
 
 html,body { overflow: hidden; padding: 0; margin: 0; }
 body { background-color: #E0E0E0; color: #000; font-smoothing: antialiased; }
@@ -43,8 +46,8 @@ footer b { color: #000; }
 .ui-dark .search input { color: #FFF; }
 
 .content { width: 1280px; margin: 0 auto; padding: 0 20px; }
-.body { background: white; border-radius: 2px; box-shadow: 0 0 20px rgba(0,0,0,0.05); margin-left: 320px; }
-.panel { background: white; border-radius: 2px; box-shadow: 0 0 20px rgba(0,0,0,0.05); position: fixed; width: 300px; }
+.body { background: white; border-radius: var(--radius); box-shadow: 0 0 20px rgba(0,0,0,0.05); margin-left: 320px; }
+.panel { background: white; border-radius: var(--radius); box-shadow: 0 0 20px rgba(0,0,0,0.05); position: fixed; width: 300px; }
 
 #readingtime { padding: 10px 16px; font-size: 12px; border-top: 1px solid #F0F0F0; }
 #readingtime span { font-weight: bold; }
@@ -75,25 +78,25 @@ header > h1 { border-bottom-color: #404040; }
 .nav { padding: 10px 0; }
 .nav .group { font-size: 12px; color: #888; padding: 0 0 5px 0; margin: 0 10px; }
 .nav2 .group { font-size: 13px; color: #000; font-weight: bold; }
-.nav .item { height: 24px; cursor: pointer; margin: 2px 8px 3px; border-radius: 2px; font-size: 12px; }
+.nav .item { height: 26px; cursor: pointer; margin: 2px 8px 3px; border-radius: var(--radius); font-size: 12px; }
 .nav .item > span { float: right; width: 24px; font-size: 12px; padding: 5px 5px 0 0; text-align: right; color: gray; }
 .nav .item > span:hover { color: black; }
 .nav .item:hover { background-color: #F0F0F0; color: black; }
-.nav .item > i { float: left; width: 18px; font-size: 14px; padding: 5px 0 0 0; margin: 0 5px; color: gray; text-align: center; }
-.nav .item > div { margin: 0 40px 0 32px; line-height: 24px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-.nav a > span b { background-color: #F00000; color: #FFF; margin: 0 0 0 5px; font-size: 8px; padding: 1px 3px; border-radius: 2px; font-family: Arial; position: relative; display: inline-block; line-height: 10px; vertical-align: middle; text-decoration: none; }
+.nav .item > i { float: left; width: 18px; font-size: 14px; padding: 6px 0 0 0; margin: 0 5px; color: gray; text-align: center; }
+.nav .item > div { margin: 0 40px 0 32px; line-height: 26px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.nav a > span b { background-color: #F00000; color: #FFF; margin: 0 0 0 5px; font-size: 8px; padding: 1px 3px; border-radius: var(--radius); font-family: Arial; position: relative; display: inline-block; line-height: 10px; vertical-align: middle; text-decoration: none; }
 .nav .selected { color: white !important; background-color: $color !important; }
 .nav .selected i { color: white !important; }
 .nav .selected span { color: white; }
 .nav .selected i.green { color: #68B25B !important; }
 .nav hr { margin: 10px 0; border-color: #E0E0E0; }
 .nav .light { color: gray; }
-.nav a { height: 24px; cursor: pointer; margin: 2px 8px 3px; border-radius: 2px; font-size: 12px; display: block; color: #000; }
+.nav a { height: 26px; cursor: pointer; margin: 2px 8px 3px; border-radius: var(--radius); font-size: 12px; display: block; color: #000; }
 .nav a:hover { background-color: #F0F0F0; color: black; text-decoration: none; }
 .nav a > b { float: right; width: 18px; font-size: 11px; color: gray; margin: 4px 0 0; display: none; }
 .admin .nav a > b { display: block; }
-.nav a > i { float: left; width: 18px; font-size: 14px; padding: 5px 0 0 0; margin: 0 5px; color: gray; text-align: center; }
-.nav a > span { margin: 0 5px 18px 32px; line-height: 24px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: block; }
+.nav a > i { float: left; width: 18px; font-size: 14px; padding: 6px 0 0 0; margin: 0 5px; color: gray; text-align: center; }
+.nav a > span { margin: 0 5px 18px 32px; line-height: 26px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: block; }
 
 .ui-dark .nav .group { color: #D0D0D0; }
 .ui-dark .nav2 .group { color: #FFF; }
@@ -116,7 +119,7 @@ header > h1 { border-bottom-color: #404040; }
 	.nav a > i { width: 30px; font-size: 18px; padding-top: 7px; }
 }
 
-.button { background-color: $color; border: 0; color: white; padding: 0 15px; cursor: pointer; outline: 0; border-radius: 2px; height: 34px; text-transform: uppercase; font-family: Arial; font-size: 14px; }
+.button { background-color: $color; border: 0; color: white; padding: 0 15px; cursor: pointer; outline: 0; border-radius: var(--radius); height: 34px; text-transform: uppercase; font-family: Arial; font-size: 14px; }
 .button:hover { box-shadow: 0 2px 5px rgba(0,0,0,0.1); opacity: 0.9; }
 .button:disabled { background-color: #E0E0E0; color: silver; cursor: not-allowed; box-shadow: none; opacity: 1; }
 .button:disabled i { color: silver !important; }
@@ -157,14 +160,14 @@ hr { border-color: #E0E0E0; }
 .markdown h1 { cursor: default; margin: 0 0 20px; font-size: 34px; padding: 0 0 13px; border-bottom: 1px solid #E0E0E0; color: black; line-height: 38px; font-family: Arial; font-weight: normal; line-height: 32px; font-weight: normal; }
 .markdown h2 { cursor: default; margin: 0 0 18px; font-weight: bold; font-size: 24px; padding: 8px 0; border-bottom: 1px solid #E0E0E0; color: black; line-height: 28px; font-family: Arial; }
 .markdown h3 { cursor: default; margin: 0 0 10px; font-size: 20px; padding: 5px 0; color: #404040; font-weight: bold; line-height: 22px; font-family: Arial; }
-.markdown h4, .markdown h5 { cursor: default; margin: 0 0 10px; font-size: 17px; color: #404040; font-weight: bold; line-height: 22px; font-family: Arial; background-color: #F0F0F0; padding: 4px 3px; border-radius: 3px; border-bottom: 1px solid #E0E0E0; }
+.markdown h4, .markdown h5 { cursor: default; margin: 0 0 10px; font-size: 17px; color: #404040; font-weight: bold; line-height: 22px; font-family: Arial; padding: 4px 8px; border-radius: var(--radius); border: 3px solid #E0E0E0; }
 .markdown p { margin: 0 0 15px; padding-left: 0; padding-right: 0; }
 .markdown-small p { margin-bottom: 10px; }
-.markdown p code, .markdown li code, .markdown section code, .markdown blockquote code, .markdown h1 code, .markdown h2 code, .markdown h3 code, .markdown h4 code, .markdown td code { background-color: #E0E0E0; padding: 1px 3px 2px; border-radius: 2px; font-size: 14px; }
+.markdown p code, .markdown li code, .markdown section code, .markdown blockquote code, .markdown h1 code, .markdown h2 code, .markdown h3 code, .markdown h4 code, .markdown td code { background-color: #E0E0E0; padding: 1px 3px 2px; border-radius: var(--radius); font-size: 14px; }
 .markdown p code, .markdown section code, .markdown li code, .markdown blockquote code, .markdown td code { border: 1px solid #E0E0E0; background-color: #F5F5F5; }
 .markdown .code { margin-bottom: 15px; }
-.markdown pre { padding: 0; border-radius: 2px; margin: 0; width: 100%; }
-.markdown pre code { padding: 10px; font-size: 14px; line-height: 17px; overflow-scrolling: touch; border-radius: 2px; overflow-x: auto; overflow-y: hidden; }
+.markdown pre { padding: 0; border-radius: var(--radius); margin: 0; width: 100%; }
+.markdown pre code { padding: 10px; font-size: 14px; line-height: 17px; overflow-scrolling: touch; border-radius: var(--radius); overflow-x: auto; overflow-y: hidden; }
 .markdown-small p code, .markdown-small li code, .markdown-small section code, .markdown-small blockquote code, .markdown-small h1 code, .markdown-small h2 code, .markdown-small h3 code, .markdown-small h4 code, .markdown-small td code, .markdown-small pre code { font-size: 12px; }
 .markdown table { margin: 0 0 15px; width: auto !important; }
 .markdown ul { margin: 0 0 15px; padding: 0 0 0 2em; }
@@ -173,7 +176,7 @@ hr { border-color: #E0E0E0; }
 .markdown th { background-color: #F8F8F8; }
 .markdown blockquote { color: black; margin: 0 0 20px; padding: 10px 0 0 20px; position: relative; font-style: italic; }
 .markdown blockquote:before { content: '\201C'; position: absolute; margin-left: -18px; margin-top: -13px; font: 45px 'PT Sans', sans-serif; color: #A0A0A0; }
-.markdown section { padding: 15px 20px; background-color: #FFFED1; margin: 10px 0 20px; border-radius: 2px; }
+.markdown section { padding: 15px 20px; background-color: #FFFED1; margin: 10px 0 20px; border-radius: var(--radius); }
 .markdown hr { border-color: #E0E0E0; border-width: 2px; }
 .markdown-line2 { border-width: 4px; margin: 15px 0 30px !important; }
 .markdown h1 code { font-size: 28px; font-weight: normal; background-color: #DAE8F8; }
@@ -184,12 +187,13 @@ hr { border-color: #E0E0E0; }
 .markdown-tasks li > i:first-child { margin-right: 5px; }
 .markdown-code { margin-bottom: 15px; }
 .markdown-code .link { color: #999; }
-.markdown-block { margin: 0; cursor: pointer; }
+.markdown-block { margin: 0;}
 .markdown-block > div { margin-bottom: 15px; }
 .markdown-block:last-child { margin-bottom: 15px; }
-.markdown-showblock code { font-size: 15px; background-color: #DAE8F8; text-decoration: none !important; border-color: #D5DFEB; padding: 1px 2px; border-radius: 2px; }
+.markdown-showblock { cursor: pointer; }
+.markdown-showblock code { font-size: 15px; background-color: #DAE8F8; text-decoration: none !important; border-color: #D5DFEB; padding: 1px 2px; border-radius: var(--radius); }
 .markdown a code { background-color: #DAE8F8; text-decoration: none !important; border-color: #D5DFEB; }
-.markdown-footnote { background-color: rgba(0,0,0,0.1); padding: 0 2px; border-radius: 2px; cursor: help; }
+.markdown-footnote { background-color: rgba(0,0,0,0.1); padding: 0 2px; border-radius: var(--radius); cursor: help; }
 .markdown-footnotebody { font-size: 11px; border-top: 1px solid #E0E0E0; font-family: Arial; color: #505050; }
 .markdown-showsecret { cursor: pointer; display: block; padding: 8px 15px; user-select: none; font-size: 14px; }
 .markdown-showsecret b { margin-left: 8px; }
@@ -197,9 +201,9 @@ hr { border-color: #E0E0E0; }
 .markdown-showblock { cursor: pointer; display: block; padding: 3px 0; user-select: none; border-bottom: 1px solid #E0E0E0; }
 .markdown-showblock i { width: 16px; font-size: 12px; padding: 5px 0 0; float: left; margin-right: 3px; }
 .markdown-showblock-visible { border-bottom: 0; }
-.markdown-block > div { padding: 20px 20px 10px; border: 1px solid #E0E0E0; margin: 10px 0; border-radius: 2px; }
-.markdown-secret { padding: 0; border-radius: 2px; border: 1px solid #E0E0E0; }
-.markdown-secret > div { padding: 15px 5px 1px; border-radius: 0 0 2px 2px; background-color: #F8F8F8; }
+.markdown-block > div { padding: 20px 20px 10px; border: 1px solid #E0E0E0; margin: 10px 0; border-radius: var(--radius); }
+.markdown-secret { padding: 0; border-radius: var(--radius); border: 1px solid #E0E0E0; }
+.markdown-secret > div { padding: 15px 5px 1px; border-radius: 0 0 var(--radius) var(--radius); background-color: #F8F8F8; }
 .markdown-video { position: relative; padding-bottom: 56.25%; padding-top: 25px; height: 0; margin-bottom: 15px; }
 .markdown-video iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 .markdown-keyword { font-size: 13px; font-family: Menlo,Consolas,monospace; color: #777; }
@@ -241,12 +245,12 @@ hr { border-color: #E0E0E0; }
 	footer { text-align: center; }
 }
 
-.form { background-color: white; border-radius: 2px; border: 1px solid #E0E0E0 }
+.form { background-color: white; border-radius: var(--radius); border: 1px solid #E0E0E0 }
 .form > label { background-color: white; border-bottom: 1px solid #E0E0E0; display: block; padding: 15px 20px; font-size: 16px; font-weight: bold; }
 .form > label i { margin-right: 10px; }
 .ui-centered-body .form { box-shadow: 0 20px 20px rgba(0,0,0,0.1); }
 
-.badge { font-size: 11px; padding: 1px 6px 2px; border-radius: 2px; background-color: #F0F0F0; line-height: 12px; vertical-align: middle; margin-top: -2px; position: relative; display: inline-block; color: white; font-family: Arial; }
+.badge { font-size: 11px; padding: 1px 6px 2px; border-radius: var(--radius); background-color: #F0F0F0; line-height: 12px; vertical-align: middle; margin-top: -2px; position: relative; display: inline-block; color: white; font-family: Arial; }
 .badge i { margin-right: 3px; }
 .badge-blue { background-color: #4CC1E9; }
 .badge-red { background-color: #DA4453; }

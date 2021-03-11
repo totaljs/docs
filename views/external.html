@@ -17,6 +17,7 @@
 </head>
 <body data---="exec">
 
+	<div data---="LAZY clipboard"></div>
 	<div data---="markdown"></div>
 	<div data---="backtotop"></div>
 	<div data---="loading__null__style:2" class="hidden"></div>
@@ -60,6 +61,18 @@
 		ON('@flag hideloading', function() {
 			SETTER('loading/hide', 1000);
 		});
+
+		function copytoclipboard(el) {
+			console.log(el);
+			var lines = el.parent().prev().text().split('\n');
+			for (var i = 0; i < lines.length; i++) {
+				var line = lines[i];
+				lines[i] = lines[i].replace(/^\s+/g, function(text) {
+					return text.replace(/\s{4}/g, '\t');
+				});
+			}
+			SETTER('clipboard/copy', lines.join('\n'));
+		}
 
 	</script>
 

@@ -97,6 +97,18 @@ COMPONENT('items', 'lnew:new;lchangelog:Changelog;ldeprecated:Deprecated;lcreate
 		});
 	};
 
+	function higlight_rest(name) {
+
+		var index = name.indexOf(' ');
+		var method = name.substring(0, index);
+
+		index = name.indexOf('?');
+		var url = name.substring(method.length + 1, index === -1 ? name.length : index);
+		var arg = index === -1 ? '' : name.substring(index);
+
+		return '<span class="method {0}">{0}</span><span class="url">{1}</span>'.format(method.toUpperCase().encode(), url.encode()) + (arg ? '<span class="query">{0}</span>'.format(arg) : '');
+	}
+
 	self.setter = function(value) {
 
 		if (!value) {
@@ -187,12 +199,15 @@ COMPONENT('items', 'lnew:new;lchangelog:Changelog;ldeprecated:Deprecated;lcreate
 				var item = arr[i];
 				var name = item.name.encode();
 				var icon = item.icon || 'fa fa-angle-right';
-				var version = item.version ? '<span>{0}</span>'.format(((/^\+v/).test(item.version) ? '' : '+v') + item.version.encode()) : '';
+				var version = item.version ? '<span class="version">{0}</span>'.format(((/^\+v/).test(item.version) ? '' : '+v') + item.version.encode()) : '';
 				var newbie = item.newbie ? '<b>{0}</b>'.format(config.lnew) : '';
 				var deprecated = item.deprecated ? ' {0}-deprecated'.format(cls) : '';
 
 				if (plus && name.charAt(name.length - 1) !== ';')
 					name += plus;
+
+				if (item.type === 'rest')
+					name = higlight_rest(name);
 
 				if (item.deprecated)
 					name = name + '<strong class="badge badge-silver badge-small ml5">{0}</strong>'.format(config.ldeprecated);
@@ -923,9 +938,69 @@ COMPONENT('markdown', function (self) {
 				var t = this;
 				if (t.$mdloaded)
 					return;
+
 				if (W.hljs) {
 					t.$mdloaded = 1;
-					W.hljs.highlightBlock(block);
+					var lines;
+					var index;
+
+					if (block.classList.contains('lang-request')) {
+						lines = block.innerHTML.split('\n');
+						for (var i = 0; i < lines.length; i++) {
+							var line = lines[i];
+							if ((/^(GET|POST|PUT|PATCH|DELETE|API|HEAD)\s/).test(line)) {
+								index = line.indexOf(' ');
+								var method = line.substring(0, index);
+								index = line.indexOf('?');
+								var url = line.substring(method.length + 1, index === -1 ? line.length : index);
+								var arg = index === -1 ? '' : line.substring(index);
+								lines[i] = '<span class="method {0}">{0}</span> <span class="b">{1}</span>'.format(method.toUpperCase(), url) + (arg ? '<span class="hljs-comment">{0}</span>'.format(arg) : '');
+							} else if ((/[a-z-]+(\s)?\:/i).test(line)) {
+								index = line.indexOf(':');
+								var name = line.substring(0, index).trim();
+								var value = line.substring(index + 1).trim();
+								lines[i] = '<span class="hljs-built_in">{0}</span>: <span class="hljs-string">{1}</span>'.format(name, value);
+							} else if (lines[i].trim()) {
+								index = line.indexOf('//');
+								if (index !== -1)
+									lines[i] = '<span class="hljs-attribute">{0}</span>'.format(line.substring(0, index)) + '<span class="hljs-comment">{0}</span>'.format(line.substring(index));
+								else
+									lines[i] = '<span class="hljs-attribute">{0}</span>'.format(line);
+							}
+						}
+
+						block.innerHTML = lines.join('\n').replace(/\t/, ' ');
+						block.classList.add('hljs');
+					} else if (block.classList.contains('lang-resource') || block.classList.contains('lang-config')) {
+
+						lines = block.innerHTML.split('\n');
+
+						for (var i = 0; i < lines.length; i++) {
+							var line = lines[i];
+							var clean = line.trim();
+
+							if (clean.substring(0, 3) === '// ') {
+								lines[i] = '<span class="hljs-comment">{0}</span>'.format(line);
+								continue;
+							}
+
+							if (!clean)
+								continue;
+
+							index = line.indexOf(':');
+
+							var name = '<span class="hljs-built_in">{0}</span>'.format(line.substring(0, index));
+							var val = line.substring(index + 1);
+							var value = ':<span class="{1}">{0}</span>'.format(val, (/(\s)[\d.\,]+/).test(val) ? 'hljs-number' : (/(\s)(true|false)+/).test(val) ? 'hljs-string' : 'hljs-attribute');
+							lines[i] = name + value;
+						}
+
+						block.innerHTML = lines.join('\n').replace(/\t/, ' ');
+						block.classList.add('hljs');
+
+					} else
+						W.hljs.highlightBlock(block);
+
 					$(t).parent().parent().append('<div class="help"><span class="link exec" data-exec="common/copytoclipboard"><i class="far fa-copy"></i>{0}</span></div>'.format('Copy to clipboard'));
 				}
 			});
