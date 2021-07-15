@@ -60,6 +60,7 @@ function view_index() {
 		opt.url = self.query.url;
 		opt.dnscache = true;
 		opt.limit = 100;
+		opt.timeout = 3000;
 		opt.callback = function(err, response) {
 			if (err)
 				self.json(err);
@@ -75,12 +76,14 @@ function openplatform(req, res) {
 	res.file(PATH.root('openplatform.json'));
 }
 
+const isIMAGE = { jpg: 1, png: 1, gif: 1, svg: 1 };
+
 function files(req, res) {
 	var arr = req.split[1].split('-');
 	var id = arr[0];
 	var hash = arr[0].makeid();
 	if (arr[1] === hash)
-		res.filefs('files', id);
+		res.filefs('files', id, !isIMAGE[req.extension]);
 	else
 		res.throw404();
 }

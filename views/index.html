@@ -13,7 +13,7 @@
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" />
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js"></script>
 	<script src="https://cdn.componentator.com/spa.min@18.js"></script>
-	@{import('meta', 'head', 'default.css + ui.css', 'default.js + ui.js', 'favicon.ico')}
+	@{import('meta', 'head', 'ui.css + default.css', 'default.js + ui.js', 'favicon.ico')}
 </head>
 <body data---="exec"@{if query.darkmode==='1'} class="ui-dark"@{fi}>
 
@@ -84,13 +84,13 @@
 		</section>
 
 		<section data-type="left">
-			<div data---="viewbox__null__parent:.ui-layout-section;scrollbar:1;visibleY:0;margin:45">
+			<div data---="viewbox__null__parent:.ui-layout-section;scrollbar:1;visibleY:0;margin:45;scrollbarshadow:1" class="invisible">
 				<a href="/" class="logo jR">
 					@{CONF.name}
 				</a>
 				<nav class="nav nmt" data---="movable__null__selector:.jR;exec:common/movelibrary">
 					<div class="hidden" data-bind="user__show">
-						<div class="item exec" data-exec="common/options"><i class="far fa-cog"></i><div>@(Options)</div></div>
+						<div class="item exec" data-exec="common/options"><i class="far fa-cog"></i><div class="b">@(Options)</div></div>
 						<hr />
 					</div>
 					<div data-bind="common.libraries2__template" data---="selected__common.libraryid__selector:.jR">
@@ -116,12 +116,13 @@
 		</section>
 
 		<section data-type="right2">
+
 			<div class="search exec" data-exec="common/search">
 				<i class="far fa-search"></i>
 				<!-- <div><input type="text" placeholder="@(Search)" /></div> -->
 				<div><span>F1</span>@(Search items)</div>
 			</div>
-			<div data---="viewbox__common.pages2__parent:.ui-layout-section;scrollbar:1;visibleY:0;margin:47" data-bind="common.libraryid__exec:common/permissions">
+			<div data---="viewbox__common.pages2__parent:.ui-layout-section;scrollbar:1;visibleY:0;margin:47;scrollbarshadow:1" data-bind="common.libraryid__exec:common/permissions">
 
 				<nav class="nav nav2 nmt" data---="movable__null__selector:.jR;exec:common/movepage">
 					<div data-bind="common.pages2__template" data---="selected__common.pageid__selector:.jR">
@@ -144,7 +145,7 @@
 		</section>
 
 		<section data-type="main">
-			<div data---="viewbox__common.page__parent:.ui-layout-section;scrollbar:1;scrolltop:1" data-bind="common.libraryid__exec:common/permissions">
+			<div data---="viewbox__common.page__parent:.ui-layout-section;scrollbar:1;scrolltop:1;scrollbarshadow:1" data-bind="common.libraryid__exec:common/permissions">
 				<header>
 					<h1 data-bind="common.page.name__text"></h1>
 				</header>
@@ -194,6 +195,7 @@
 				AJAX('GET /api/libraries/', function(response) {
 
 					var arr = [];
+					var privatelibraries = [];
 
 					for (var i = 0; i < common.maingroups.length; i++) {
 						var g = common.maingroups[i];
@@ -209,12 +211,15 @@
 						if (!item.group || common.maingroups.indexOf(item.group) === -1)
 							uncategorized.push(item);
 						item.draggable = W.user && W.user.sa;
+						if (item.private)
+							privatelibraries.push(item);
 					}
 
 					uncategorized.quicksort('sortindex');
 					arr.unshift({ name: '', items: uncategorized });
 					SET('?.libraries', response);
 					SET('?.libraries2', arr);
+					SET('?.privatelibraries', privatelibraries);
 					UPD('?.libraryid');
 				});
 			};
@@ -427,7 +432,9 @@
 						SETTER('approve/show', '@(Are you sure you want to remove selected library?)', '"trash-o" @(Remove)', function() {
 							AJAX('DELETE /api/libraries/{0}/'.format(id), function() {
 								common.libraries = common.libraries.remove('id', id);
+								common.privatelibraries = common.privatelibraries.remove('id', id);
 								UPD('common.libraries');
+								UPD('common.privatelibraries');
 								if (common.libraryid === id)
 									NULL('common.libraryid');
 							});
@@ -498,7 +505,7 @@
 				}
 
 				opt.items.push('-');
-				opt.items.push({ id: 'logoff', name: '@(Sign out)', icon: 'far fa-power-off red' });
+				opt.items.push({ id: 'logoff', name: '@(Sign out)', icon: 'fas fa-power-off red' });
 				opt.offsetY = -10;
 				opt.callback = function(item) {
 					exports[item.id]();

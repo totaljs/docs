@@ -7,6 +7,7 @@ NEWSCHEMA('Users', function(schema) {
 	schema.define('isdisabled', Boolean);
 	schema.define('welcome', Boolean);
 	schema.define('libraries', '[UID]');
+	schema.define('access', '[UID]');
 
 	schema.setQuery(function($) {
 		NOSQL('users').find().sort('dtcreated').fields('-password').sort('dtcreated_desc').callback($.callback);
@@ -28,7 +29,7 @@ NEWSCHEMA('Users', function(schema) {
 	schema.setUpdate(function($, model) {
 		model.welcome = undefined;
 		model.dtupdated = NOW;
-		model.password = model.password.startsWith('***') ? model.password.sha256(CONF.admin_password) : undefined;
+		model.password = model.password.startsWith('***') ? undefined : model.password.sha256(CONF.admin_password);
 		NOSQL('users').modify(model).id($.id).callback($.done($.id));
 	});
 

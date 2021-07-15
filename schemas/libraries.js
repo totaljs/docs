@@ -8,9 +8,18 @@ NEWSCHEMA('Libraries', function(schema) {
 	schema.define('color', 'String(7)');
 	schema.define('newbie', Boolean);
 	schema.define('groups', '[String]');
+	schema.define('private', Boolean);
 
 	schema.setQuery(function($) {
-		NOSQL('db').find().where('kind', 'library').sort('group').callback($.callback);
+		NOSQL('db').find().where('kind', 'library').sort('group').callback(function(err, response) {
+
+			for (var item of response) {
+				if (item.private && (!$.user || (!$.user.sa && (!$.user.access || $.user.access.indexOf(item.id) === -1))))
+					response.splice(response.indexOf(item), 1);
+			}
+
+			$.callback(response);
+		});
 	});
 
 	schema.setRead(function($) {
@@ -28,15 +37,20 @@ NEWSCHEMA('Libraries', function(schema) {
 
 		model.dtupdated = NOW;
 
+		var done = function() {
+			$.success();
+			FUNC.refresh_private();
+		};
+
 		if (model.id) {
 			model.updater = $.user.name;
-			db.modify(model).id(model.id).callback($.done());
+			db.modify(model).id(model.id).callback($.successful(done));
 		} else {
 			model.kind = 'library';
 			model.id = UID16();
 			model.dtcreated = NOW;
 			model.creator = $.user.name;
-			db.insert(model).callback($.done());
+			db.insert(model).callback($.successful(done));
 		}
 	});
 
@@ -50,7 +64,10 @@ NEWSCHEMA('Libraries', function(schema) {
 		NOSQL('db').remove().or(function(builder) {
 			builder.where('libraryid', $.id);
 			builder.id($.id);
-		}).callback($.done());
+		}).callback($.successful(function() {
+			FUNC.refresh_private();
+			$.success();
+		}));
 
 	});
 

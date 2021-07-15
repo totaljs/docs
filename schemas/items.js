@@ -18,9 +18,17 @@ NEWSCHEMA('Items', function(schema) {
 
 	schema.setQuery(function($) {
 
+		var id = $.query.library;
+		if (MAIN.private[id]) {
+			if (!$.user || (!$.user.sa && (!$.user.access || $.user.access.indexOf(id) === -1))) {
+				$.callback([]);
+				return;
+			}
+		}
+
 		var builder = NOSQL('db').find();
 		builder.where('kind', 'item');
-		builder.where('libraryid', $.query.library);
+		builder.where('libraryid', id);
 
 		if ($.query.q) {
 			builder.search('search', $.query.q.toSearch());

@@ -3,7 +3,7 @@
 $color      : #4285F4;
 $monospace  : Menlo,Menlo2,Consolas,monospace;
 :root {
-	--radius: 5px;
+	--radius: 3px;
 }
 
 html,body { overflow: hidden; padding: 0; margin: 0; }
@@ -77,7 +77,7 @@ header > h1 { border-bottom-color: #404040; }
 
 .nav { padding: 10px 0; }
 .nav .group { font-size: 12px; color: #888; padding: 0 0 5px 0; margin: 0 10px; }
-.nav2 .group { font-size: 13px; color: #000; font-weight: bold; }
+.nav2 .group { font-size: 14px; color: #000; font-weight: bold; border-bottom: 1px solid #E0E0E0; margin-bottom: 10px; }
 .nav .item { height: 26px; cursor: pointer; margin: 2px 8px 3px; border-radius: var(--radius); font-size: 12px; }
 .nav .item > span { float: right; width: 24px; font-size: 12px; padding: 5px 5px 0 0; text-align: right; color: gray; }
 .nav .item > span:hover { color: black; }
@@ -91,12 +91,12 @@ header > h1 { border-bottom-color: #404040; }
 .nav .selected i.green { color: #68B25B !important; }
 .nav hr { margin: 10px 0; border-color: #E0E0E0; }
 .nav .light { color: gray; }
-.nav a { height: 26px; cursor: pointer; margin: 2px 8px 3px; border-radius: var(--radius); font-size: 12px; display: block; color: #000; }
+.nav a { height: 28px; cursor: pointer; margin: 3px 8px 3px; border-radius: var(--radius); font-size: 13px; display: block; color: #000; }
 .nav a:hover { background-color: #F0F0F0; color: black; text-decoration: none; }
 .nav a > b { float: right; width: 18px; font-size: 11px; color: gray; margin: 4px 0 0; display: none; }
 .admin .nav a > b { display: block; }
-.nav a > i { float: left; width: 18px; font-size: 14px; padding: 6px 0 0 0; margin: 0 5px; color: gray; text-align: center; }
-.nav a > span { margin: 0 5px 18px 32px; line-height: 26px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: block; }
+.nav a > i { float: left; width: 18px; font-size: 14px; padding: 7px 0 0 0; margin: 0 5px; color: gray; text-align: center; }
+.nav a > span { margin: 0 5px 18px 32px; line-height: 28px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: block; }
 
 .ui-dark .nav .group { color: #D0D0D0; }
 .ui-dark .nav2 .group { color: #FFF; }
@@ -160,6 +160,7 @@ hr { border-color: #E0E0E0; }
 .markdown h1 { cursor: default; margin: 0 0 20px; font-size: 34px; padding: 0 0 13px; border-bottom: 1px solid #E0E0E0; color: black; line-height: 38px; font-family: Arial; font-weight: normal; line-height: 32px; font-weight: normal; }
 .markdown h2 { cursor: default; margin: 0 0 18px; font-weight: bold; font-size: 24px; padding: 8px 0; border-bottom: 1px solid #E0E0E0; color: black; line-height: 28px; font-family: Arial; }
 .markdown h3 { cursor: default; margin: 0 0 10px; font-size: 20px; padding: 5px 0; color: #404040; font-weight: bold; line-height: 22px; font-family: Arial; }
+.markdown-small .markdown h1 { margin: 0 0 20px; font-size: 28px; padding: 0 0 13px; line-height: 30px; line-height: 30px; }
 .markdown h4, .markdown h5 { cursor: default; margin: 0 0 10px; font-size: 17px; color: #404040; font-weight: bold; line-height: 22px; font-family: Arial; padding: 4px 8px; border-radius: var(--radius); border: 3px solid #E0E0E0; }
 .markdown p { margin: 0 0 15px; padding-left: 0; padding-right: 0; }
 .markdown-small p { margin-bottom: 10px; }
@@ -197,7 +198,7 @@ hr { border-color: #E0E0E0; }
 .markdown-footnotebody { font-size: 11px; border-top: 1px solid #E0E0E0; font-family: Arial; color: #505050; }
 .markdown-showsecret { cursor: pointer; display: block; padding: 8px 15px; user-select: none; font-size: 14px; }
 .markdown-showsecret b { margin-left: 8px; }
-.markdown-showsecret .pull-right { margin: 2px 0 0; }
+.markdown-showsecret .pull-right { margin: 5px 0 0; }
 .markdown-showblock { cursor: pointer; display: block; padding: 3px 0; user-select: none; border-bottom: 1px solid #E0E0E0; }
 .markdown-showblock i { width: 16px; font-size: 12px; padding: 5px 0 0; float: left; margin-right: 3px; }
 .markdown-showblock-visible { border-bottom: 0; }
@@ -287,3 +288,5 @@ dd:before { content: ':'; margin-right: 8px; color: gray; }
 .ui-dark .hljs-deletion { background-color: #600; color: #e6e1dc; }
 .ui-dark .hljs-selector-class { color: #9b703f; }
 .ui-dark .hljs-selector-id { color: #8b98ab; }
+
+.ui-layout-section { background-color: #FFF; }

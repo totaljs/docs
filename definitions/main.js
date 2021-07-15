@@ -12,3 +12,13 @@ AUTH(function($) {
 	opt.expire = '1 month';
 	MAIN.session.getcookie($, opt, $.done());
 });
+
+FUNC.refresh_private = function() {
+	MAIN.private = {};
+	NOSQL('db').find().where('kind', 'library').where('private', true).fields('id').callback(function(err, response) {
+		for (var item of response)
+			MAIN.private[item.id] = 1;
+	});
+};
+
+ON('ready', FUNC.refresh_private);

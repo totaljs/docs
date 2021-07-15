@@ -30,7 +30,7 @@ COMPONENT('items', 'lnew:new;lchangelog:Changelog;ldeprecated:Deprecated;lcreate
 			var url = $(this).attr('href');
 			if (url.charAt(0) === '#') {
 				setTimeout2(self.ID + 'hash', moveto, 100, null, url.substring(1));
-			} else if (url.charAt(0) === '/') {
+			} else if (url.charAt(0) === '/' && url.substring(0, 5) !== '/down') {
 				e.preventDefault();
 				REDIRECT(url);
 			}
@@ -334,265 +334,6 @@ COMPONENT('nav', function(self, config, cls) {
 			prev = self.find('li[data-id="{0}"]'.format(value)).aclass('selected');
 	};
 
-});
-
-COMPONENT('importer', function(self, config) {
-
-	var init = false;
-	var clid = null;
-	var pending = false;
-	var content = '';
-
-	self.readonly();
-
-	self.make = function() {
-		var scr = self.find('script');
-		content = scr.length ? scr.html() : '';
-	};
-
-	self.reload = function(recompile) {
-		config.reload && EXEC(config.reload);
-		recompile && COMPILE();
-		setTimeout(function() {
-			pending = false;
-			init = true;
-		}, 1000);
-	};
-
-	self.setter = function(value) {
-
-		if (pending)
-			return;
-
-		if (config.if !== value) {
-			if (config.cleaner && init && !clid)
-				clid = setTimeout(self.clean, config.cleaner * 60000);
-			return;
-		}
-
-		pending = true;
-
-		if (clid) {
-			clearTimeout(clid);
-			clid = null;
-		}
-
-		if (init) {
-			self.reload();
-			return;
-		}
-
-		if (content) {
-			self.html(content);
-			setTimeout(self.reload, 50, true);
-		} else
-			self.import(config.url, self.reload);
-	};
-
-	self.clean = function() {
-		config.clean && EXEC(config.clean);
-		setTimeout(function() {
-			self.empty();
-			init = false;
-			clid = null;
-		}, 1000);
-	};
-});
-
-COMPONENT('viewbox', 'margin:0;scroll:true;delay:100;scrollbar:0;visibleY:1;height:100;invisible:1', function(self, config) {
-
-	var eld, elb;
-	var scrollbar;
-	var cls = 'ui-viewbox';
-	var cls2 = '.' + cls;
-	var init = false;
-
-	self.readonly();
-
-	self.init = function() {
-		var obj;
-		if (W.OP)
-			obj = W.OP;
-		else
-			obj = $(W);
-
-		var resize = function() {
-			for (var i = 0; i < M.components.length; i++) {
-				var com = M.components[i];
-				if (com.name === 'viewbox' && com.dom.offsetParent && com.$ready && !com.$removed)
-					com.resize();
-			}
-		};
-
-		obj.on('resize', function() {
-			setTimeout2('viewboxresize', resize, 200);
-		});
-	};
-
-	self.destroy = function() {
-		scrollbar && scrollbar.destroy();
-	};
-
-	self.configure = function(key, value, init) {
-		switch (key) {
-			case 'disabled':
-				eld.tclass('hidden', !value);
-				break;
-			case 'minheight':
-			case 'margin':
-			case 'marginxs':
-			case 'marginsm':
-			case 'marginmd':
-			case 'marginlg':
-				!init && self.resize();
-				break;
-			case 'selector': // backward compatibility
-				config.parent = value;
-				self.resize();
-				break;
-		}
-	};
-
-	self.scrollbottom = function(val) {
-		if (val == null)
-			return elb[0].scrollTop;
-		elb[0].scrollTop = (elb[0].scrollHeight - self.dom.clientHeight) - (val || 0);
-		return elb[0].scrollTop;
-	};
-
-	self.scrolltop = function(val) {
-		if (val == null)
-			return elb[0].scrollTop;
-		elb[0].scrollTop = (val || 0);
-		return elb[0].scrollTop;
-	};
-
-	self.make = function() {
-		if (config.invisible)
-			self.aclass('invisible');
-		config.scroll && MAIN.version > 17 && self.element.wrapInner('<div class="ui-viewbox-body"></div>');
-		self.element.prepend('<div class="ui-viewbox-disabled hidden"></div>');
-		eld = self.find('> .{0}-disabled'.format(cls)).eq(0);
-		elb = self.find('> .{0}-body'.format(cls)).eq(0);
-		self.aclass('{0} {0}-hidden'.format(cls));
-		if (config.scroll) {
-			if (config.scrollbar) {
-				if (MAIN.version > 17) {
-					scrollbar = W.SCROLLBAR(self.find(cls2 + '-body'), { visibleY: config.visibleY, visibleX: config.visibleX, orientation: config.visibleX ? null : 'y', parent: self.element });
-					self.scrolltop = scrollbar.scrollTop;
-					self.scrollbottom = scrollbar.scrollBottom;
-				} else
-					self.aclass(cls + '-scroll');
-			} else {
-				self.aclass(cls + '-scroll');
-				self.find(cls2 + '-body').aclass('noscrollbar');
-			}
-		}
-		self.resize();
-	};
-
-	self.released = function(is) {
-		!is && self.resize();
-	};
-
-	var css = {};
-
-	self.resize = function(scrolltop) {
-
-		if (self.release())
-			return;
-
-		var el = self.parent(config.parent);
-		var h = el.height();
-		var w = el.width();
-		var width = WIDTH();
-		var margin = config.margin;
-		var responsivemargin = config['margin' + width];
-
-		if (responsivemargin != null)
-			margin = responsivemargin;
-
-		if (h === 0 || w === 0) {
-			self.$waiting && clearTimeout(self.$waiting);
-			self.$waiting = setTimeout(self.resize, 234);
-			return;
-		}
-
-		h = ((h / 100) * config.height) - margin;
-
-		if (config.minheight && h < config.minheight)
-			h = config.minheight;
-
-		css.height = h;
-		css.width = self.element.width();
-		eld.css(css);
-
-		css.width = null;
-		self.css(css);
-		elb.length && elb.css(css);
-		self.element.SETTER('*', 'resize');
-		var c = cls + '-hidden';
-		self.hclass(c) && self.rclass(c, 100);
-		scrollbar && scrollbar.resize();
-		scrolltop && self.scrolltop(0);
-
-		if (!init) {
-			self.rclass('invisible', 250);
-			init = true;
-		}
-	};
-
-	self.resizescrollbar = function() {
-		scrollbar && scrollbar.resize();
-	};
-
-	self.setter = function() {
-		setTimeout(self.resize, config.delay, config.scrolltop);
-	};
-});
-
-COMPONENT('backtotop', function(self) {
-
-	var height = 0;
-	var visible = false;
-
-	self.singleton();
-	self.nocompile && self.nocompile();
-
-	self.make = function() {
-
-		var $w = $(window);
-
-		self.aclass('ui-backtotop');
-		self.html('<a href="javascript:void(0)"><i class="fa fa-arrow-circle-up"></i></a>');
-
-		self.event('click', function() {
-			document.body.scrollTop = 0;
-			document.documentElement.scrollTop = 0;
-		});
-
-		height = $w.height();
-
-		$w.on('resize', function() {
-			height = $w.height();
-		});
-
-		$w.on('scroll', function() {
-			setTimeout2(self.id, function() {
-				var position = $w.scrollTop();
-				if (position > height) {
-					if (visible)
-						return;
-					visible = true;
-				} else {
-					if (!visible)
-						return;
-					visible = false;
-				}
-				self.tclass('active', visible);
-			}, 200);
-		});
-	};
 });
 
 COMPONENT('markdown', function (self) {
@@ -1502,890 +1243,10 @@ COMPONENT('markdown', function (self) {
 
 }, ['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.0/highlight.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.0/styles/github.min.css']);
 
-COMPONENT('layout', 'space:1;border:0;parent:window;margin:0;remember:1;autoresize:1', function(self, config, cls) {
-
-	var cls2 = '.' + cls;
-	var cache = {};
-	var drag = {};
-	var s = {};
-	var events = {};
-	var istop2 = false;
-	var isbottom2 = false;
-	var isright2 = false;
-	var loaded = false;
-	var resizecache = '';
-	var settings;
-	var prefkey = '';
-	var prefexpire = '1 month';
-	var isreset = false;
-	var layout = null;
-
-	self.readonly();
-
-	self.init = function() {
-		var obj;
-		if (W.OP)
-			obj = W.OP;
-		else
-			obj = $(W);
-		obj.on('resize', function() {
-			for (var i = 0; i < M.components.length; i++) {
-				var com = M.components[i];
-				if (com.name === 'layout' && com.dom.offsetParent && com.$ready && !com.$removed && com.config.autoresize)
-					com.resize();
-			}
-		});
-	};
-
-	self.make = function() {
-
-		self.aclass(cls);
-		self.find('> section').each(function() {
-			var el = $(this);
-			var type = el.attrd('type');
-
-			if (type.charAt(type.length - 1) === '2') {
-				type = type.substring(0, type.length - 1);
-
-				switch (type) {
-					case 'top':
-						istop2 = true;
-						break;
-					case 'bottom':
-						isbottom2 = true;
-						break;
-					case 'right':
-						isright2 = true;
-						break;
-				}
-			}
-			el.aclass(cls + '-' + type + ' hidden ui-layout-section');
-			el.after('<div class="{0}-resize-{1} {0}-resize" data-type="{1}"></div>'.format(cls, type));
-			el.after('<div class="{0}-lock hidden" data-type="{1}"></div>'.format(cls, type));
-			s[type] = el;
-		});
-
-		self.find('> .{0}-resize'.format(cls)).each(function() {
-			var el = $(this);
-			s[el.attrd('type') + 'resize'] = el;
-		});
-
-		self.find('> .{0}-lock'.format(cls)).each(function() {
-			var el = $(this);
-			s[el.attrd('type') + 'lock'] = el;
-		});
-
-		var tmp = self.find('> script');
-		if (tmp.length) {
-			self.rebind(tmp.html(), true);
-			tmp.remove();
-		}
-
-		events.bind = function() {
-			var el = self.element;
-			el.bind('mousemove', events.mmove);
-			el.bind('mouseup', events.mup);
-			el.bind('mouseleave', events.mup);
-		};
-
-		events.unbind = function() {
-			var el = self.element;
-			el.unbind('mousemove', events.mmove);
-			el.unbind('mouseup', events.mup);
-			el.unbind('mouseleave', events.mup);
-		};
-
-		events.mdown = function(e) {
-
-			var target = $(e.target);
-			var type = target.attrd('type');
-			var w = self.width();
-			var h = self.height();
-			var m = 2; // size of line
-
-			self.element.find('iframe').css('pointer-events', 'none');
-
-			drag.cur = self.element.offset();
-			drag.cur.top -= 10;
-			drag.cur.left -= 8;
-			drag.offset = target.offset();
-			drag.el = target;
-			drag.x = e.pageX;
-			drag.y = e.pageY;
-			drag.horizontal = type === 'left' || type === 'right' ? 1 : 0;
-			drag.type = type;
-			drag.plusX = 10;
-			drag.plusY = 10;
-
-			var ch = cache[type];
-			var offset = 0;
-			var min = ch.minsize ? (ch.minsize.value - 1) : 0;
-
-			target.aclass(cls + '-drag');
-
-			switch (type) {
-				case 'top':
-					drag.min = min || (ch.size - m);
-					drag.max = (h - (cache.bottom ? s.bottom.height() : 0) - 50);
-					break;
-				case 'right':
-					offset = w;
-					drag.min = (cache.left ? s.left.width() : 0) + 50 + min;
-					drag.max = offset - (min || ch.size);
-					break;
-				case 'bottom':
-					offset = h;
-					drag.min = (cache.top ? s.top.height() : 0) + 50;
-					drag.max = offset - (min || ch.size);
-					break;
-				case 'left':
-					drag.min = min || (ch.size - m);
-					drag.max = w - (cache.right ? s.right.width() : 0) - 50;
-					break;
-			}
-
-			events.bind();
-		};
-
-		events.mmove = function(e) {
-			if (drag.horizontal) {
-				var x = drag.offset.left + (e.pageX - drag.x) - drag.plusX - drag.cur.left;
-
-				if (x < drag.min)
-					x = drag.min + 1;
-
-				if (x > drag.max)
-					x = drag.max - 1;
-
-				drag.el.css('left', x + 'px');
-
-			} else {
-				var y = drag.offset.top + (e.pageY - drag.y) - drag.plusY;
-
-				if (y < drag.min)
-					y = drag.min + 1;
-				if (y > drag.max)
-					y = drag.max - 1;
-
-				drag.el.css('top', (y - drag.cur.top) + 'px');
-			}
-		};
-
-		events.mup = function() {
-
-			self.element.find('iframe').css('pointer-events', '');
-
-			var offset = drag.el.offset();
-			var d = WIDTH();
-			var pk = prefkey + '_' + layout + '_' + drag.type + '_' + d;
-
-			drag.el.rclass(cls + '-drag');
-
-			if (drag.horizontal) {
-
-				offset.left -= drag.cur.left;
-
-				if (offset.left < drag.min)
-					offset.left = drag.min;
-
-				if (offset.left > drag.max)
-					offset.left = drag.max;
-
-				var w = offset.left - (drag.offset.left - drag.cur.left);
-
-				if (!isright2 && drag.type === 'right')
-					w = w * -1;
-
-				drag.el.css('left', offset.left);
-				w = s[drag.type].width() + w;
-				s[drag.type].css('width', w);
-				config.remember && PREF.set(pk, w, prefexpire);
-
-			} else {
-
-				offset.top -= drag.cur.top;
-
-				if (offset.top < drag.min)
-					offset.top = drag.min;
-				if (offset.top > drag.max)
-					offset.top = drag.max;
-
-				drag.el.css('top', offset.top);
-
-				var h = offset.top - (drag.offset.top - drag.cur.top);
-				if (drag.type === 'bottom' || drag.type === 'preview')
-					h = h * -1;
-
-				h = s[drag.type].height() + h;
-				s[drag.type].css('height', h);
-				config.remember && PREF.set(pk, h, prefexpire);
-			}
-
-			events.unbind();
-			self.refresh();
-		};
-
-		self.find('> ' + cls2 + '-resize').on('mousedown', events.mdown);
-	};
-
-	self.lock = function(type, b) {
-		var el = s[type + 'lock'];
-		el && el.tclass('hidden', b == null ? b : !b);
-	};
-
-	self.rebind = function(code, noresize) {
-		code = code.trim();
-		prefkey = 'L' + HASH(code);
-		resizecache = '';
-		settings = new Function('return ' + code)();
-		!noresize && self.resize();
-	};
-
-	var getSize = function(display, data) {
-
-		var obj = data[display];
-		if (obj)
-			return obj;
-
-		switch (display) {
-			case 'md':
-				return getSize('lg', data);
-			case 'sm':
-				return getSize('md', data);
-			case 'xs':
-				return getSize('sm', data);
-		}
-
-		return data;
-	};
-
-	self.resize = function() {
-
-		if (self.dom.offsetParent == null) {
-			setTimeout(self.resize, 100);
-			return;
-		}
-
-		if (settings == null)
-			return;
-
-		var d = WIDTH();
-		var el = self.parent(config.parent);
-		var width = el.width();
-		var height = el.height();
-		var key = d + 'x' + width + 'x' + height;
-
-		if (resizecache === key)
-			return;
-
-		var tmp = layout ? settings[layout] : settings;
-
-		if (tmp == null) {
-			WARN('j-Layout: layout "{0}" not found'.format(layout));
-			tmp = settings;
-		}
-
-		var size = getSize(d, tmp);
-		var keys = Object.keys(s);
-
-		height -= config.margin;
-		resizecache = key;
-		self.css({ width: width, height: height });
-
-		for (var i = 0; i < keys.length; i++) {
-			var key = keys[i];
-			el = s[key];
-			self.update(key, size[key] ? size[key] : settings[key]);
-		}
-
-		config.resize && EXEC(config.resize, d, width, height);
-	};
-
-	var parseSize = function(val, size) {
-		var str = typeof(val) === 'string';
-		var obj = { raw : str ? val.parseFloat() : val, percentage: str ? val.charAt(val.length - 1) === '%' : false };
-		obj.value = obj.percentage ? ((((size / 100) * obj.raw) >> 0) - config.space) : obj.raw;
-		return obj;
-	};
-
-	self.reset = function() {
-		isreset = true;
-		resizecache = '';
-		self.resize();
-	};
-
-	self.layout = function(name) {
-
-		if (name == null)
-			name = '';
-
-		if (layout != name) {
-			layout = name;
-			resizecache = '';
-			self.resize();
-		}
-	};
-
-	self.update = function(type, opt) {
-
-		if (opt == null)
-			return;
-
-		if (typeof(opt) === 'string')
-			opt = opt.parseConfig();
-
-		if (s[type] == null)
-			return;
-
-		var el = s[type];
-		var css = {};
-		var is = 0;
-		var size = null;
-		var d = WIDTH();
-
-		var c = cache[type];
-		if (c == null)
-			c = cache[type] = {};
-
-		var w = self.width();
-		var h = self.height();
-		var pk = prefkey + '_' + layout + '_' + type + '_' + d;
-		var cached = PREF.get(pk, prefexpire);
-
-		if (isreset) {
-			cached && PREF.set(pk); // remove value
-			cached = 0;
-		}
-
-		c.minsize = opt.minwidth ? parseSize(opt.minwidth, w) : opt.minsize ? parseSize(opt.minsize, w) : 0;
-
-		var def = getSize(d, settings);
-		var width = (opt.size || opt.width) || (def[type] ? def[type].width : 0);
-		var height = (opt.size || opt.height) || (def[type] ? def[type].height : 0);
-
-		if (width && (type === 'left' || type === 'right')) {
-			size = parseSize(width, w);
-			c.size = size.value;
-			css.width = cached ? cached : size.value;
-			is = 1;
-		}
-
-		c.minsize = opt.minheight ? parseSize(opt.minheight, w) : opt.minsize ? parseSize(opt.minsize, w) : 0;
-		if (height && (type === 'top' || type === 'bottom')) {
-			size = parseSize(height, h);
-			c.size = size.value;
-			css.height = (cached ? cached : size.value);
-			is = 1;
-		}
-
-		if (opt.show == null)
-			opt.show = true;
-
-		el.tclass('hidden', !opt.show);
-		c.show = !!opt.show;
-		c.resize = opt.resize == null ? false : !!opt.resize;
-		el.tclass(cls + '-resizable', c.resize);
-		s[type + 'resize'].tclass('hidden', !c.show || !c.resize);
-
-		is && el.css(css);
-		setTimeout2(self.ID + 'refresh', self.refresh, 50);
-	};
-
-	var getWidth = function(el) {
-		return el.hclass('hidden') ? 0 : el.width();
-	};
-
-	var getHeight = function(el) {
-		return el.hclass('hidden') ? 0 : el.height();
-	};
-
-	self.refresh = function() {
-
-		var top = 0;
-		var bottom = 0;
-		var right = 0;
-		var left = 0;
-		var hidden = 'hidden';
-		var top2 = 0;
-		var bottom2 = 0;
-		var space = 2;
-		var topbottomoffset = 0;
-		var right2visible = isright2 && !s.right.hclass(hidden);
-
-		if (s.top)
-			top = top2 = getHeight(s.top);
-
-		if (s.bottom)
-			bottom = bottom2 = getHeight(s.bottom);
-
-		var width = self.width() - (config.border * 2);
-		var height = self.height() - (config.border * 2);
-
-		if (istop2) {
-			topbottomoffset++;
-			top2 = 0;
-		}
-
-		if (isbottom2) {
-			topbottomoffset--;
-			bottom2 = 0;
-		}
-
-		if (s.left && !s.left.hclass(hidden)) {
-			var cssleft = {};
-			space = top && bottom ? 2 : top || bottom ? 1 : 0;
-			cssleft.left = 0;
-			cssleft.top = istop2 ? config.border : (top ? (top + config.space) : 0);
-			cssleft.height = isbottom2 ? (height - top2 - config.border) : (height - top2 - bottom2 - (config.space * space));
-			cssleft.height += topbottomoffset;
-			s.left.css(cssleft);
-			cssleft.width = s.left.width();
-			s.leftlock.css(cssleft);
-			delete cssleft.width;
-			left = s.left.width();
-			cssleft.left = s.left.width();
-			s.leftresize.css(cssleft);
-			s.leftresize.tclass(hidden, !s.left.hclass(cls + '-resizable'));
-		}
-
-		if (s.right && !s.right.hclass(hidden)) {
-			right = s.right.width();
-			space = top && bottom ? 2 : top || bottom ? 1 : 0;
-			var cssright = {};
-			cssright.left = right2visible ? (getWidth(s.left) + config.border + config.space) : (width - right);
-			cssright.top = istop2 ? config.border : (top ? (top + config.space) : 0);
-			cssright.height = isbottom2 ? (height - top2 - config.border) : (height - top2 - bottom2 - (config.space * space));
-			cssright.height += topbottomoffset;
-
-			s.right.css(cssright);
-			cssright.width = s.right.width();
-
-			if ((cssright.width + cssright.left) === width) {
-				s.right.css('left', 0);
-				cssright.width++;
-			}
-
-			s.rightlock.css(cssright);
-			delete cssright.width;
-
-			if (right2visible)
-				cssright.left += s.right.width();
-			else
-				cssright.left = width - right - 2;
-
-			s.rightresize.css(cssright);
-			s.rightresize.tclass(hidden, !s.right.hclass(cls + '-resizable'));
-		}
-
-		if (s.top) {
-			var csstop = {};
-			space = left ? config.space : 0;
-			csstop.left = istop2 ? (left + space) : 0;
-
-			if (right2visible && istop2)
-				csstop.left += getWidth(s.right) + config.space;
-
-			space = left && right ? 2 : left || right ? 1 : 0;
-			csstop.width = istop2 ? (width - right - left - (config.space * space)) : width;
-			csstop.top = 0;
-			s.top.css(csstop);
-			s.topresize.css(csstop);
-			csstop.height = s.top.height();
-			s.toplock.css(csstop);
-			delete csstop.height;
-			csstop.top = s.top.height();
-			s.topresize.css(csstop);
-			s.topresize.tclass(hidden, !s.top.hclass(cls + '-resizable'));
-		}
-
-		if (s.bottom) {
-			var cssbottom = {};
-			cssbottom.top = height - bottom;
-			space = left ? config.space : 0;
-			cssbottom.left = isbottom2 ? (left + space) : 0;
-
-			if (right2visible && isbottom2)
-				cssbottom.left += getWidth(s.right) + config.space;
-
-			space = left && right ? 2 : left || right ? 1 : 0;
-			cssbottom.width = isbottom2 ? (width - right - left - (config.space * space)) : width;
-			s.bottom.css(cssbottom);
-			cssbottom.height = s.bottom.height();
-			s.bottomlock.css(cssbottom);
-			delete cssbottom.height;
-			cssbottom.top = cssbottom.top - 2;
-			s.bottomresize.css(cssbottom);
-			s.bottomresize.tclass(hidden, !s.bottom.hclass(cls + '-resizable'));
-		}
-
-		var space = left && right ? 2 : left ? 1 : right ? 1 : 0;
-		var css = {};
-		css.left = left ? left + config.space : 0;
-
-		if (right2visible)
-			css.left += getWidth(s.right) + config.space;
-
-		css.width = (width - left - right - (config.space * space));
-		css.top = top ? top + config.space : 0;
-
-		space = top && bottom ? 2 : top || bottom ? 1 : 0;
-		css.height = height - top - bottom - (config.space * space);
-
-		s.main && s.main.css(css);
-		s.mainlock && s.mainlock.css(css);
-
-		self.element.SETTER('*', 'resize');
-
-		if (loaded == false) {
-			loaded = true;
-			self.rclass('invisible');
-		}
-
-		isreset = false;
-	};
-
-	self.setter = function(value) {
-		self.layout(value);
-	};
-
-});
-
-COMPONENT('exec', function(self, config) {
-	self.readonly();
-	self.blind();
-	self.make = function() {
-
-		var scope = null;
-
-		var scopepath = function(el, val) {
-			if (!scope)
-				scope = el.scope();
-			return scope ? scope.makepath ? scope.makepath(val) : val.replace(/\?/g, el.scope().path) : val;
-		};
-
-		var fn = function(plus) {
-			return function(e) {
-
-				var el = $(this);
-				var attr = el.attrd('exec' + plus);
-				var path = el.attrd('path' + plus);
-				var href = el.attrd('href' + plus);
-				var def = el.attrd('def' + plus);
-				var reset = el.attrd('reset' + plus);
-
-				scope = null;
-
-				var prevent = el.attrd('prevent' + plus);
-
-				if (prevent === 'true' || prevent === '1') {
-					e.preventDefault();
-					e.stopPropagation();
-				}
-
-				if (attr) {
-					if (attr.indexOf('?') !== -1)
-						attr = scopepath(el, attr);
-					EXEC(attr, el, e);
-				}
-
-				href && NAV.redirect(href);
-
-				if (def) {
-					if (def.indexOf('?') !== -1)
-						def = scopepath(el, def);
-					DEFAULT(def);
-				}
-
-				if (reset) {
-					if (reset.indexOf('?') !== -1)
-						reset = scopepath(el, reset);
-					RESET(reset);
-				}
-
-				if (path) {
-					var val = el.attrd('value');
-					if (val) {
-						if (path.indexOf('?') !== -1)
-							path = scopepath(el, path);
-						var v = GET(path);
-						SET(path, new Function('value', 'return ' + val)(v), true);
-					}
-				}
-			};
-		};
-
-		self.event('dblclick', config.selector2 || '.exec2', fn('2'));
-		self.event('click', config.selector || '.exec', fn(''));
-	};
-});
-
-COMPONENT('selected', 'class:selected;selector:a;attr:if', function(self, config) {
-
-	self.readonly();
-
-	self.configure = function(key, value) {
-		switch (key) {
-			case 'datasource':
-				self.datasource(value, function() {
-					self.refresh();
-				});
-				break;
-		}
-	};
-
-	self.setter = function(value) {
-		var cls = config.class;
-		self.find(config.selector).each(function() {
-			var el = $(this);
-			if (el.attrd(config.attr) === value)
-				el.aclass(cls);
-			else
-				el.hclass(cls) && el.rclass(cls);
-		});
-	};
-});
-
-COMPONENT('largeform', 'zindex:12;padding:30;scrollbar:1;visibleY:0;scrolltop:1;closeoutside:0;style:1', function(self, config, cls) {
-
-	var cls2 = '.' + cls;
-	var csspos = {};
-	var nav = false;
-	var init = false;
-
-	if (!W.$$largeform) {
-
-		W.$$largeform_level = W.$$largeform_level || 1;
-		W.$$largeform = true;
-
-		$(document).on('click', cls2 + '-button-close', function() {
-			SET($(this).attrd('path'), '');
-		});
-
-		var resize = function() {
-			setTimeout2(self.name, function() {
-				for (var i = 0; i < M.components.length; i++) {
-					var com = M.components[i];
-					if (com.name === 'largeform' && !HIDDEN(com.dom) && com.$ready && !com.$removed)
-						com.resize();
-				}
-			}, 200);
-		};
-
-		if (W.OP)
-			W.OP.on('resize', resize);
-		else
-			$(W).on('resize', resize);
-
-		$(document).on('click', cls2 + '-container', function(e) {
-
-			if (e.target === this) {
-				var com = $(this).component();
-				if (com && com.config.closeoutside) {
-					com.set('');
-					return;
-				}
-			}
-
-			var el = $(e.target);
-			if (el.hclass(cls + '-container') && !el.hclass(cls + '-style-2')) {
-				var form = el.find(cls2);
-				var c = cls + '-animate-click';
-				form.aclass(c);
-				setTimeout(function() {
-					form.rclass(c);
-				}, 300);
-			}
-		});
-	}
-
-	self.readonly();
-	self.submit = function() {
-		if (config.submit)
-			EXEC(config.submit, self.hide, self.element);
-		else
-			self.hide();
-	};
-
-	self.cancel = function() {
-		config.cancel && EXEC(config.cancel, self.hide);
-		self.hide();
-	};
-
-	self.hide = function() {
-		self.set('');
-	};
-
-	self.icon = function(value) {
-		var el = this.rclass2('fa');
-		value.icon && el.aclass(value.icon.indexOf(' ') === -1 ? ('fa fa-' + value.icon) : value.icon);
-	};
-
-	self.resize = function() {
-
-		if (self.hclass('hidden'))
-			return;
-
-		var padding = isMOBILE ? 0 : config.padding;
-		var ui = self.find(cls2);
-
-		csspos.height = WH - (config.style == 1 ? (padding * 2) : padding);
-		csspos.top = padding;
-		ui.css(csspos);
-
-		var el = self.find(cls2 + '-title');
-		var th = el.height();
-		csspos = { height: csspos.height - th, width: ui.width() };
-
-		if (nav)
-			csspos.height -= nav.height();
-
-		self.find(cls2 + '-body').css(csspos);
-		self.scrollbar && self.scrollbar.resize();
-		self.element.SETTER('*', 'resize');
-	};
-
-	self.make = function() {
-
-		$(document.body).append('<div id="{0}" class="hidden {4}-container invisible"><div class="{4}" style="max-width:{1}px"><div data-bind="@config__html span:value.title__change .{4}-icon:@icon" class="{4}-title"><button name="cancel" class="{4}-button-close{3}" data-path="{2}"><i class="fa fa-times"></i></button><i class="{4}-icon"></i><span></span></div><div class="{4}-body"></div></div>'.format(self.ID, config.width || 800, self.path, config.closebutton == false ? ' hidden' : '', cls));
-
-		var scr = self.find('> script');
-		self.template = scr.length ? scr.html().trim() : '';
-		scr.length && scr.remove();
-
-		var el = $('#' + self.ID);
-		var body = el.find(cls2 + '-body')[0];
-
-		while (self.dom.children.length) {
-			var child = self.dom.children[0];
-			if (child.tagName === 'NAV') {
-				nav = $(child);
-				body.parentNode.appendChild(child);
-			} else
-				body.appendChild(child);
-		}
-
-		self.rclass('hidden invisible');
-		self.replace(el, true);
-
-		if (config.scrollbar)
-			self.scrollbar = SCROLLBAR(self.find(cls2 + '-body'), { visibleY: config.visibleY, orientation: 'y' });
-
-		if (config.style === 2)
-			self.aclass(cls + '-style-2');
-
-		self.event('scroll', function() {
-			EMIT('scroll', self.name);
-			EMIT('reflow', self.name);
-		});
-
-		self.event('click', 'button[name]', function() {
-			var t = this;
-			switch (t.name) {
-				case 'submit':
-					self.submit(self.hide);
-					break;
-				case 'cancel':
-					!t.disabled && self[t.name](self.hide);
-					break;
-			}
-		});
-
-		config.enter && self.event('keydown', 'input', function(e) {
-			e.which === 13 && !self.find('button[name="submit"]')[0].disabled && setTimeout(self.submit, 800);
-		});
-	};
-
-	self.configure = function(key, value, init, prev) {
-		if (!init) {
-			switch (key) {
-				case 'width':
-					value !== prev && self.find(cls2).css('max-width', value + 'px');
-					break;
-				case 'closebutton':
-					self.find(cls2 + '-button-close').tclass('hidden', value !== true);
-					break;
-			}
-		}
-	};
-
-	self.setter = function(value) {
-
-		setTimeout2(cls + '-noscroll', function() {
-			$('html').tclass(cls + '-noscroll', !!$(cls2 + '-container').not('.hidden').length);
-		}, 50);
-
-		var isHidden = value !== config.if;
-
-		if (self.hclass('hidden') === isHidden) {
-			if (!isHidden) {
-				config.reload && EXEC(config.reload, self);
-				config.default && DEFAULT(config.default, true);
-				config.scrolltop && self.scrollbar && self.scrollbar.scrollTop(0);
-			}
-			return;
-		}
-
-		setTimeout2(cls, function() {
-			EMIT('reflow', self.name);
-		}, 10);
-
-		if (isHidden) {
-			self.aclass('hidden');
-			self.release(true);
-			self.find(cls2).rclass(cls + '-animate');
-			W.$$largeform_level--;
-			return;
-		}
-
-		if (self.template) {
-			var is = self.template.COMPILABLE();
-			self.find(cls2).append(self.template);
-			self.template = null;
-			is && COMPILE();
-		}
-
-		if (W.$$largeform_level < 1)
-			W.$$largeform_level = 1;
-
-		W.$$largeform_level++;
-
-		self.css('z-index', W.$$largeform_level * config.zindex);
-		self.rclass('hidden');
-
-		self.release(false);
-		config.scrolltop && self.scrollbar && self.scrollbar.scrollTop(0);
-
-		config.reload && EXEC(config.reload, self);
-		config.default && DEFAULT(config.default, true);
-
-		if (!isMOBILE && config.autofocus) {
-			setTimeout(function() {
-				self.find(typeof(config.autofocus) === 'string' ? config.autofocus : 'input[type="text"],select,textarea').eq(0).focus();
-			}, 1000);
-		}
-
-		self.resize();
-
-		setTimeout(function() {
-			self.rclass('invisible');
-			self.find(cls2).aclass(cls + '-animate');
-			if (!init && isMOBILE) {
-				$('body').aclass('hidden');
-				setTimeout(function() {
-					$('body').rclass('hidden');
-				}, 50);
-			}
-			init = true;
-		}, 300);
-
-		// Fixes a problem with freezing of scrolling in Chrome
-		setTimeout2(self.ID, function() {
-			self.css('z-index', (W.$$largeform_level * config.zindex) + 1);
-		}, 500);
-	};
-});
-
-COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:name;direxclude:false;forcevalidation:1;searchalign:1;after:\\:', function(self, config, cls) {
+// Component: j-Input
+// Version: 1
+// Updated: 2021-06-22 12:54
+COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:name;direxclude:false;checkicon:fa fa-check;forcevalidation:1;searchalign:1;height:80;after:\\:', function(self, config, cls) {
 
 	var cls2 = '.' + cls;
 	var input, placeholder, dirsource, binded, customvalidator, mask, rawvalue, isdirvisible = false, nobindcamouflage = false, focused = false;
@@ -2395,9 +1256,9 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 
 	self.init = function() {
 		Thelpers.ui_input_icon = function(val) {
-			return val.charAt(0) === '!' ? ('<span class="ui-input-icon-custom">' + val.substring(1) + '</span>') : ('<i class="fa fa-' + val + '"></i>');
+			return val.charAt(0) === '!' || val.indexOf(' ') !== -1 ? ('<span class="ui-input-icon-custom">' + (val.charAt(0) === '!' ? val.substring(1) : ('<i class="' + val) + '"></i>') + '</span>') : ('<i class="fa fa-' + val + '"></i>');
 		};
-		W.ui_input_template = Tangular.compile(('{{ if label }}<div class="{0}-label">{{ if icon }}<i class="fa fa-{{ icon }}"></i>{{ fi }}{{ label | raw }}{{ after | raw }}</div>{{ fi }}<div class="{0}-control{{ if licon }} {0}-licon{{ fi }}{{ if ricon || (type === \'number\' && increment) }} {0}-ricon{{ fi }}">{{ if ricon || (type === \'number\' && increment) }}<div class="{0}-icon-right{{ if type === \'number\' && increment && !ricon }} {0}-increment{{ else if riconclick || type === \'date\' || type === \'time\' || (type === \'search\' && searchalign === 1) || type === \'password\' }} {0}-click{{ fi }}">{{ if type === \'number\' && !ricon }}<i class="fa fa-caret-up"></i><i class="fa fa-caret-down"></i>{{ else }}{{ ricon | ui_input_icon }}{{ fi }}</div>{{ fi }}{{ if licon }}<div class="{0}-icon-left{{ if liconclick || (type === \'search\' && searchalign !== 1) }} {0}-click{{ fi }}">{{ licon | ui_input_icon }}</div>{{ fi }}<div class="{0}-input{{ if align === 1 || align === \'center\' }} center{{ else if align === 2 || align === \'right\' }} right{{ fi }}">{{ if placeholder && !innerlabel }}<div class="{0}-placeholder">{{ placeholder }}</div>{{ fi }}{{ if dirsource || type === \'icon\' || type === \'emoji\' || type === \'color\' }}<div class="{0}-value" tabindex="0"></div>{{ else }}<input type="{{ if type === \'password\' }}password{{ else }}text{{ fi }}"{{ if autofill }} autocomplete="on" name="{{ PATH }}"{{ else }} name="input' + Date.now() + '" autocomplete="new-password"{{ fi }} data-jc-bind=""{{ if maxlength > 0}} maxlength="{{ maxlength }}"{{ fi }}{{ if autofocus }} autofocus{{ fi }} />{{ fi }}</div></div>{{ if error }}<div class="{0}-error hidden"><i class="fa fa-warning"></i> {{ error }}</div>{{ fi }}').format(cls));
+		W.ui_input_template = Tangular.compile(('{{ if label }}<div class="{0}-label">{{ if icon }}<i class="{{ icon }}"></i>{{ fi }}{{ label | raw }}{{ after | raw }}</div>{{ fi }}<div class="{0}-control{{ if licon }} {0}-licon{{ fi }}{{ if ricon || (type === \'number\' && increment) }} {0}-ricon{{ fi }}">{{ if ricon || (type === \'number\' && increment) }}<div class="{0}-icon-right{{ if type === \'number\' && increment && !ricon }} {0}-increment{{ else if riconclick || type === \'date\' || type === \'time\' || (type === \'search\' && searchalign === 1) || type === \'password\' }} {0}-click{{ fi }}">{{ if type === \'number\' && !ricon }}<i class="fa fa-caret-up"></i><i class="fa fa-caret-down"></i>{{ else }}{{ ricon | ui_input_icon }}{{ fi }}</div>{{ fi }}{{ if licon }}<div class="{0}-icon-left{{ if liconclick || (type === \'search\' && searchalign !== 1) }} {0}-click{{ fi }}">{{ licon | ui_input_icon }}</div>{{ fi }}<div class="{0}-input{{ if align === 1 || align === \'center\' }} center{{ else if align === 2 || align === \'right\' }} right{{ fi }}">{{ if placeholder && !innerlabel }}<div class="{0}-placeholder">{{ placeholder }}</div>{{ fi }}{{ if dirsource || type === \'icon\' || type === \'emoji\' || type === \'color\' }}<div class="{0}-value" tabindex="0"></div>{{ else }}{{ if type === \'multiline\' }}<textarea data-jc-bind="" style="height:{{ height }}px"></textarea>{{ else }}<input type="{{ if type === \'password\' }}password{{ else }}text{{ fi }}"{{ if autofill }} autocomplete="on" name="{{ PATH }}"{{ else }} name="input' + Date.now() + '" autocomplete="new-password"{{ fi }} data-jc-bind=""{{ if maxlength > 0}} maxlength="{{ maxlength }}"{{ fi }}{{ if autofocus }} autofocus{{ fi }} />{{ fi }}{{ fi }}</div></div>{{ if error }}<div class="{0}-error hidden"><i class="fa fa-warning"></i> {{ error }}</div>{{ fi }}').format(cls));
 	};
 
 	self.make = function() {
@@ -2421,10 +1282,23 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 				self.check();
 		});
 
+		self.event('click', cls2 + '-checkbox', function() {
+
+			if (config.disabled) {
+				$(this).blur();
+				return;
+			}
+
+			self.change(true);
+			self.set(!self.get(), 2);
+		});
+
 		self.event('focus', 'input,' + cls2 + '-value', function() {
 
-			if (config.disabled)
-				return $(this).blur();
+			if (config.disabled) {
+				$(this).blur();
+				return;
+			}
 
 			focused = true;
 			self.camouflage(false);
@@ -2456,15 +1330,22 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 			} else if (config.dirsource && (config.autofocus != false && config.autofocus != 0)) {
 				if (!isdirvisible)
 					self.find(cls2 + '-control').trigger('click');
+			} else if (config.type === 'date' || config.type === 'time') {
+				setTimeout(function() {
+					self.element.find(cls2 + '-icon-right').trigger('click');
+				}, 300);
 			}
 		});
 
 		self.event('paste', 'input', function(e) {
+
 			if (config.mask) {
 				var val = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
 				self.set(val.replace(/\s|\t/g, ''));
 				e.preventDefault();
 			}
+
+			self.check();
 		});
 
 		self.event('keydown', 'input', function(e) {
@@ -2578,7 +1459,7 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 
 		});
 
-		self.event('blur', 'input', function() {
+		self.event('blur', 'input,' + cls2 + '-value', function() {
 			focused = false;
 			self.camouflage(true);
 			self.rclass(cls + '-focused');
@@ -2596,7 +1477,7 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 				opt.empty = true;
 				opt.callback = function(val) {
 					self.change(true);
-					self.set(val);
+					self.set(val, 2);
 					self.check();
 					rawvalue.focus();
 				};
@@ -2609,7 +1490,7 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 				opt.empty = true;
 				opt.callback = function(al) {
 					self.change(true);
-					self.set(al);
+					self.set(al, 2);
 					self.check();
 					rawvalue.focus();
 				};
@@ -2622,7 +1503,7 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 				opt.empty = true;
 				opt.callback = function(al) {
 					self.change(true);
-					self.set(al);
+					self.set(al, 2);
 					self.check();
 					rawvalue.focus();
 				};
@@ -2651,14 +1532,28 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 			opt.maxwidth = config.dirmaxwidth;
 			opt.key = config.dirkey || config.key;
 			opt.empty = config.dirempty;
-
-			if (config.dirsearch === false)
-				opt.search = false;
+			opt.checkbox = !!config.multiple;
 
 			var val = self.get();
-			opt.selected = val;
 
-			if (dirsource && config.direxclude == false) {
+			if (config.multiple) {
+				for (var i = 0; i < opt.items.length; i++) {
+					var item = opt.items[i];
+					if (val instanceof Array)
+						item.selected = val.indexOf(item[config.dirvalue || config.value]) !== -1;
+					else
+						item.selected = false;
+				}
+			} else
+				opt.selected = val;
+
+			if (config.dirraw)
+				opt.raw = true;
+
+			if (config.dirsearch != null)
+				opt.search = config.dirsearch;
+
+			if (dirsource && config.direxclude == false && !config.multiple) {
 				for (var i = 0; i < dirsource.length; i++) {
 					var item = dirsource[i];
 					if (item)
@@ -2673,11 +1568,26 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 			opt.callback = function(item, el, custom) {
 
 				// empty
-				if (item == null) {
+				if (item == null || (config.multiple && !item.length)) {
 					rawvalue.html('');
-					self.set(null, 2);
+					self.set(config.multiple ? [] : null, 2);
 					self.change();
 					self.check();
+					return;
+				}
+
+				if (config.multiple) {
+
+					var arr = [];
+
+					for (var i = 0; i < item.length; i++) {
+						var m = item[i];
+						arr.push(m[config.dirvalue || config.value]);
+					}
+
+					self.set(arr, 2);
+					self.change(true);
+					// self.bindvalue();
 					return;
 				}
 
@@ -2686,13 +1596,13 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 					var fn = GET(config.dircustom);
 					fn(val, function(val) {
 						self.set(val, 2);
-						self.change();
+						self.change(true);
 						self.bindvalue();
 					});
 				} else if (custom) {
 					if (val) {
 						self.set(val, 2);
-						self.change();
+						self.change(true);
 						if (dirsource)
 							self.bindvalue();
 						else
@@ -2700,7 +1610,7 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 					}
 				} else {
 					self.set(val, 2);
-					self.change();
+					self.change(true);
 					if (dirsource)
 						self.bindvalue();
 					else
@@ -2750,7 +1660,6 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 					opt.callback = function(val) {
 						self.change(true);
 						self.set(val);
-						input.focus();
 					};
 					SETTER('datepicker', 'show', opt);
 				} else if (config.type === 'time') {
@@ -2760,7 +1669,6 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 					opt.callback = function(val) {
 						self.change(true);
 						self.set(val);
-						input.focus();
 					};
 					SETTER('timepicker', 'show', opt);
 				} else if (config.type === 'search')
@@ -2772,7 +1680,8 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 					if (tmp.attr('class').indexOf('fa-') !== -1) {
 						var n = tmp.hclass('fa-caret-up') ? 1 : -1;
 						self.change(true);
-						self.inc(config.increment * n);
+						var val = self.preparevalue((self.get() || 0) + (config.increment * n));
+						self.set(val, 2);
 					}
 				}
 				return;
@@ -2794,7 +1703,7 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 				var t = input[0];
 				var arr = t.value.split('');
 				for (var i = 0; i < arr.length; i++)
-					arr[i] = typeof(config.camouflage) === 'string' ? config.camouflage : '*';
+					arr[i] = typeof(config.camouflage) === 'string' ? config.camouflage : '•';
 				nobindcamouflage = true;
 				t.value = arr.join('');
 			} else {
@@ -2823,14 +1732,20 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 		if ((!config.required || config.disabled) && !self.forcedvalidation())
 			return true;
 
+		if (config.disabled)
+			return true;
+
 		if (config.dirsource)
 			return !!value;
 
 		if (customvalidator)
 			return customvalidator(value);
 
-		if (self.type === 'date')
+		if (config.type === 'date')
 			return value instanceof Date && !isNaN(value.getTime());
+
+		if (config.type === 'checkbox')
+			return value === true;
 
 		if (value == null)
 			value = '';
@@ -2843,7 +1758,7 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 		if (config.minlength && value.length < config.minlength)
 			return false;
 
-		switch (self.type) {
+		switch (config.type) {
 			case 'email':
 				return value.isEmail();
 			case 'phone':
@@ -2876,6 +1791,19 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 		self.find(cls2 + '-icon-right').find('i').tclass(config.ricon, visible).tclass('fa-eye-slash', !visible);
 	};
 
+	self.preparevalue = function(value) {
+
+		if (config.type === 'number' && (config.minvalue != null || config.maxvalue != null)) {
+			var tmp = typeof(value) === 'string' ? +value.replace(',', '.') : value;
+			if (config.minvalue > tmp)
+				value = config.minvalue;
+			if (config.maxvalue < tmp)
+				value = config.maxvalue;
+		}
+
+		return value;
+	};
+
 	self.getterin = self.getter;
 	self.getter = function(value, realtime, nobind) {
 
@@ -2891,7 +1819,7 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 			value = val.join('');
 		}
 
-		self.getterin(value, realtime, nobind);
+		self.getterin(self.preparevalue(value), realtime, nobind);
 	};
 
 	self.setterin = self.setter;
@@ -2900,6 +1828,7 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 
 		if (config.mask) {
 			if (value) {
+
 				if (config.masktidy) {
 					var index = 0;
 					var val = [];
@@ -2922,14 +1851,14 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 					}
 					value = arr.join('');
 				}
+
 			} else
 				value = config.mask;
 		}
 
 		self.setterin(value, path, type);
 		self.bindvalue();
-
-		config.camouflage && !focused && setTimeout(self.camouflage, type === 1 ? 1000 : 1, true);
+		config.camouflage && !focused && setTimeout(self.camouflage, type === 'show' ? 2000 : 1, true);
 
 		if (config.type === 'password')
 			self.password(true);
@@ -2937,7 +1866,12 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 
 	self.check = function() {
 
-		var is = input.length ? !!input[0].value : !!self.get();
+		var is = false;
+
+		if (config.dirsource)
+			is = !!rawvalue.text();
+		else
+			is = input && input.length ? !!input[0].value : !!self.get();
 
 		if (binded === is)
 			return;
@@ -2957,6 +1891,7 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 		if (dirsource) {
 
 			var item;
+			var text = [];
 
 			for (var i = 0; i < dirsource.length; i++) {
 				item = dirsource[i];
@@ -2964,6 +1899,11 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 					if (item === value)
 						break;
 					item = null;
+				} else if (config.multiple) {
+					var v = item[config.dirvalue || config.value];
+					var index = value instanceof Array ? value.indexOf(v) : -1;
+					if (index !== -1)
+						text.push(item[config.dirkey || config.key]);
 				} else if (item[config.dirvalue || config.value] === value) {
 					item = item[config.dirkey || config.key];
 					break;
@@ -2971,14 +1911,22 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 					item = null;
 			}
 
-			if (value && item == null && config.dircustom)
+			if (config.multiple) {
+				item = text.join(', ');
+			} else if (value && item == null && config.dircustom)
 				item = value;
 
-			rawvalue.text(item || '');
+			if (config.dirraw)
+				rawvalue.html(item || '');
+			else
+				rawvalue.text(item || '');
 
-		} else if (config.dirsource)
-			rawvalue.text(value || '');
-		else {
+		} else if (config.dirsource) {
+			if (config.dirraw)
+				rawvalue.html(value || '');
+			else
+				rawvalue.text(value || '');
+		} else {
 			switch (config.type) {
 				case 'color':
 					rawvalue.css('background-color', value || '');
@@ -2988,6 +1936,9 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 					break;
 				case 'emoji':
 					rawvalue.html(value);
+					break;
+				case 'checkbox':
+					self.tclass(cls + '-checked', value === true);
 					break;
 			}
 		}
@@ -3031,30 +1982,54 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 		if (config.type)
 			self.aclass(cls + '-type-' + config.type);
 
-		self.html(W.ui_input_template(config));
-		input = self.find('input');
-		rawvalue = self.find(cls2 + '-value');
-		placeholder = self.find(cls2 + '-placeholder');
+
+		var html;
+		var is = false;
+
+		if (config.type === 'checkbox') {
+			html = '<div class="{0}-checkbox"><span><i class="{checkicon}"></i></span><label>{label}</label></div>'.format(cls).arg(config);
+		} else {
+			is = true;
+			html = W.ui_input_template(config);
+		}
+
+		self.html(html);
+
+		if (is) {
+			input = self.find('input,textarea');
+			rawvalue = self.find(cls2 + '-value');
+			placeholder = self.find(cls2 + '-placeholder');
+		} else
+			input = rawvalue = placeholder = null;
 	};
 
 	self.configure = function(key, value) {
 		switch (key) {
+			case 'icon':
+				if (value && value.indexOf(' ') === -1)
+					config.icon = 'fa fa-' + value;
+				break;
 			case 'dirsource':
 				if (config.dirajax || value.indexOf('/') !== -1) {
 					dirsource = null;
 					self.bindvalue();
 				} else {
-					self.datasource(value, function(path, value) {
-						dirsource = value;
+					if (value.indexOf(',') !== -1) {
+						dirsource = self.parsesource(value);
 						self.bindvalue();
-					});
+					} else {
+						self.datasource(value, function(path, value) {
+							dirsource = value;
+							self.bindvalue();
+						});
+					}
 				}
 				self.tclass(cls + '-dropdown', !!value);
 				input.prop('readonly', !!config.disabled || !!config.dirsource);
 				break;
 			case 'disabled':
 				self.tclass('ui-disabled', !!value);
-				input.prop('readonly', !!value || !!config.dirsource);
+				input && input.prop('readonly', !!value || !!config.dirsource);
 				self.reset();
 				break;
 			case 'required':
@@ -3065,10 +2040,13 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 				self.type = value;
 				break;
 			case 'validate':
-				customvalidator = value ? (/\(|=|>|<|\+|-|\)/).test(value) ? FN('value=>' + value) : (function(path) { return function(value) { return GET(path)(value); }; })(value) : null;
+				customvalidator = value ? (/\(|=|>|<|\+|-|\)/).test(value) ? FN('value=>' + value) : (function(path) { path = self.makepath(path); return function(value) { return GET(path)(value); }; })(value) : null;
 				break;
 			case 'innerlabel':
-				self.tclass(cls + '-inner', value);
+				self.tclass(cls + '-inner', !!value);
+				break;
+			case 'monospace':
+				self.tclass(cls + '-monospace', !!value);
 				break;
 			case 'maskregexp':
 				if (value) {
@@ -3093,11 +2071,15 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 		if (value) {
 			switch (config.type) {
 				case 'lower':
-					return value.toString().toLowerCase();
+					return (value + '').toLowerCase();
 				case 'upper':
-					return value.toString().toUpperCase();
+					return (value + '').toUpperCase();
+				case 'phone':
+					return (value + '').replace(/\s/g, '');
+				case 'email':
+					return (value + '').toLowerCase();
 				case 'date':
-					return value.format(config.format || 'yyyy-MM-dd');
+					return value.format(config.format || DEF.dateformat || 'yyyy-MM-dd');
 				case 'time':
 					return value.format(config.format || 'HH:mm');
 				case 'number':
@@ -3120,38 +2102,45 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 						tmp = '';
 					return value + (tmp ? (' ' + tmp) : '');
 				case 'lower':
+				case 'email':
 					value = value.toLowerCase();
 					break;
 				case 'upper':
 					value = value.toUpperCase();
 					break;
-				case 'slug':
-					value = value.slug();
+				case 'phone':
+					value = value.replace(/\s/g, '');
 					break;
 				case 'time':
 					tmp = value.split(':');
 					var dt = self.get();
-					if (dt == null)
-						dt = new Date();
-					dt.setHours(+(tmp[0] || '0'));
-					dt.setMinutes(+(tmp[1] || '0'));
-					dt.setSeconds(+(tmp[2] || '0'));
-					value = dt;
+					value = dt ? new Date(dt.getTime()) : new Date();
+					value.setHours((tmp[0] || '0').parseInt());
+					value.setMinutes((tmp[1] || '0').parseInt());
+					value.setSeconds((tmp[2] || '0').parseInt());
 					break;
 			}
 		}
 		return value ? config.spaces === false ? value.replace(/\s/g, '') : value : value;
 	});
 
-	self.state = function(type) {
-		if (!type)
-			return;
-		var invalid = config.required ? self.isInvalid() : self.forcedvalidation() ? self.isInvalid() : false;
-		if (invalid === self.$oldstate)
-			return;
-		self.$oldstate = invalid;
-		self.tclass(cls + '-invalid', invalid);
-		config.error && self.find(cls2 + '-error').tclass('hidden', !invalid);
+	self.state = function(type, what) {
+		if (type) {
+
+			if (type === 1 && what === 4) {
+				self.rclass(cls + '-ok ' + cls + '-invalid');
+				self.$oldstate = null;
+				return;
+			}
+
+			var invalid = config.required ? self.isInvalid() : self.forcedvalidation() ? self.isInvalid() : false;
+			if (invalid !== self.$oldstate) {
+				self.$oldstate = invalid;
+				self.tclass(cls + '-invalid', invalid);
+				self.tclass(cls + '-ok', !invalid);
+				config.error && self.find(cls2 + '-error').tclass('hidden', !invalid);
+			}
+		}
 	};
 
 	self.forcedvalidation = function() {
@@ -3159,14 +2148,641 @@ COMPONENT('input', 'maxlength:200;dirkey:name;dirvalue:id;increment:1;autovalue:
 		if (!config.forcevalidation)
 			return false;
 
-		if (self.type === 'number')
+		if (config.type === 'number')
 			return false;
 
 		var val = self.get();
-		return (self.type === 'phone' || self.type === 'email') && (val != null && (typeof(val) === 'string' && val.length !== 0));
+
+		if (config.type === 'checkbox')
+			return val === true;
+
+		return (config.type === 'phone' || config.type === 'email') && (val != null && (typeof(val) === 'string' && val.length !== 0));
 	};
 
 });
+// End: j-Input
+
+// Component: j-Directory
+// Version: 1
+// Updated: 2021-06-17 01:52
+COMPONENT('directory', 'minwidth:200', function(self, config, cls) {
+
+	var cls2 = '.' + cls;
+	var container, timeout, icon, plus, skipreset = false, skipclear = false, ready = false, input = null, issearch = false;
+	var is = false, selectedindex = 0, resultscount = 0, skiphide = false;
+	var templateE = '{{ name | encode | ui_directory_helper }}';
+	var templateR = '{{ name | raw }}';
+	var template = '<li data-index="{{ $.index }}" data-search="{{ $.search }}" {{ if selected }} class="current selected{{ if classname }} {{ classname }}{{ fi }}"{{ else if classname }} class="{{ classname }}"{{ fi }}>{{ if $.checkbox }}<span class="' + cls + '-checkbox"><i class="fa fa-check"></i></span>{{ fi }}{0}</li>';
+	var templateraw = template.format(templateR);
+	var regstrip = /(&nbsp;|<([^>]+)>)/ig;
+	var parentclass;
+
+	template = template.format(templateE);
+
+	Thelpers.ui_directory_helper = function(val) {
+		var t = this;
+		return t.template ? (typeof(t.template) === 'string' ? t.template.indexOf('{{') === -1 ? t.template : Tangular.render(t.template, this) : t.render(this, val)) : self.opt.render ? self.opt.render(this, val) : val;
+	};
+
+	self.template = Tangular.compile(template);
+	self.templateraw = Tangular.compile(templateraw);
+
+	self.readonly();
+	self.singleton();
+	self.nocompile && self.nocompile();
+
+	self.configure = function(key, value, init) {
+		if (init)
+			return;
+		switch (key) {
+			case 'placeholder':
+				self.find('input').prop('placeholder', value);
+				break;
+		}
+	};
+
+	self.make = function() {
+
+		self.aclass(cls + ' hidden');
+		self.append('<div class="{1}-search"><span class="{1}-add hidden"><i class="fa fa-plus"></i></span><span class="{1}-button"><i class="fa fa-search"></i></span><div><input type="text" placeholder="{0}" class="{1}-search-input" name="dir{2}" autocomplete="new-password" /></div></div><div class="{1}-container"><ul></ul></div>'.format(config.placeholder, cls, Date.now()));
+		container = self.find('ul');
+		input = self.find('input');
+		icon = self.find(cls2 + '-button').find('.fa');
+		plus = self.find(cls2 + '-add');
+
+		self.event('mouseenter mouseleave', 'li', function() {
+			if (ready && !issearch) {
+				container.find('li.current').rclass('current');
+				$(this).aclass('current');
+				var arr = container.find('li:visible');
+				for (var i = 0; i < arr.length; i++) {
+					if ($(arr[i]).hclass('current')) {
+						selectedindex = i;
+						break;
+					}
+				}
+			}
+		});
+
+		self.event('focus', 'input', function() {
+			if (self.opt.search === false)
+				$(this).blur();
+		});
+
+		self.event('click', cls2 + '-button', function(e) {
+			skipclear = false;
+			input.val('');
+			self.search();
+			e.stopPropagation();
+			e.preventDefault();
+		});
+
+		self.event('click', cls2 + '-add', function() {
+			if (self.opt.custom && self.opt.callback) {
+				self.opt.scope && M.scope(self.opt.scope);
+				self.opt.callback(input.val(), self.opt.element, true);
+				self.hide();
+			}
+		});
+
+		self.event('click', 'li', function(e) {
+
+			if (self.opt.callback) {
+				self.opt.scope && M.scope(self.opt.scope);
+				var item = self.opt.items[+this.getAttribute('data-index')];
+				if (self.opt.checkbox) {
+					item.selected = !item.selected;
+					$(this).tclass('selected', item.selected);
+					var response = [];
+					for (var i = 0; i < self.opt.items.length; i++) {
+						var m = self.opt.items[i];
+						if (m.selected)
+							response.push(m);
+					}
+					self.opt.callback(response, self.opt.element, false, e);
+					skiphide = true;
+				} else
+					self.opt.callback(item, self.opt.element, false, e);
+			}
+
+			is = true;
+
+			if (!self.opt.checkbox) {
+				self.hide(0);
+				e.preventDefault();
+				e.stopPropagation();
+			}
+
+		});
+
+		var e_click = function(e) {
+
+			if (skiphide) {
+				skiphide = false;
+				return;
+			}
+
+			var node = e.target;
+			var count = 0;
+
+			if (is) {
+				while (true) {
+					var c = node.getAttribute('class') || '';
+					if (c.indexOf(cls + '-search-input') !== -1)
+						return;
+					node = node.parentNode;
+					if (!node || !node.tagName || node.tagName === 'BODY' || count > 3)
+						break;
+					count++;
+				}
+			} else {
+				is = true;
+				while (true) {
+					var c = node.getAttribute('class') || '';
+					if (c.indexOf(cls) !== -1) {
+						is = false;
+						break;
+					}
+					node = node.parentNode;
+					if (!node || !node.tagName || node.tagName === 'BODY' || count > 4)
+						break;
+					count++;
+				}
+			}
+
+			is && self.hide(0);
+		};
+
+		var e_resize = function() {
+			is && self.hide(0);
+		};
+
+		self.bindedevents = false;
+
+		self.bindevents = function() {
+			if (!self.bindedevents) {
+				$(document).on('click', e_click);
+				$(W).on('resize', e_resize);
+				self.bindedevents = true;
+			}
+		};
+
+		self.unbindevents = function() {
+			if (self.bindedevents) {
+				self.bindedevents = false;
+				$(document).off('click', e_click);
+				$(W).off('resize', e_resize);
+			}
+		};
+
+		self.event('keydown', 'input', function(e) {
+			var o = false;
+			switch (e.which) {
+				case 8:
+					skipclear = false;
+					break;
+				case 27:
+					o = true;
+					self.hide();
+					break;
+				case 13:
+					o = true;
+					var sel = self.find('li.current');
+					if (self.opt.callback) {
+						self.opt.scope && M.scope(self.opt.scope);
+						var index = +sel.attrd('index');
+						if (self.opt.custom && (!sel.length || index === -1))
+							self.opt.callback(this.value, self.opt.element, true);
+						else
+							self.opt.callback(self.opt.items[index], self.opt.element);
+					}
+					self.hide();
+					break;
+				case 38: // up
+					o = true;
+					selectedindex--;
+					if (selectedindex < 0)
+						selectedindex = 0;
+					self.move();
+					break;
+				case 40: // down
+					o = true;
+					selectedindex++;
+					if (selectedindex >= resultscount)
+						selectedindex = resultscount;
+					self.move();
+					break;
+			}
+
+			if (o) {
+				e.preventDefault();
+				e.stopPropagation();
+			}
+
+		});
+
+		self.event('input', 'input', function() {
+			issearch = true;
+			setTimeout2(self.ID, self.search, 100, null, this.value);
+		});
+
+		var fn = function() {
+			is && self.hide(1);
+		};
+
+		self.on('reflow + scroll + resize + resize2', fn);
+		$(W).on('scroll', fn);
+	};
+
+	self.move = function() {
+
+		var counter = 0;
+		var scroller = container.parent();
+		var li = container.find('li');
+		var hli = 0;
+		var was = false;
+		var last = -1;
+		var lastselected = 0;
+		var plus = 0;
+
+		for (var i = 0; i < li.length; i++) {
+
+			var el = $(li[i]);
+
+			if (el.hclass('hidden')) {
+				el.rclass('current');
+				continue;
+			}
+
+			var is = selectedindex === counter;
+			el.tclass('current', is);
+
+			if (is) {
+				hli = (el.innerHeight() || 30) + 1;
+				plus = (hli * 2);
+				was = true;
+				var t = (hli * (counter || 1));
+				scroller[0].scrollTop = t - plus;
+			}
+
+			counter++;
+			last = i;
+			lastselected++;
+		}
+
+		if (!was && last >= 0) {
+			selectedindex = lastselected;
+			li.eq(last).aclass('current');
+		}
+	};
+
+	var nosearch = function() {
+		issearch = false;
+	};
+
+	self.nosearch = function() {
+		setTimeout2(self.ID + 'nosearch', nosearch, 500);
+	};
+
+	self.search = function(value) {
+
+		if (!self.opt)
+			return;
+
+		icon.tclass('fa-times', !!value).tclass('fa-search', !value);
+		self.opt.custom && plus.tclass('hidden', !value);
+
+		if (!value && !self.opt.ajax) {
+			if (!skipclear)
+				container.find('li').rclass('hidden');
+			if (!skipreset)
+				selectedindex = 0;
+			resultscount = self.opt.items ? self.opt.items.length : 0;
+			self.move();
+			self.nosearch();
+			return;
+		}
+
+		resultscount = 0;
+		selectedindex = 0;
+
+		if (self.opt.ajax) {
+			var val = value || '';
+			if (self.ajaxold !== val) {
+				self.ajaxold = val;
+				setTimeout2(self.ID, function(val) {
+					self.opt && self.opt.ajax(val, function(items) {
+						var builder = [];
+						var indexer = {};
+						var item;
+						var key = (self.opt.search == true ? self.opt.key : (self.opt.search || self.opt.key)) || 'name';
+
+						for (var i = 0; i < items.length; i++) {
+							item = items[i];
+							if (self.opt.exclude && self.opt.exclude(item))
+								continue;
+							indexer.index = i;
+							indexer.search = item[key] ? item[key].replace(regstrip, '') : '';
+							indexer.checkbox = self.opt.checkbox === true;
+							resultscount++;
+							builder.push(self.opt.ta(item, indexer));
+						}
+
+						if (self.opt.empty) {
+							item = {};
+							var tmp = self.opt.raw ? '<b>{0}</b>'.format(self.opt.empty) : self.opt.empty;
+							item[self.opt.key || 'name'] = tmp;
+							if (!self.opt.raw)
+								item.template = '<b>{0}</b>'.format(self.opt.empty);
+							indexer.index = -1;
+							builder.unshift(self.opt.ta(item, indexer));
+						}
+
+						skipclear = true;
+						self.opt.items = items;
+						container.html(builder);
+						self.move();
+						self.nosearch();
+					});
+				}, 300, null, val);
+			}
+		} else if (value) {
+			value = value.toSearch().split(' ');
+			var arr = container.find('li');
+			for (var i = 0; i < arr.length; i++) {
+				var el = $(arr[i]);
+				var val = el.attrd('search').toSearch();
+				var is = false;
+
+				for (var j = 0; j < value.length; j++) {
+					if (val.indexOf(value[j]) === -1) {
+						is = true;
+						break;
+					}
+				}
+
+				el.tclass('hidden', is);
+
+				if (!is)
+					resultscount++;
+			}
+			skipclear = true;
+			self.move();
+			self.nosearch();
+		}
+	};
+
+	self.show = function(opt) {
+
+		// opt.element
+		// opt.items
+		// opt.callback(value, el)
+		// opt.offsetX     --> offsetX
+		// opt.offsetY     --> offsetY
+		// opt.offsetWidth --> plusWidth
+		// opt.placeholder
+		// opt.render
+		// opt.custom
+		// opt.minwidth
+		// opt.maxwidth
+		// opt.key
+		// opt.exclude    --> function(item) must return Boolean
+		// opt.search
+		// opt.selected   --> only for String Array "opt.items"
+		// opt.classname
+
+		var el = opt.element instanceof jQuery ? opt.element[0] : opt.element;
+
+		if (opt.items == null)
+			opt.items = EMPTYARRAY;
+
+		self.tclass(cls + '-default', !opt.render);
+
+		if (parentclass) {
+			self.rclass(parentclass);
+			parentclass = null;
+		}
+
+		if (opt.classname) {
+			self.aclass(opt.classname);
+			parentclass = opt.classname;
+		}
+
+		if (!opt.minwidth)
+			opt.minwidth = 200;
+
+		if (is) {
+			clearTimeout(timeout);
+			if (self.target === el) {
+				self.hide(1);
+				return;
+			}
+		}
+
+		self.initializing = true;
+		self.target = el;
+		opt.ajax = null;
+		self.ajaxold = null;
+
+		var element = $(opt.element);
+		var callback = opt.callback;
+		var items = opt.items;
+		var type = typeof(items);
+		var item;
+
+		if (type === 'string') {
+			items = opt.items = GET(items);
+			type = typeof(items);
+		}
+
+		if (type === 'function' && callback) {
+			type = '';
+			opt.ajax = items;
+			items = null;
+		}
+
+		if (!items && !opt.ajax) {
+			self.hide(0);
+			return;
+		}
+
+		setTimeout(self.bindevents, 500);
+		self.tclass(cls + '-search-hidden', opt.search === false);
+
+		self.opt = opt;
+		opt.class && self.aclass(opt.class);
+
+		input.val('');
+
+		var builder = [];
+		var selected = null;
+
+		opt.ta = opt.key ? Tangular.compile((opt.raw ? templateraw : template).replace(/\{\{\sname/g, '{{ ' + opt.key)) : opt.raw ? self.templateraw : self.template;
+
+		if (!opt.ajax) {
+			var indexer = {};
+			var key = (opt.search == true ? opt.key : (opt.search || opt.key)) || 'name';
+			for (var i = 0; i < items.length; i++) {
+
+				item = items[i];
+
+				if (typeof(item) === 'string')
+					item = { name: item, id: item, selected: item === opt.selected };
+
+				if (opt.exclude && opt.exclude(item))
+					continue;
+
+				if (item.selected || opt.selected === item) {
+					selected = i;
+					skipreset = true;
+					item.selected = true;
+				} else
+					item.selected = false;
+
+				indexer.checkbox = opt.checkbox === true;
+				indexer.index = i;
+				indexer.search = item[key] ? item[key].replace(regstrip, '') : '';
+				builder.push(opt.ta(item, indexer));
+			}
+
+			if (opt.empty) {
+				item = {};
+				var tmp = opt.raw ? '<b>{0}</b>'.format(opt.empty) : opt.empty;
+				item[opt.key || 'name'] = tmp;
+				if (!opt.raw)
+					item.template = '<b>{0}</b>'.format(opt.empty);
+				indexer.index = -1;
+				builder.unshift(opt.ta(item, indexer));
+			}
+		}
+
+		self.target = element[0];
+
+		var w = element.width();
+		var offset = element.offset();
+		var width = w + (opt.offsetWidth || 0);
+
+		if (opt.minwidth && width < opt.minwidth)
+			width = opt.minwidth;
+		else if (opt.maxwidth && width > opt.maxwidth)
+			width = opt.maxwidth;
+
+		ready = false;
+
+		opt.ajaxold = null;
+		plus.aclass('hidden');
+		self.find('input').prop('placeholder', opt.placeholder || config.placeholder);
+		var scroller = self.find(cls2 + '-container').css('width', width + 30);
+		container.html(builder);
+
+		var options = { left: 0, top: 0, width: width };
+
+		switch (opt.align) {
+			case 'center':
+				options.left = Math.ceil((offset.left - width / 2) + (opt.element.innerWidth() / 2));
+				break;
+			case 'right':
+				options.left = (offset.left - width) + opt.element.innerWidth();
+				break;
+			default:
+				options.left = offset.left;
+				break;
+		}
+
+		options.top = opt.position === 'bottom' ? ((offset.top - self.height()) + element.height()) : offset.top;
+		options.scope = M.scope ? M.scope() : '';
+
+		if (opt.offsetX)
+			options.left += opt.offsetX;
+
+		if (opt.offsetY)
+			options.top += opt.offsetY;
+
+		var mw = width;
+		var mh = self.height();
+
+		if (options.left < 0)
+			options.left = 10;
+		else if ((mw + options.left) > WW)
+			options.left = (WW - mw) - 10;
+
+		var dom = opt.element[0].parentNode;
+		var restrict = true;
+
+		while (dom) {
+			if (dom.tagName === 'BODY') {
+				restrict = false;
+				break;
+			}
+			if (dom.classList.contains('ui-scrollbar-area'))
+				break;
+			dom = dom.parentNode;
+		}
+
+		if (options.top < 0)
+			options.top = 10;
+		else if (restrict && (mh + options.top) > WH)
+			options.top = (WH - mh) - 10;
+
+		self.css(options);
+
+		!isMOBILE && setTimeout(function() {
+			ready = true;
+			if (opt.search !== false)
+				input.focus();
+		}, 200);
+
+		setTimeout(function() {
+			self.initializing = false;
+			is = true;
+			if (selected == null)
+				scroller[0].scrollTop = 0;
+			else {
+				var h = container.find('li:first-child').innerHeight() + 1;
+				var y = (container.find('li.selected').index() * h) - (h * 2);
+				scroller[0].scrollTop = y < 0 ? 0 : y;
+			}
+		}, 100);
+
+		if (is) {
+			self.search();
+			return;
+		}
+
+		selectedindex = selected || 0;
+		resultscount = items ? items.length : 0;
+		skipclear = true;
+
+		self.search();
+		self.rclass('hidden');
+
+		setTimeout(function() {
+			if (self.opt && self.target && self.target.offsetParent)
+				self.aclass(cls + '-visible');
+			else
+				self.hide(1);
+		}, 100);
+
+		skipreset = false;
+	};
+
+	self.hide = function(sleep) {
+		if (!is || self.initializing)
+			return;
+		clearTimeout(timeout);
+		timeout = setTimeout(function() {
+			self.unbindevents();
+			self.rclass(cls + '-visible').aclass('hidden');
+			if (self.opt) {
+				self.opt.close && self.opt.close();
+				self.opt.class && self.rclass(self.opt.class);
+				self.opt = null;
+			}
+			is = false;
+		}, sleep ? sleep : 100);
+	};
+});
+// End: j-Directory
 
 COMPONENT('codemirror', 'linenumbers:true;required:false;trim:false;tabs:true;height:200;minheight:200', function(self, config, cls) {
 
@@ -3665,788 +3281,6 @@ COMPONENT('codemirror', 'linenumbers:true;required:false;trim:false;tabs:true;he
 
 	next();
 }]);
-
-COMPONENT('form', 'zindex:12;scrollbar:1;closeoutside:0', function(self, config, cls) {
-
-	var cls2 = '.' + cls;
-	var container;
-	var csspos = {};
-
-	if (!W.$$form) {
-
-		W.$$form_level = W.$$form_level || 1;
-		W.$$form = true;
-
-		$(document).on('click', cls2 + '-button-close', function() {
-			SET($(this).attrd('path'), '');
-		});
-
-		var resize = function() {
-			setTimeout2('form', function() {
-				for (var i = 0; i < M.components.length; i++) {
-					var com = M.components[i];
-					if (com.name === 'form' && !HIDDEN(com.dom) && com.$ready && !com.$removed)
-						com.resize();
-				}
-			}, 200);
-		};
-
-		if (W.OP)
-			W.OP.on('resize', resize);
-		else
-			$(W).on('resize', resize);
-
-		$(document).on('click', cls2 + '-container', function(e) {
-
-			var el = $(e.target);
-			if (e.target === this || el.hclass(cls + '-container-padding')) {
-				var com = $(this).component();
-				if (com && com.config.closeoutside) {
-					com.set('');
-					return;
-				}
-			}
-
-			if (!(el.hclass(cls + '-container-padding') || el.hclass(cls + '-container')))
-				return;
-
-			var form = $(this).find(cls2);
-			var c = cls + '-animate-click';
-			form.aclass(c);
-
-			setTimeout(function() {
-				form.rclass(c);
-			}, 300);
-		});
-	}
-
-	self.readonly();
-	self.submit = function() {
-		if (config.submit)
-			EXEC(config.submit, self.hide, self.element);
-		else
-			self.hide();
-	};
-
-	self.cancel = function() {
-		config.cancel && EXEC(config.cancel, self.hide);
-		self.hide();
-	};
-
-	self.hide = function() {
-		self.set('');
-	};
-
-	self.icon = function(value) {
-		var el = this.rclass2('fa');
-		value.icon && el.aclass(value.icon.indexOf(' ') === -1 ? ('fa fa-' + value.icon) : value.icon);
-		el.tclass('hidden', !value.icon);
-	};
-
-	self.resize = function() {
-
-		if (self.scrollbar) {
-			container.css('height', WH);
-			self.scrollbar.resize();
-		}
-
-		if (!config.center || self.hclass('hidden'))
-			return;
-
-		var ui = self.find(cls2);
-		var fh = ui.innerHeight();
-		var wh = WH;
-		var r = (wh / 2) - (fh / 2);
-		csspos.marginTop = (r > 30 ? (r - 15) : 20) + 'px';
-		ui.css(csspos);
-	};
-
-	self.make = function() {
-
-		$(document.body).append('<div id="{0}" class="hidden {4}-container invisible"><div class="{4}-scrollbar"><div class="{4}-container-padding"><div class="{4}" style="max-width:{1}px"><div data-bind="@config__text span:value.title__change .{4}-icon:@icon" class="{4}-title"><button name="cancel" class="{4}-button-close{3}" data-path="{2}"><i class="fa fa-times"></i></button><i class="{4}-icon"></i><span></span></div></div></div></div>'.format(self.ID, config.width || 800, self.path, config.closebutton == false ? ' hidden' : '', cls));
-
-		var scr = self.find('> script');
-		self.template = scr.length ? scr.html().trim() : '';
-		if (scr.length)
-			scr.remove();
-
-		var el = $('#' + self.ID);
-		var body = el.find(cls2)[0];
-		container = el.find(cls2 + '-scrollbar');
-
-		if (config.scrollbar) {
-			el.css('overflow', 'hidden');
-			self.scrollbar = SCROLLBAR(el.find(cls2 + '-scrollbar'), { visibleY: 1, orientation: 'y' });
-		}
-
-		while (self.dom.children.length)
-			body.appendChild(self.dom.children[0]);
-
-		self.rclass('hidden invisible');
-		self.replace(el, true);
-
-		self.event('scroll', function() {
-			EMIT('scroll', self.name);
-			EMIT('reflow', self.name);
-		});
-
-		self.event('click', 'button[name]', function() {
-			var t = this;
-			switch (t.name) {
-				case 'submit':
-					self.submit(self.hide);
-					break;
-				case 'cancel':
-					!t.disabled && self[t.name](self.hide);
-					break;
-			}
-		});
-
-		config.enter && self.event('keydown', 'input', function(e) {
-			e.which === 13 && !self.find('button[name="submit"]')[0].disabled && setTimeout(self.submit, 800);
-		});
-	};
-
-	self.configure = function(key, value, init, prev) {
-		if (init)
-			return;
-		switch (key) {
-			case 'width':
-				value !== prev && self.find(cls2).css('max-width', value + 'px');
-				break;
-			case 'closebutton':
-				self.find(cls2 + '-button-close').tclass('hidden', value !== true);
-				break;
-		}
-	};
-
-	self.setter = function(value) {
-
-		setTimeout2(cls + '-noscroll', function() {
-			$('html').tclass(cls + '-noscroll', !!$(cls2 + '-container').not('.hidden').length);
-		}, 50);
-
-		var isHidden = value !== config.if;
-
-		if (self.hclass('hidden') === isHidden) {
-			if (!isHidden) {
-				config.reload && EXEC(config.reload, self);
-				config.default && DEFAULT(config.default, true);
-			}
-			return;
-		}
-
-		setTimeout2(cls, function() {
-			EMIT('reflow', self.name);
-		}, 10);
-
-		if (isHidden) {
-			self.aclass('hidden');
-			self.release(true);
-			self.find(cls2).rclass(cls + '-animate');
-			W.$$form_level--;
-			return;
-		}
-
-		if (self.template) {
-			var is = self.template.COMPILABLE();
-			self.find(cls2).append(self.template);
-			self.template = null;
-			is && COMPILE();
-		}
-
-		if (W.$$form_level < 1)
-			W.$$form_level = 1;
-
-		W.$$form_level++;
-
-		self.css('z-index', W.$$form_level * config.zindex);
-		self.element.scrollTop(0);
-		self.rclass('hidden');
-
-		self.resize();
-		self.release(false);
-
-		config.reload && EXEC(config.reload, self);
-		config.default && DEFAULT(config.default, true);
-
-		if (!isMOBILE && config.autofocus) {
-			setTimeout(function() {
-				self.find(typeof(config.autofocus) === 'string' ? config.autofocus : 'input[type="text"],select,textarea').eq(0).focus();
-			}, 1000);
-		}
-
-		setTimeout(function() {
-			self.rclass('invisible');
-			self.element.scrollTop(0);
-			self.find(cls2).aclass(cls + '-animate');
-		}, 300);
-
-		// Fixes a problem with freezing of scrolling in Chrome
-		setTimeout2(self.ID, function() {
-			self.css('z-index', (W.$$form_level * config.zindex) + 1);
-		}, 500);
-	};
-});
-
-COMPONENT('menu', function(self, config, cls) {
-
-	self.singleton();
-	self.readonly();
-	self.nocompile && self.nocompile();
-
-	var cls2 = '.' + cls;
-
-	var is = false;
-	var issubmenu = false;
-	var isopen = false;
-	var events = {};
-	var ul, children, prevsub, parentclass;
-
-	self.make = function() {
-		self.aclass(cls + ' hidden ' + cls + '-style-' + (config.style || 1));
-		self.append('<div class="{0}-items"><ul></ul></div><div class="{0}-submenu hidden"><ul></ul></div>'.format(cls));
-		ul = self.find(cls2 + '-items').find('ul');
-		children = self.find(cls2 + '-submenu');
-
-		self.event('click', 'li', function(e) {
-
-			clearTimeout2(self.ID);
-
-			var el = $(this);
-			if (!el.hclass(cls + '-divider') && !el.hclass(cls + '-disabled')) {
-				self.opt.scope && M.scope(self.opt.scope);
-				var index = el.attrd('index').split('-');
-				if (index.length > 1) {
-					// submenu
-					self.opt.callback(self.opt.items[+index[0]].children[+index[1]]);
-					self.hide();
-				} else if (!issubmenu) {
-					self.opt.callback(self.opt.items[+index[0]]);
-					self.hide();
-				}
-			}
-
-			e.preventDefault();
-			e.stopPropagation();
-		});
-
-		events.hide = function() {
-			is && self.hide();
-		};
-
-		self.event('scroll', events.hide);
-		self.on('reflow + scroll + resize + resize2', events.hide);
-
-		events.click = function(e) {
-			if (is && !isopen && (!self.target || (self.target !== e.target && !self.target.contains(e.target))))
-				setTimeout2(self.ID, self.hide, isMOBILE ? 700 : 300);
-		};
-
-		events.hidechildren = function() {
-			if ($(this.parentNode.parentNode).hclass(cls + '-items')) {
-				if (prevsub && prevsub[0] !== this) {
-					prevsub.rclass(cls + '-selected');
-					prevsub = null;
-					children.aclass('hidden');
-					issubmenu = false;
-				}
-			}
-		};
-
-		events.children = function() {
-
-			if (prevsub && prevsub[0] !== this) {
-				prevsub.rclass(cls + '-selected');
-				prevsub = null;
-			}
-
-			issubmenu = true;
-			isopen = true;
-
-			setTimeout(function() {
-				isopen = false;
-			}, 500);
-
-			var el = prevsub = $(this);
-			var index = +el.attrd('index');
-			var item = self.opt.items[index];
-
-			el.aclass(cls + '-selected');
-
-			var html = self.makehtml(item.children, index);
-			children.find('ul').html(html);
-			children.rclass('hidden');
-
-			var css = {};
-			var offset = el.position();
-
-			css.left = ul.width() - 5;
-			css.top = offset.top - 5;
-
-			var offsetX = offset.left;
-
-			offset = self.element.offset();
-
-			var w = children.width();
-			var left = offset.left + css.left + w;
-			if (left > WW + 30)
-				css.left = (offsetX - w) + 5;
-
-			children.css(css);
-		};
-	};
-
-	self.bindevents = function() {
-		events.is = true;
-		$(document).on('touchstart mouseenter mousedown', cls2 + '-children', events.children).on('touchstart mousedown', events.click);
-		$(W).on('scroll', events.hide);
-		self.element.on('mouseenter', 'li', events.hidechildren);
-	};
-
-	self.unbindevents = function() {
-		events.is = false;
-		$(document).off('touchstart mouseenter mousedown', cls2 + '-children', events.children).off('touchstart mousedown', events.click);
-		$(W).off('scroll', events.hide);
-		self.element.off('mouseenter', 'li', events.hidechildren);
-	};
-
-	self.showxy = function(x, y, items, callback) {
-		var opt = {};
-		opt.x = x;
-		opt.y = y;
-		opt.items = items;
-		opt.callback = callback;
-		self.show(opt);
-	};
-
-	self.makehtml = function(items, index) {
-		var builder = [];
-		var tmp;
-
-		for (var i = 0; i < items.length; i++) {
-			var item = items[i];
-
-			if (typeof(item) === 'string') {
-				// caption or divider
-				if (item === '-')
-					tmp = '<hr />';
-				else
-					tmp = '<span>{0}</span>'.format(item);
-				builder.push('<li class="{0}-divider">{1}</li>'.format(cls, tmp));
-				continue;
-			}
-
-			var cn = item.classname || '';
-			var icon = '';
-
-			if (item.icon)
-				icon = '<i class="{0}"></i>'.format(item.icon.charAt(0) === '!' ? item.icon.substring(1) : item.icon.indexOf('fa-') === -1 ? ('fa fa-' + item.icon) : item.icon);
-			else
-				cn = (cn ? (cn + ' ') : '') + cls + '-nofa';
-
-			tmp = '';
-
-			if (index == null && item.children && item.children.length) {
-				cn += (cn ? ' ' : '') + cls + '-children';
-				tmp += '<i class="fa fa-play pull-right"></i>';
-			}
-
-			if (item.selected)
-				cn += (cn ? ' ' : '') + cls + '-selected';
-
-			if (item.disabled)
-				cn += (cn ? ' ' : '') + cls + '-disabled';
-
-			tmp += '<div class="{0}-name">{1}{2}{3}</div>'.format(cls, icon, item.name, item.shortcut ? '<b>{0}</b>'.format(item.shortcut) : '');
-
-			if (item.note)
-				tmp += '<div class="ui-menu-note">{0}</div>'.format(item.note);
-
-			builder.push('<li class="{0}" data-index="{2}">{1}</li>'.format(cn, tmp, (index != null ? (index + '-') : '') + i));
-		}
-
-		return builder.join('');
-	};
-
-	self.show = function(opt) {
-
-		if (typeof(opt) === 'string') {
-			// old version
-			opt = { align: opt };
-			opt.element = arguments[1];
-			opt.items = arguments[2];
-			opt.callback = arguments[3];
-			opt.offsetX = arguments[4];
-			opt.offsetY = arguments[5];
-		}
-
-		var tmp = opt.element ? opt.element instanceof jQuery ? opt.element[0] : opt.element.element ? opt.element.dom : opt.element : null;
-
-		if (is && tmp && self.target === tmp) {
-			self.hide();
-			return;
-		}
-
-		var tmp;
-
-		self.target = tmp;
-		self.opt = opt;
-		opt.scope = M.scope();
-
-		if (parentclass && opt.classname !== parentclass) {
-			self.rclass(parentclass);
-			parentclass = null;
-		}
-
-		if (opt.large)
-			self.aclass('ui-large');
-		else
-			self.rclass('ui-large');
-
-		isopen = false;
-		issubmenu = false;
-		prevsub = null;
-
-		var css = {};
-		children.aclass('hidden');
-		children.find('ul').empty();
-		clearTimeout2(self.ID);
-
-		ul.html(self.makehtml(opt.items));
-
-		if (!parentclass && opt.classname) {
-			self.aclass(opt.classname);
-			parentclass = opt.classname;
-		}
-
-		if (is) {
-			css.left = 0;
-			css.top = 0;
-			self.element.css(css);
-		} else {
-			self.rclass('hidden');
-			self.aclass(cls + '-visible', 100);
-			is = true;
-			if (!events.is)
-				self.bindevents();
-		}
-
-		var target = $(opt.element);
-		var w = self.width();
-		var offset = target.offset();
-
-		if (opt.element) {
-			switch (opt.align) {
-				case 'center':
-					css.left = Math.ceil((offset.left - w / 2) + (target.innerWidth() / 2));
-					break;
-				case 'right':
-					css.left = (offset.left - w) + target.innerWidth();
-					break;
-				default:
-					css.left = offset.left;
-					break;
-			}
-
-			css.top = opt.position === 'bottom' ? (offset.top - self.element.height() - 10) : (offset.top + target.innerHeight() + 10);
-
-		} else {
-			css.left = opt.x;
-			css.top = opt.y;
-		}
-
-		if (opt.offsetX)
-			css.left += opt.offsetX;
-
-		if (opt.offsetY)
-			css.top += opt.offsetY;
-
-		var mw = w;
-		var mh = self.height();
-
-		if (css.left < 0)
-			css.left = 10;
-		else if ((mw + css.left) > WW)
-			css.left = (WW - mw) - 10;
-
-		if (css.top < 0)
-			css.top = 10;
-		else if ((mh + css.top) > WH)
-			css.top = (WH - mh) - 10;
-
-		self.element.css(css);
-	};
-
-	self.hide = function() {
-		events.is && self.unbindevents();
-		is = false;
-		self.opt && self.opt.hide && self.opt.hide();
-		self.target = null;
-		self.opt = null;
-		self.aclass('hidden');
-		self.rclass(cls + '-visible');
-	};
-
-});
-
-COMPONENT('message', 'button:OK', function(self, config, cls) {
-
-	var cls2 = '.' + cls;
-	var is, visible = false;
-	var events = {};
-
-	self.readonly();
-	self.singleton();
-	self.nocompile && self.nocompile();
-
-	self.make = function() {
-
-		var pls = (config.style === 2 ? (' ' + cls + '2') : '');
-		self.aclass(cls + ' hidden' + pls);
-		self.event('click', 'button', self.hide);
-	};
-
-	events.keyup = function(e) {
-		if (e.which === 27)
-			self.hide();
-	};
-
-	events.bind = function() {
-		if (!events.is) {
-			$(W).on('keyup', events.keyup);
-			events.is = false;
-		}
-	};
-
-	events.unbind = function() {
-		if (events.is) {
-			events.is = false;
-			$(W).off('keyup', events.keyup);
-		}
-	};
-
-	self.warning = function(message, icon, fn) {
-		if (typeof(icon) === 'function') {
-			fn = icon;
-			icon = undefined;
-		}
-		self.callback = fn;
-		self.content(cls + '-warning', message, icon || 'warning');
-	};
-
-	self.info = function(message, icon, fn) {
-		if (typeof(icon) === 'function') {
-			fn = icon;
-			icon = undefined;
-		}
-		self.callback = fn;
-		self.content(cls + '-info', message, icon || 'info-circle');
-	};
-
-	self.success = function(message, icon, fn) {
-
-		if (typeof(icon) === 'function') {
-			fn = icon;
-			icon = undefined;
-		}
-
-		self.callback = fn;
-		self.content(cls + '-success', message, icon || 'check-circle');
-	};
-
-	self.response = function(message, callback, response) {
-
-		var fn;
-
-		if (typeof(message) === 'function') {
-			response = callback;
-			fn = message;
-			message = null;
-		} else if (typeof(callback) === 'function')
-			fn = callback;
-		else {
-			response = callback;
-			fn = null;
-		}
-
-		if (response instanceof Array) {
-			var builder = [];
-			for (var i = 0; i < response.length; i++) {
-				var err = response[i].error;
-				err && builder.push(err);
-			}
-			self.warning(builder.join('<br />'));
-			SETTER('!loading/hide');
-		} else if (typeof(response) === 'string') {
-			self.warning(response);
-			SETTER('!loading/hide');
-		} else {
-			message && self.success(message);
-			fn && fn(response);
-		}
-	};
-
-	self.hide = function() {
-		events.unbind();
-		self.callback && self.callback();
-		self.aclass('hidden');
-		visible = false;
-	};
-
-	self.content = function(classname, text, icon) {
-
-		if (icon.indexOf(' ') === -1)
-			icon = 'fa fa-' + icon;
-
-		!is && self.html('<div><div class="{0}-icon"><i class="{1}"></i></div><div class="{0}-body"><div class="{0}-text"></div><hr /><button>{2}</button></div></div>'.format(cls, icon, config.button));
-		visible = true;
-		self.rclass2(cls + '-').aclass(classname);
-		self.find(cls2 + '-body').rclass().aclass(cls + '-body');
-
-		if (is)
-			self.find(cls2 + '-icon').find('.fa').rclass2('fa').aclass(icon);
-
-		self.find(cls2 + '-text').html(text);
-		self.rclass('hidden');
-		is = true;
-		events.bind();
-		setTimeout(function() {
-			self.aclass(cls + '-visible');
-			setTimeout(function() {
-				self.find(cls2 + '-icon').aclass(cls + '-icon-animate');
-			}, 300);
-		}, 100);
-	};
-});
-
-COMPONENT('validation', 'delay:100;flags:visible', function(self, config, cls) {
-
-	var path, elements = null;
-	var def = 'button[name="submit"]';
-	var flags = null;
-	var tracked = false;
-	var reset = 0;
-	var old, track;
-
-	self.readonly();
-
-	self.make = function() {
-		elements = self.find(config.selector || def);
-		path = self.path.replace(/\.\*$/, '');
-	};
-
-	self.configure = function(key, value, init) {
-		switch (key) {
-			case 'selector':
-				if (!init)
-					elements = self.find(value || def);
-				break;
-			case 'flags':
-				if (value) {
-					flags = value.split(',');
-					for (var i = 0; i < flags.length; i++)
-						flags[i] = '@' + flags[i];
-				} else
-					flags = null;
-				break;
-			case 'track':
-				track = value.split(',').trim();
-				break;
-		}
-	};
-
-	var settracked = function() {
-		tracked = 0;
-	};
-
-	self.setter = function(value, path, type) {
-
-		var is = path === self.path || path.length < self.path.length;
-
-		if (reset !== is) {
-			reset = is;
-			self.tclass(cls + '-modified', !reset);
-		}
-
-		if ((type === 1 || type === 2) && track && track.length) {
-			for (var i = 0; i < track.length; i++) {
-				if (path.indexOf(track[i]) !== -1) {
-					tracked = 1;
-					return;
-				}
-			}
-			if (tracked === 1) {
-				tracked = 2;
-				setTimeout(settracked, config.delay * 3);
-			}
-		}
-	};
-
-	var check = function() {
-		var disabled = tracked ? !VALID(path, flags) : DISABLED(path, flags);
-		if (!disabled && config.if)
-			disabled = !EVALUATE(self.path, config.if);
-		if (disabled !== old) {
-			elements.prop('disabled', disabled);
-			self.tclass(cls + '-ok', !disabled);
-			self.tclass(cls + '-no', disabled);
-			old = disabled;
-		}
-	};
-
-	self.state = function(type, what) {
-		if (type === 3 || what === 3)
-			tracked = 0;
-		setTimeout2(self.ID, check, config.delay);
-	};
-
-});
-
-COMPONENT('checkbox', function(self, config, cls) {
-
-	self.nocompile && self.nocompile();
-
-	self.validate = function(value) {
-		return (config.disabled || !config.required) ? true : (value === true || value === 'true' || value === 'on');
-	};
-
-	self.configure = function(key, value, init) {
-		if (init)
-			return;
-		switch (key) {
-			case 'label':
-				self.find('span').html(value);
-				break;
-			case 'required':
-				self.find('span').tclass(cls + '-label-required', value);
-				break;
-			case 'disabled':
-				self.tclass('ui-disabled', value);
-				break;
-			case 'checkicon':
-				self.find('i').rclass2('fa-').aclass('fa-' + value);
-				break;
-		}
-	};
-
-	self.make = function() {
-		self.aclass(cls);
-		self.html('<div><i class="fa fa-{2}"></i></div><span{1}>{0}</span>'.format(config.label || self.html(), config.required ? (' class="' + cls + '-label-required"') : '', config.checkicon || 'check'));
-		config.disabled && self.aclass('ui-disabled');
-		self.event('click', function() {
-			if (!config.disabled) {
-				self.dirty(false);
-				self.getter(!self.get());
-			}
-		});
-	};
-
-	self.setter = function(value) {
-		var is = config.reverse ? !value : !!value;
-		self.tclass(cls + '-checked', is);
-	};
-});
 
 COMPONENT('table', 'highlight:true;unhighlight:true;multiple:false;pk:id;visibleY:1;scrollbar:0;pluralizepages:# pages,# page,# pages,# pages;pluralizeitems:# items,# item,# items,# items;margin:0', function(self, config, cls) {
 
@@ -5053,1786 +3887,134 @@ COMPONENT('table', 'highlight:true;unhighlight:true;multiple:false;pk:id;visible
 
 });
 
-COMPONENT('checkboxlist', 'checkicon:check', function(self, config, cls) {
-
-	var W = window;
-	var cls2 = '.' + cls;
-
-	!W.$checkboxlist && (W.$checkboxlist = Tangular.compile('<div{{ if $.class }} class="{{ $.class }}"{{ fi }}><div class="' + cls + '-item" data-index="{{ index }}"><div><i class="fa fa-{{ $.checkicon }}"></i></div><span>{{ text }}</span></div></div>'));
-
-	var template = W.$checkboxlist;
-	var container, data, datasource, content, dataold, render = null;
-
-	self.nocompile && self.nocompile();
-
-	self.validate = function(value) {
-		return config.disabled || !config.required ? true : !!(value && value.length > 0);
-	};
-
-	self.configure = function(key, value, init) {
-
-		if (init)
-			return;
-
-		var redraw = false;
-
-		switch (key) {
-
-			case 'type':
-				self.type = value;
-				break;
-
-			case 'checkicon':
-				self.find('i').rclass().aclass((value.indexOf(' ') === -1 ? 'fa fa-' : '') + value);
-				break;
-
-			case 'disabled':
-				self.tclass('ui-disabled', value);
-				self.reset();
-				break;
-
-			case 'datasource':
-				self.datasource(value, self.bind);
-				datasource && self.refresh();
-				datasource = value;
-				break;
-
-			case 'icon':
-				if (!self.find(cls2 + '-label').find('i').rclass().aclass((value.indexOf(' ') === -1 ? 'fa fa-' : '') + value).length)
-					redraw = true;
-				break;
-
-			case 'required':
-				self.tclass(cls + '-required', value);
-				self.state(1, 1);
-				break;
-
-			case 'label':
-				redraw = true;
-				break;
-
-			case 'items':
-
-				if (value instanceof Array) {
-					self.bind('', value);
-					return;
-				}
-
-				var items = [];
-				value.split(',').forEach(function(item) {
-					item = item.trim().split('|');
-					var val = (item[1] == null ? item[0] : item[1]).trim();
-					if (config.type === 'number')
-						val = +val;
-					items.push({ name: item[0].trim(), id: val });
-				});
-
-				self.bind('', items);
-				self.refresh();
-				break;
-		}
-
-		redraw && setTimeout2(self.id + '.redraw', function() {
-			self.redraw();
-			self.bind('', dataold);
-			self.refresh();
-		}, 100);
-	};
-
-	self.make = function() {
-
-		self.aclass(cls);
-		content = self.html();
-		config.type && (self.type = config.type);
-		config.disabled && self.aclass('ui-disabled');
-		self.redraw();
-
-		if (config.items)
-			self.reconfigure({ items: config.items });
-		else if (config.datasource)
-			self.reconfigure({ datasource: config.datasource });
-		else
-			self.bind('', null);
-
-		self.event('click', cls2 + '-item', function(e) {
-
-			e.stopPropagation();
-
-			if (config.disabled)
-				return;
-
-			var el = $(this);
-			var is = !el.hasClass(cls + '-checked');
-			var index = +el.attrd('index');
-			var value = data[index];
-
-			if (value == null)
-				return;
-
-			value = value.value;
-
-			var arr = self.get();
-			if (!(arr instanceof Array))
-				arr = [];
-
-			index = arr.indexOf(value);
-
-			if (is) {
-				index === -1 && arr.push(value);
-			} else {
-				index !== -1 && arr.splice(index, 1);
-			}
-
-			self.reset(true);
-			self.set(arr, 2);
-			self.change();
-		});
-	};
-
-	self.redraw = function() {
-
-		var label = config.label || content;
-		var icon = config.icon ? ((config.icon.indexOf(' ') === -1 ? 'fa fa-' : '') + config.icon) : '';
-
-		self.tclass(cls + '-required', !!config.required);
-
-		if (label)
-			label = '<div class="{0}-label">{1}{2}:</div>'.format(cls, icon ? '<i class="{0}"></i>'.format(icon) : '', label);
-
-		self.html(label + '<div class="' + cls + '-container"></div>');
-		container = self.find(cls2 + '-container');
-
-	};
-
-	self.selectall = function() {
-
-		if (config.disabled)
-			return;
-
-		var arr = [];
-		var inputs = self.find(cls2 + '-item');
-		var value = self.get();
-
-		self.change(true);
-
-		if (value && inputs.length === value.length) {
-			self.set(arr);
-			return;
-		}
-
-		inputs.each(function() {
-			var el = $(this);
-			arr.push(self.parser(data[+el.attrd('index')].value));
-		});
-
-		self.set(arr);
-	};
-
-	self.bind = function(path, value) {
-
-		if (!value)
-			return;
-
-		var kv = config.value || 'id';
-		var kt = config.text || 'name';
-
-		render = '';
-		data = [];
-		dataold = value;
-
-		for (var i = 0, length = value.length; i < length; i++) {
-			var isString = typeof(value[i]) === 'string';
-			var item = { value: isString ? value[i] : value[i][kv], text: isString ? value[i] : value[i][kt], index: i };
-			render += template(item, config);
-			data.push(item);
-		}
-
-		if (render)
-			container.html(render);
-		else
-			container.html(config.empty);
-
-		path && setTimeout(function() {
-			self.refresh();
-		}, 200);
-	};
-
-	self.setter = function(value) {
-		container.find(cls2 + '-item').each(function() {
-			var el = $(this);
-			var index = +el.attrd('index');
-			var checked = false;
-			if (!value || !value.length)
-				checked = false;
-			else if (data[index])
-				checked = data[index];
-			checked && (checked = value.indexOf(checked.value) !== -1);
-			el.tclass(cls + '-checked', checked);
-		});
-	};
-
-	self.state = function(type) {
-		if (type) {
-			var invalid = config.required ? self.isInvalid() : false;
-			if (invalid !== self.$oldstate) {
-				self.$oldstate = invalid;
-				self.tclass(cls + '-invalid', invalid);
-			}
-		}
-	};
-});
-
-COMPONENT('loading', function(self, config, cls) {
-
-	var delay;
-	var prev;
-
-	self.readonly();
-	self.singleton();
-	self.nocompile();
-
-	self.make = function() {
-		self.aclass(cls + ' ' + cls + '-' + (config.style || 1));
-		self.append('<div><div class="' + cls + '-text hellip"></div></div>');
-	};
-
-	self.show = function(text) {
-		clearTimeout(delay);
-
-		if (prev !== text) {
-			prev = text;
-			self.find('.' + cls + '-text').html(text || '');
-		}
-
-		self.rclass('hidden');
-		return self;
-	};
-
-	self.hide = function(timeout) {
-		clearTimeout(delay);
-		delay = setTimeout(function() {
-			self.aclass('hidden');
-		}, timeout || 1);
-		return self;
-	};
-
-});
-
-COMPONENT('centered', 'closebutton:1;closeesc:1;scrollbar:1;visibleY:0', function(self, config, cls) {
-
-	var cls2 = '.' + cls;
-	var events = {};
-	var container, scroller;
-
-	events.bind = function() {
-		if (!events.is) {
-			events.is = true;
-			$(W).on('keydown', events.keydown);
-		}
-	};
-
-	events.keydown = function(e) {
-		if (e.which === 27)
-			self.set('');
-	};
-
-	events.unbind = function() {
-		if (events.is) {
-			events.is = false;
-			$(W).off('keydown', events.keydown);
-		}
-	};
-
-	self.resize = function() {
-		setTimeout2(self.ID, self.resizeforce, 300);
-	};
-
-	self.resizeforce = function() {
-		var css = { width: WW, height: WH };
-		self.css(css);
-		$(scroller).css(css);
-		$(container).css({ height: WH });
-		self.scrollbar && self.scrollbar.resize();
-	};
-
-	self.readonly();
-
-	self.make = function() {
-
-		self.aclass(cls + '-container hidden invisible');
-		self.event('click', '[data-name="close"],[name="close"]', function() {
-			self.set('');
-		});
-
-		if (self.dom.children[0].nodeName === ('SCRI' + 'PT')) {
-			var html = self.dom.children[0].innerHTML;
-			self.makeforce = function() {
-				self.html('<span class="fas fa-times {0}-button{2}" data-name="close"></span><div class="{0}-content"><div class="{0}-body">{1}</div></div>'.format(cls, html, config.closebutton ? '' : ' hidden'));
-				if (html.COMPILABLE())
-					COMPILE();
-				self.makeforce = null;
-			};
-		} else {
-			container = document.createElement('DIV');
-			container.setAttribute('class', cls + '-content');
-			var div = document.createElement('DIV');
-			div.setAttribute('class', cls + '-body');
-			for (var i = 0; i < self.dom.children.length; i++)
-				div.appendChild(self.dom.children[i]);
-
-			container.appendChild(div);
-
-			scroller = document.createElement('DIV');
-			scroller.appendChild(container);
-
-			if (config.scrollbar)
-				self.scrollbar = SCROLLBAR($(scroller), { visibleY: config.visibleY });
-
-			self.dom.appendChild(scroller);
-			self.element.prepend('<span class="fas fa-times {0}-button{1}" data-name="close"></span>'.format(cls, config.closebutton ? '' : ' hidden'));
-		}
-
-		config.closeoutside && self.find(cls2 + '-body' + (typeof(config.closeoutside) === 'string' ? (',' + config.closeoutside) : '')).on('mousedown touchstart', function(e) {
-			if (e.target === this)
-				self.set('');
-		});
-
-		$(W).on('resize', self.resize);
-	};
-
-	self.destroy = function() {
-		$(W).off('resize', self.resize);
-	};
-
-	self.setter = function(value) {
-		var is = value === config.if;
-		var hs = self.hclass('hidden');
-		if (is === hs) {
-			if (is) {
-				self.makeforce && self.makeforce();
-				config.closeesc && events.bind();
-				config.default && DEFAULT(config.default, true);
-				config.reload && EXEC(config.reload, self);
-				config.zindex && self.css('z-index', config.zindex);
-				if (!isMOBILE && config.autofocus) {
-					setTimeout(function() {
-						self.find(typeof(config.autofocus) === 'string' ? config.autofocus : 'input[type="text"],select,textarea').eq(0).focus();
-					}, 1000);
-				}
-
-			} else
-				config.closeesc && events.unbind();
-
-			self.tclass('hidden', !is);
-			self.resizeforce();
-			self.rclass('invisible');
-			$('html').tclass(cls + '-noscroll', is);
-		}
-	};
-});
-
-COMPONENT('enter', 'validate:1;trigger:button[name="submit"]', function(self, config) {
-	self.readonly();
-	self.make = function() {
-		self.event('keydown', 'input', function(e) {
-			if (e.which === 13 && (!config.validate || CAN(self.path))) {
-				if (config.exec)
-					EXEC(self.makepath(config.exec), self);
-				else
-					self.find(config.trigger).trigger('click');
-			}
-		});
-	};
-});
-
-COMPONENT('spotlight', 'height:40;placeholder:Search', function(self, config, cls) {
-
-	var cls2 = '.' + cls;
-	var container, timeout, input, search, scroller = null;
-	var is = false, selectedindex = 0, resultscount = 0, skip = false, checksum;
-
-	self.items = null;
-	self.template = Tangular.compile('<figure data-index="{{ $.index }}"{{ if selected }} class="selected"{{ fi }}>{{ if icon }}<i class="{{ icon }}"></i>{{ fi }}{{ if html }}{{ html | raw }}{{ else }}{{ name | raw }}{{ fi }}</figure>');
-	self.callback = null;
-	self.readonly();
-	self.singleton();
-	self.nocompile && self.nocompile();
-
-	var onclick = function(e) {
-		if (is && (!$(e.target).closest(cls2).length))
-			self.hide();
-	};
-
-	self.select = function(index) {
-		var item = self.items[index];
-		if (item) {
-
-			self.opt.callback && self.opt.callback(item);
-
-			if (!self.opt.recent)
-				return;
-
-			var key = 'spotlight' + (self.opt.id || '');
-			var arr = PREF[key] || [];
-			var id = HASH(item) + '';
-			item.spotlightid = id;
-
-			if (arr.length && arr.findItem('spotlightid', id))
-				return;
-
-			arr.unshift(item);
-
-			if (arr.length > 10)
-				arr.pop();
-
-			PREF.set(key, arr, typeof(self.opt.recent) === 'string' ? self.opt.recent : '1 month');
-		}
-	};
-
-	self.make = function() {
-
-		self.aclass(cls + '-layer hidden');
-		self.append('<div class="{1}"><div class="{1}-search"><span><i class="fa fa-search"></i></span><div><input type="text" placeholder="{0}" class="{1}-search-input" /></div></div><div class="{1}-container"><div class="{1}-items"></div></div></div>'.format(config.placeholder, cls));
-
-		container = self.find(cls2 + '-items');
-		scroller = self.find(cls2 + '-container');
-		input = self.find('input');
-		search = self.find(cls2);
-
-		self.event('click', 'figure[data-index]', function(e) {
-			self.select(+this.getAttribute('data-index'));
-			self.hide();
-			e.preventDefault();
-			e.stopPropagation();
-		});
-
-		$(W).on('resize', function() {
-			is && self.hide(0);
-		});
-
-		self.event('keydown', 'input', function(e) {
-			skip = false;
-			switch (e.which) {
-				case 27:
-					skip = true;
-					self.hide();
-					self.opt.cancel && self.opt.cancel();
-					break;
-				case 13:
-					skip = true;
-					var sel = self.find('figure.selected');
-					sel.length && self.select(+sel.attrd('index'));
-					self.hide();
-					break;
-				case 38: // up
-					skip = true;
-					selectedindex--;
-					if (selectedindex < 0)
-						selectedindex = 0;
-					else
-						self.move();
-					break;
-				case 40: // down
-					skip = true;
-					selectedindex++ ;
-					if (selectedindex >= resultscount)
-						selectedindex = resultscount;
-					else
-						self.move();
-					break;
-			}
-
-			if (skip) {
-				e.preventDefault();
-				e.stopPropagation();
-			}
-		});
-
-		self.event('keyup', 'input', function() {
-			if (!skip)
-				setTimeout2(self.id, self.search, self.opt.delay || 100, null, this.value);
-		});
-	};
-
-	self.search = function(value) {
-		if (typeof(self.opt.search) === 'function')
-			self.opt.search(value, self.render);
-		else {
-			var url = self.opt.search.format(encodeURIComponent(value));
-			if (self.opt.cache)
-				AJAXCACHE(url, self.render, self.opt.cache);
-			else
-				AJAX(url, self.render);
-		}
-	};
-
-	self.move = function() {
-		var counter = 0;
-		var h = scroller.css('max-height').parseInt();
-		container.find('figure').each(function() {
-			var el = $(this);
-			if (el.hclass('hidden'))
-				return;
-			var is = selectedindex === counter;
-			el.tclass('selected', is);
-			if (is) {
-				var t = (config.height * counter) - config.height;
-				if ((t + config.height * 5) > h)
-					scroller.scrollTop(t);
-				else
-					scroller.scrollTop(0);
-			}
-			counter++;
-		});
-	};
-
-	self.render = function(items, noremap) {
-
-		if (items) {
-
-			if (!(items instanceof Array)) {
-				self.render(items.items || items.response);
-				return;
-			}
-
-			if (!noremap && self.opt.remap) {
-				var tmp = self.opt.remap(items);
-				if (tmp)
-					items = tmp;
-			}
-
-			var newchecksum;
-
-			if (self.items && items) {
-				newchecksum = HASH(STRINGIFY(items, true));
-				if (checksum === newchecksum)
-					return;
-			}
-
-			checksum = newchecksum;
-			self.items = items;
-		}
-
-		selectedindex = 0;
-		resultscount = self.items.length;
-
-		var builder = [];
-		var indexer = {};
-
-		for (var i = 0; i < self.items.length; i++) {
-			var item = items[i];
-			indexer.index = i;
-			if (item.icon && item.icon.indexOf(' ') === -1)
-				item.icon = 'fa fa-' + item.icon;
-			builder.push(self.template(item, indexer));
-		}
-
-		container.html(builder);
-		self.move();
-	};
-
-	self.show = function(opt) {
-
-		if (is) {
-			clearTimeout(timeout);
-			self.hide(0);
-			return;
-		}
-
-		var key = 'spotlight' + (opt.id || '');
-		var recent = PREF[key];
-
-		$(document).on('touchstart mousedown', onclick);
-		self.opt = opt;
-		self.rclass('hidden');
-
-		if (opt.recent == null)
-			opt.recent = '3 days';
-
-		if (opt.clear)
-			input.val('');
-
-		if (!self.items || !self.items.length) {
-			selectedindex = 0;
-			if (recent && recent.length)
-				self.render(recent, true);
-			else {
-				self.render([]);
-				opt.init && self.search('');
-			}
-		}
-
-		var w = ((WW / (isMOBILE ? 1.1 : 1.3)) >> 0);
-		search.css({ width: w, left: ((WW - w) / 2) });
-		scroller.css({ width: w + 50, 'max-height': (WH / 1.3) >> 0 });
-
-		setTimeout(function() {
-			self.aclass(cls + '-visible');
-		}, 100);
-
-		setTimeout(function() {
-			input.focus();
-		}, 500);
-
-		is = true;
-		$('html,body').aclass(cls + '-noscroll');
-	};
-
-	self.hide = function(sleep) {
-		if (is) {
-			clearTimeout(timeout);
-			timeout = setTimeout(function() {
-				$(document).off('touchstart mousedown', onclick);
-				self.aclass('hidden').rclass(cls + '-visible');
-				is = false;
-				$('html,body').rclass(cls + '-noscroll');
-			}, sleep ? sleep : 100);
-		}
-	};
-});
-
-COMPONENT('movable', function(self, config) {
-
-	var events = {};
-	var draggable;
-
-	self.readonly();
-
-	self.make = function() {
-		var target = config.global ? $(document) : config.parent ? self.parent(config.parent) : self.element;
-		target.on('dragenter dragover dragexit drop dragleave dragstart', config.selector, events.ondrag).on('mousedown', config.selector, events.ondown);
-	};
-
-	events.ondrag = function(e) {
-
-		if (!draggable || config.disabled)
-			return;
-
-		if (e.type !== 'dragstart') {
-			e.stopPropagation();
-			e.preventDefault();
-		}
-
-		switch (e.type) {
-			case 'drop':
-
-				var parent = draggable.parentNode;
-				var a = draggable;
-				var b = e.target;
-				var ai = -1;
-				var bi = -1;
-				var is = false;
-
-				while (true) {
-					if (b.parentNode === parent) {
-						is = true;
-						break;
-					}
-					b = b.parentNode;
-					if (b == null || b.tagName === 'HTML')
-						break;
-				}
-
-				if (a === b || !is)
-					return;
-
-				for (var i = 0; i < parent.children.length; i++) {
-					var child = parent.children[i];
-					if (a === child)
-						ai = i;
-					else if (b === child)
-						bi = i;
-					if (bi !== -1 && ai !== -1)
-						break;
-				}
-
-				if (ai > bi)
-					parent.insertBefore(a, b);
-				else
-					parent.insertBefore(a, b.nextSibling);
-
-				config.exec && EXEC(self.makepath(config.exec), $(parent).find(config.selector), a, b);
-				self.path && self.change(true);
-				break;
-
-			case 'dragstart':
-				var eo = e.originalEvent;
-				eo.dataTransfer && eo.dataTransfer.setData('text', '1');
-				break;
-			case 'dragenter':
-			case 'dragover':
-			case 'dragexit':
-			case 'dragleave':
-				break;
-		}
-	};
-
-	events.ondown = function() {
-		draggable = this;
-	};
-
-	self.destroy = function() {
-		$(document).off('dragenter dragover dragexit drop dragleave dragstart', config.selector, events.ondrag).off('mousedown', config.selector, events.ondown);
-	};
-});
-
-COMPONENT('textboxlist', 'maxlength:100;required:false;error:You reach the maximum limit;movable:false', function (self, config, cls) {
-
-	var container, content;
-	var empty = {};
-	var skip = false;
-	var cempty = cls + '-empty';
-	var crequired = 'required';
-	var helper = null;
-	var cls2 = '.' + cls;
-
-	self.setter = null;
-	self.getter = null;
-	self.nocompile && self.nocompile();
-
-	self.template = Tangular.compile(('<div class="{0}-item"><div>'  + (config.movable ? '<i class="fa fa-angle-up {0}-up"></i><i class="fa fa-angle-down {0}-down"></i>' : '') + '<i class="fa fa-times {0}-remove"></i></div><div><input type="text" maxlength="{{ max }}" placeholder="{{ placeholder }}"{{ if disabled}} disabled="disabled"{{ fi }} value="{{ value }}" /></div></div>').format(cls));
-
-	self.configure = function (key, value, init, prev) {
-
-		if (init)
-			return;
-
-		var redraw = false;
-		switch (key) {
-			case 'disabled':
-				self.tclass(crequired, value);
-				self.find('input').prop('disabled', true);
-				empty.disabled = value;
-				self.reset();
-				break;
-			case 'maxlength':
-				empty.max = value;
-				self.find('input').prop(key, value);
-				break;
-			case 'placeholder':
-				empty.placeholder = value;
-				self.find('input').prop(key, value);
-				break;
-			case 'label':
-				redraw = true;
-				break;
-			case 'icon':
-				if (value && prev)
-					self.find('i').rclass().aclass(value);
-				else
-					redraw = true;
-				break;
-		}
-
-		if (redraw) {
-			skip = false;
-			self.redraw();
-			self.refresh();
-		}
-	};
-
-	self.redraw = function () {
-
-		var icon = '';
-		var html = config.label || content;
-
-		if (config.icon)
-			icon = '<i class="{0}"></i>'.format(config.icon.indexOf(' ') === -1 ? ('fa fa-' + config.icon) : config.icon);
-
-		empty.value = '';
-		self.tclass(cls + '-movable', !!config.movable);
-		self.html((html ? ('<div class="' + cls + '-label{2}">{1}{0}:</div>').format(html, icon, config.required ? (' ' + cls + '-required') : '') : '') + ('<div class="' + cls + '-items"></div>' + self.template(empty).replace('-item"', '-item ' + cls + '-base"')));
-		container = self.find(cls2 + '-items');
-	};
-
-	self.make = function () {
-
-		empty.max = config.max;
-		empty.placeholder = config.placeholder;
-		empty.value = '';
-		empty.disabled = config.disabled;
-
-		if (config.disabled)
-			self.aclass('ui-disabled');
-
-		content = self.html();
-		self.aclass(cls);
-		self.redraw();
-
-		self.move = function(offset, el) {
-
-			var arr = self.get();
-			var index = el.index();
-			var tmp;
-
-			if (offset === 1) {
-				if (arr[index] == null || arr[index + 1] == null)
-					return;
-			} else {
-				if (arr[index] == null || arr[index - 1] == null)
-					return;
-			}
-
-			tmp = arr[index];
-			arr[index] = arr[index + offset];
-			arr[index + offset] = tmp;
-			var items = self.find(cls2 + '-item');
-			items.eq(index).find('input').val(arr[index]);
-			items.eq(index + offset).find('input').val(arr[index + offset]);
-			self.change(true);
-		};
-
-		self.event('click', cls2 + '-up', function () {
-			self.move(-1, $(this).closest(cls2 + '-item'));
-		});
-
-		self.event('click', cls2 + '-down', function () {
-			self.move(1, $(this).closest(cls2 + '-item'));
-		});
-
-		self.event('click', cls2 + '-remove', function () {
-
-			if (config.disabled)
-				return;
-
-			var el = $(this);
-			var parent = el.closest(cls2 + '-item');
-			var value = parent.find('input').val();
-			var arr = self.get();
-
-			helper != null && helper.remove();
-			helper = null;
-
-			parent.remove();
-
-			var index = arr.indexOf(value);
-			if (index === -1)
-				return;
-
-			arr.splice(index, 1);
-
-			self.tclass(cempty, !arr.length);
-			self.tclass(crequired, config.required && !arr.length);
-
-			skip = true;
-			SET(self.path, arr, 2);
-			self.change(true);
-		});
-
-		self.event('change keypress blur', 'input', function (e) {
-
-			if ((e.type === 'keypress' && e.which !== 13) || config.disabled)
-				return;
-
-			var el = $(this);
-
-			var value = this.value.trim();
-			if (!value)
-				return;
-
-			var arr = [];
-			var base = el.closest(cls2 + '-base');
-			var len = base.length > 0;
-
-			if (len && e.type === 'change')
-				return;
-
-			var raw = self.get();
-
-			if (config.limit && len && raw.length >= config.limit) {
-				if (!helper) {
-					base.after(('<div class="' + cls + '-helper"><i class="fa fa-warning" aria-hidden="true"></i> {0}</div>').format(config.error));
-					helper = container.closest(cls2).find(cls2 + '-helper');
-				}
-				return;
-			}
-
-			if (len) {
-
-				if (!raw || raw.indexOf(value) === -1)
-					self.push(value);
-
-				this.value = '';
-				self.change(true);
-				return;
-			}
-
-			skip = true;
-
-			container.find('input').each(function () {
-				var temp = this.value.trim();
-				switch (config.type) {
-					case 'number':
-						temp = temp.parseInt();
-						break;
-					case 'date':
-						temp = temp.parseDate();
-						break;
-				}
-
-				if (arr.indexOf(temp) === -1)
-					arr.push(temp);
-				else
-					skip = false;
-			});
-
-			self.set(arr, 2);
-			self.change(true);
-		});
-	};
-
-	self.setter = function (value) {
-
-		if (skip) {
-			skip = false;
-			return;
-		}
-
-		if (!value || !value.length) {
-			self.aclass(cempty);
-			config.required && self.aclass(crequired);
-			container.empty();
-			return;
-		}
-
-		self.rclass(cempty);
-		self.rclass(crequired);
-		var builder = [];
-
-		for (var i = 0; i < value.length; i++) {
-			empty.value = value[i];
-			builder.push(self.template(empty));
-		}
-
-		container.empty().append(builder.join(''));
-	};
-
-	self.validate = function(value, init) {
-
-		if (init)
-			return true;
-
-		var valid = !config.required;
-		var items = container.children();
-
-		if (!value || !value.length)
-			return valid;
-
-		for (var i = 0; i < value.length; i++) {
-			var item = value[i];
-			!item && (item = '');
-			switch (config.type) {
-				case 'email':
-					valid = item.isEmail();
-					break;
-				case 'url':
-					valid = item.isURL();
-					break;
-				case 'currency':
-				case 'number':
-					valid = item > 0;
-					break;
-				case 'date':
-					valid = item instanceof Date && !isNaN(item.getTime());
-					break;
-				default:
-					valid = item.length > 0;
-					break;
-			}
-			items.eq(i).tclass(cls + '-item-invalid', !valid);
-		}
-
-		return valid;
-	};
-
-});
-
-COMPONENT('approve', 'cancel:Cancel', function(self, config, cls) {
-
-	var cls2 = '.' + cls;
-	var events = {};
-	var buttons;
-	var oldcancel;
-
-	self.readonly();
-	self.singleton();
-	self.nocompile && self.nocompile();
-
-	self.make = function() {
-
-		self.aclass(cls + ' hidden');
-		self.html('<div><div class="{0}-body"><span class="{0}-close"><i class="fa fa-times"></i></span><div class="{0}-content"></div><div class="{0}-buttons"><button data-index="0"></button><button data-index="1"></button></div></div></div>'.format(cls));
-
-		buttons = self.find(cls2 + '-buttons').find('button');
-
-		self.event('click', 'button', function() {
-			self.hide(+$(this).attrd('index'));
-		});
-
-		self.event('click', cls2 + '-close', function() {
-			self.callback = null;
-			self.hide(-1);
-		});
-
-		self.event('click', function(e) {
-			var t = e.target.tagName;
-			if (t !== 'DIV')
-				return;
-			var el = self.find(cls2 + '-body');
-			el.aclass(cls + '-click');
-			setTimeout(function() {
-				el.rclass(cls + '-click');
-			}, 300);
-		});
-	};
-
-	events.keydown = function(e) {
-		var index = e.which === 13 ? 0 : e.which === 27 ? 1 : null;
-		if (index != null) {
-			self.find('button[data-index="{0}"]'.format(index)).trigger('click');
-			e.preventDefault();
-			e.stopPropagation();
-			events.unbind();
-		}
-	};
-
-	events.bind = function() {
-		$(W).on('keydown', events.keydown);
-	};
-
-	events.unbind = function() {
-		$(W).off('keydown', events.keydown);
-	};
-
-	self.show = function(message, a, b, fn) {
-
-		if (typeof(b) === 'function') {
-			fn = b;
-			b = config.cancel;
-		}
-
-		if (M.scope)
-			self.currscope = M.scope();
-
-		self.callback = fn;
-
-		var icon = a.match(/"[a-z0-9-\s]+"/);
-		if (icon) {
-
-			var tmp = icon + '';
-			if (tmp.indexOf(' ') == -1)
-				tmp = 'fa fa-' + tmp;
-
-			a = a.replace(icon, '').trim();
-			icon = '<i class="{0}"></i>'.format(tmp.replace(/"/g, ''));
-		} else
-			icon = '';
-
-		var color = a.match(/#[0-9a-f]+/i);
-		if (color)
-			a = a.replace(color, '').trim();
-
-		buttons.eq(0).css('background-color', color || '').html(icon + a);
-
-		if (oldcancel !== b) {
-			oldcancel = b;
-			buttons.eq(1).html(b);
-		}
-
-		self.find(cls2 + '-content').html(message.replace(/\n/g, '<br />'));
-		$('html').aclass(cls + '-noscroll');
-		self.rclass('hidden');
-		events.bind();
-		self.aclass(cls + '-visible', 5);
-	};
-
-	self.hide = function(index) {
-
-		if (!index) {
-			self.currscope && M.scope(self.currscope);
-			self.callback && self.callback(index);
-		}
-
-		self.rclass(cls + '-visible');
-		events.unbind();
-		setTimeout2(self.id, function() {
-			$('html').rclass(cls + '-noscroll');
-			self.aclass('hidden');
-		}, 1000);
-	};
-});
-
-COMPONENT('radiobutton', 'inline:1', function(self, config, cls) {
-
-	var cls2 = '.' + cls;
-	var template = '<div data-value="{1}"><i></i><span>{0}</span></div>';
-
-	self.nocompile();
-
-	self.configure = function(key, value, init) {
-		if (init)
-			return;
-		switch (key) {
-			case 'disabled':
-				self.tclass('ui-disabled', value);
-				break;
-			case 'required':
-				self.find(cls2 + '-label').tclass(cls + '-label-required', value);
-				break;
-			case 'type':
-				self.type = config.type;
-				break;
-			case 'label':
-				self.find(cls2 + '-label').html(value);
-				break;
-			case 'items':
-				self.find('div[data-value]').remove();
-				var builder = [];
-				value.split(',').forEach(function(item) {
-					item = item.split('|');
-					builder.push(template.format(item[0] || item[1], item[1] || item[0]));
-				});
-				self.append(builder.join(''));
-				self.refresh();
-				break;
-			case 'datasource':
-				self.datasource(value, self.bind);
-				break;
-		}
-	};
-
-	self.make = function() {
-		var builder = [];
-		var label = config.label || self.html();
-		label && builder.push('<div class="' + cls + '-label{1}">{0}</div>'.format(label, config.required ? (' ' + cls + '-label-required') : ''));
-		self.aclass(cls + (!config.inline ? (' ' + cls + '-block') : '') + (config.disabled ? ' ui-disabled' : ''));
-		self.event('click', 'div[data-value]', function() {
-			if (config.disabled)
-				return;
-			var value = self.parser($(this).attrd('value'));
-			self.set(value);
-			self.change(true);
-		});
-		self.html(builder.join(''));
-		config.items && self.reconfigure('items:' + config.items);
-		config.datasource && self.reconfigure('datasource:' + config.datasource);
-		config.type && (self.type = config.type);
-	};
-
-	self.validate = function(value) {
-		return config.disabled || !config.required ? true : !!value;
-	};
-
-	self.setter = function(value) {
-		self.find('div[data-value]').each(function() {
-			var el = $(this);
-			var is = el.attrd('value') === (value == null ? null : value.toString());
-			el.tclass(cls + '-selected', is);
-			el.find('.fa').tclass('fa-circle-o', !is).tclass('fa-circle', is);
-		});
-	};
-
-	self.bind = function(path, arr) {
-
-		if (!arr)
-			arr = EMPTYARRAY;
-
-		var builder = [];
-		var propText = config.text || 'name';
-		var propValue = config.value || 'id';
-
-		var type = typeof(arr[0]);
-		var notObj = type === 'string' || type === 'number';
-
-		for (var i = 0, length = arr.length; i < length; i++) {
-			var item = arr[i];
-			if (notObj)
-				builder.push(template.format(item, item));
-			else
-				builder.push(template.format(item[propText], item[propValue]));
-		}
-
-		self.find('div[data-value]').remove();
-		self.append(builder.join(''));
-		self.refresh();
-	};
-});
-
-COMPONENT('clipboard', function(self) {
-
-	var container;
-
-	self.singleton();
-	self.readonly();
-	self.nocompile && self.nocompile();
-
-	self.copy = function(value) {
-		container.val(value);
-		container.focus();
-		container.select();
-		document.execCommand('copy');
-		container.blur();
-	};
-
-	self.make = function() {
-		var id = 'clipboard' + self.id;
-		$(document.body).append('<textarea id="{0}" class="ui-clipboard"></textarea>'.format(id));
-		container = $('#' + id);
-	};
-
-	self.setter = function(value) {
-		value && self.copy(value);
-	};
-});
-
-COMPONENT('shortcuts', function(self) {
-
-	var items = [];
-	var length = 0;
-	var keys = {};
-	var keys_session = {};
-	var issession = false;
-
-	self.singleton();
-	self.readonly();
-	self.blind();
-	self.nocompile && self.nocompile();
-
-	var cb = function(o, e) {
-		o.callback(e, o.owner);
-	};
-
-	self.make = function() {
-
-		$(W).on('keydown', function(e) {
-
-			var f = e.key;
-			var c = e.keyCode;
-
-			if (f.length > 1 && f.charAt(0) === 'F')
-				c = 0;
-			else
-				f = '-';
-
-			// ctrl,alt,shift,meta,fkey,code
-			var key = (e.ctrlKey ? 1 : 0) + '' + (e.altKey ? 1 : 0) + '' + (e.shiftKey ? 1 : 0) + '' + (e.metaKey ? 1 : 0) + f + c;
-
-			if (issession) {
-				if (!keys_session[key])
-					return;
-			} else {
-				if (!keys[key])
-					return;
-			}
-
-			if (length && !e.isPropagationStopped()) {
-				for (var i = 0; i < length; i++) {
-					var o = items[i];
-					if (o.fn(e)) {
-						if (o.prevent) {
-							e.preventDefault();
-							e.stopPropagation();
-						}
-						setTimeout(cb, 100, o, e);
-						return;
-					}
-				}
-			}
-		});
-
-		ON('component + knockknock', self.refresh);
-	};
-
-	self.refreshforce = function() {
-
-		var arr = document.querySelectorAll('.shortcut');
-		var index = 0;
-
-		while (true) {
-			var item = items[index++];
-			if (item == null)
-				break;
-			if (item.owner) {
-				index--;
-				items.splice(index, 1);
-			}
-		}
-
-		for (var i = 0; i < arr.length; i++) {
-			var shortcut = arr[i].getAttribute('data-shortcut');
-			shortcut && self.register(shortcut, self.execshortcut, true, arr[i]);
-		}
-	};
-
-	self.session = function(callback) {
-		issession = true;
-		keys_session = {};
-		callback(self.register);
-	};
-
-	self.end = function() {
-		issession = false;
-	};
-
-	self.execshortcut = function(e, owner) {
-		$(owner).trigger('click');
-	};
-
-	self.refresh = function() {
-		setTimeout2(self.ID, self.refreshforce, 500);
-	};
-
-	self.exec = function(shortcut) {
-		var item = items.findItem('shortcut', shortcut.toLowerCase().replace(/\s/g, ''));
-		item && item.callback(EMPTYOBJECT, item.owner);
-	};
-
-	self.register = function(shortcut, callback, prevent, owner) {
-
-		var currentkeys = issession ? keys_session : keys;
-
-		shortcut.split(',').trim().forEach(function(shortcut) {
-
-			var builder = [];
-			var alias = [];
-			var cachekey = [0, 0, 0, 0, '-', 0]; // ctrl,alt,shift,meta,fkey,code
-
-			shortcut.split('+').trim().forEach(function(item) {
-				var lower = item.toLowerCase();
-				alias.push(lower);
-
-				switch (lower) {
-					case 'ctrl':
-						cachekey[0] = 1;
-						break;
-					case 'alt':
-						cachekey[1] = 1;
-						break;
-					case 'shift':
-						cachekey[2] = 1;
-						break;
-					case 'win':
-					case 'meta':
-					case 'cmd':
-						cachekey[3] = 1;
-						break;
-				}
-
-				switch (lower) {
-					case 'ctrl':
-					case 'alt':
-					case 'shift':
-						builder.push('e.{0}Key'.format(lower));
-						return;
-					case 'win':
-					case 'meta':
-					case 'cmd':
-						builder.push('e.metaKey');
-						return;
-					case 'ins':
-						builder.push('e.keyCode===45');
-						cachekey[5] = 45;
-						return;
-					case 'space':
-						builder.push('e.keyCode===32');
-						cachekey[5] = 32;
-						return;
-					case 'tab':
-						builder.push('e.keyCode===9');
-						cachekey[5] = 9;
-						return;
-					case 'esc':
-						builder.push('e.keyCode===27');
-						cachekey[5] = 27;
-						return;
-					case 'enter':
-						builder.push('e.keyCode===13');
-						cachekey[5] = 13;
-						return;
-					case 'backspace':
-						builder.push('e.keyCode===8');
-						cachekey[5] = 8;
-						break;
-					case 'del':
-					case 'delete':
-						builder.push('e.keyCode===46');
-						cachekey[5] = 46;
-						return;
-					case 'save':
-						builder.push('(e.metaKey&&e.keyCode===115)');
-						cachekey[5] = -1;
-						return;
-					case 'remove':
-						builder.push('((e.metaKey&&e.keyCode===8)||e.keyCode===46)');
-						cachekey[5] = -1;
-						return;
-					case 'up':
-						builder.push('e.keyCode===38');
-						cachekey[5] = 38;
-						return;
-					case 'down':
-						builder.push('e.keyCode===40');
-						cachekey[5] = 40;
-						return;
-					case 'right':
-						builder.push('e.keyCode===39');
-						cachekey[5] = 39;
-						return;
-					case 'left':
-						builder.push('e.keyCode===37');
-						cachekey[5] = 37;
-						return;
-					case 'f1':
-					case 'f2':
-					case 'f3':
-					case 'f4':
-					case 'f5':
-					case 'f6':
-					case 'f7':
-					case 'f8':
-					case 'f9':
-					case 'f10':
-					case 'f11':
-					case 'f12':
-						var a = item.toUpperCase();
-						builder.push('e.key===\'{0}\''.format(a));
-						cachekey[4] = a;
-						return;
-					case 'capslock':
-						builder.push('e.which===20');
-						cachekey[5] = 20;
-						return;
-				}
-
-				var num = item.parseInt();
-				if (num) {
-					builder.push('e.which===' + num);
-					cachekey[5] = num;
-				} else {
-					num = item.toUpperCase().charCodeAt(0);
-					cachekey[5] = num;
-					builder.push('e.keyCode==={0}'.format(num));
-				}
-			});
-
-			items.push({ shortcut: alias.join('+'), fn: new Function('e', 'return ' + builder.join('&&')), callback: callback, prevent: prevent, owner: owner });
-			length = items.length;
-
-			var k;
-
-			// Remove
-			if (cachekey[5] === -1) {
-				cachekey[5] = 8;
-				k = cachekey.join('');
-				currentkeys[k] = 1;
-				cachekey[5] = 46;
-			}
-
-			k = cachekey.join('');
-			currentkeys[k] = 1;
-		});
-
-		if (!owner)
-			self.refresh();
-
-		return self;
-	};
-});
-
-COMPONENT('dropdowncheckbox', 'checkicon:check;visible:0;alltext:All selected;limit:0;selectedtext:{0} selected', function(self, config, cls) {
-
-	var cls2 = '.' + cls;
-	var data = [], render = '';
-	var container, values, content, datasource = null;
-	var prepared = false;
-	var W = window;
-
-	!W.$dropdowncheckboxtemplate && (W.$dropdowncheckboxtemplate = Tangular.compile('<div class="' + cls + '-item" data-index="{{ index }}"><div><i class="fa fa-{{ $.checkicon }}"></i></div><span>{{ text }}</span></div>'));
-	var template = W.$dropdowncheckboxtemplate;
-
-	self.nocompile && self.nocompile();
-
-	self.validate = function(value) {
-		return config.disabled || !config.required ? true : value && value.length > 0;
-	};
-
-	self.configure = function(key, value, init) {
-
-		if (init)
-			return;
-
-		var redraw = false;
-
-		switch (key) {
-
-			case 'type':
-				self.type = value;
-				break;
-
-			case 'required':
-				self.tclass(cls + '-required', config.required);
-				break;
-
-			case 'label':
-				content = value;
-				redraw = true;
-				break;
-
-			case 'disabled':
-				self.tclass('ui-disabled', value);
-				self.reset();
-				break;
-
-			case 'checkicon':
-				self.find('i').rclass().aclass(value.indexOf(' ') === -1 ? ('fa fa-' + value) : value);
-				break;
-
-			case 'icon':
-				redraw = true;
-				break;
-
-			case 'datasource':
-				self.datasource(value, self.bind);
-				datasource && self.refresh();
-				datasource = value;
-				break;
-
-			case 'items':
-
-				if (value instanceof Array) {
-					self.bind('', value);
-					return;
-				}
-
-				var items = [];
-				value.split(',').forEach(function(item) {
-					item = item.trim().split('|');
-					var val = (item[1] == null ? item[0] : item[1]).trim();
-					if (config.type === 'number')
-						val = +val;
-					items.push({ name: item[0].trim(), id: val });
-				});
-
-				self.bind('', items);
-				self.refresh();
-				break;
-		}
-
-		redraw && setTimeout2(self.id + '.redraw', self.redraw, 100);
-	};
-
-	self.redraw = function() {
-
-		var html = '<div class="{0}"><i class="fa fa-angle-down"></i><div class="{0}-selected"></div></div><div class="{0}-values hidden">{1}</div>'.format(cls, render);
-		if (content.length)
-			self.html('<div class="{0}-label">{1}{2}:</div>'.format(cls, config.icon ? ('<i class="' + (config.icon.indexOf(' ') === -1 ? ('fa fa-' + config.icon) : config.icon) + '"></i>') : '', content) + html);
-		else
-			self.html(html);
-
-		container = self.find(cls2 + '-values');
-		values = self.find(cls2 + '-selected');
-		prepared && self.refresh();
-		self.tclass('ui-disabled', config.disabled === true);
-		self.tclass(cls + '-required', config.required === true);
-	};
-
-	self.make = function() {
-
-		self.type = config.type;
-
-		content = self.html();
-		self.aclass(cls + '-container');
-		self.redraw();
-
-		if (config.items)
-			self.reconfigure({ items: config.items });
-		else if (config.datasource)
-			self.reconfigure({ datasource: config.datasource });
-		else
-			self.bind('', null);
-
-		self.event('click', cls2, function(e) {
-
-			if (config.disabled)
-				return;
-
-			container.tclass('hidden');
-
-			if (W.$dropdowncheckboxelement) {
-				W.$dropdowncheckboxelement.aclass('hidden');
-				W.$dropdowncheckboxelement = null;
-			}
-
-			!container.hclass('hidden') && (W.$dropdowncheckboxelement = container);
-			e.stopPropagation();
-		});
-
-		self.event('click', cls2 + '-item', function(e) {
-
-			e.stopPropagation();
-
-			if (config.disabled)
-				return;
-
-			var el = $(this);
-			var is = !el.hclass(cls + '-checked');
-			var index = +el.attrd('index');
-			var value = data[index];
-
-			if (value === undefined)
-				return;
-
-			value = value.value;
-
-			var arr = self.get();
-
-			if (!(arr instanceof Array))
-				arr = [];
-
-			var index = arr.indexOf(value);
-
-			if (is) {
-				if (config.limit && arr.length === config.limit)
-					return;
-				index === -1 && arr.push(value);
-			} else {
-				index !== -1 && arr.splice(index, 1);
-			}
-
-			self.set(arr);
-			self.change(true);
-		});
-	};
-
-	self.bind = function(path, value) {
-		var clsempty = cls + '-values-empty';
-
-		if (value !== undefined)
-			prepared = true;
-
-		if (!value || !value.length) {
-			var h = config.empty || '&nbsp;';
-			if (h === self.old)
-				return;
-			container.aclass(clsempty).html(h);
-			self.old = h;
-			return;
-		}
-
-		var kv = config.value || 'id';
-		var kt = config.text || 'name';
-
-		render = '';
-		data = [];
-
-		for (var i = 0, length = value.length; i < length; i++) {
-			var isString = typeof(value[i]) === 'string';
-			var item = { value: isString ? value[i] : value[i][kv], text: isString ? value[i] : value[i][kt], index: i };
-			render += template(item, config);
-			data.push(item);
-		}
-
-		var h = HASH(render);
-		if (h === self.old)
-			return;
-
-		self.old = h;
-
-		if (render)
-			container.rclass(clsempty).html(render);
-		else
-			container.aclass(clsempty).html(config.empty);
-
-		self.refresh();
-	};
-
-	self.setter = function(value) {
-
-		if (!prepared)
-			return;
-
-		var label = '';
-		var count = value == null || !value.length ? undefined : value.length;
-
-		if (value && count) {
-			var remove = [];
-			for (var i = 0; i < count; i++) {
-				var selected = value[i];
-				var index = 0;
-				var is = false;
-				while (true) {
-					var item = data[index++];
-					if (item === undefined)
-						break;
-					if (item.value != selected)
-						continue;
-					label += (label ? ', ' : '') + item.text;
-					is = true;
-				}
-				!is && remove.push(selected);
-			}
-
-			if (config.cleaner !== false && value) {
-				var refresh = false;
-				while (true) {
-					var item = remove.shift();
-					if (item === undefined)
-						break;
-					value.splice(value.indexOf(item), 1);
-					refresh = true;
-				}
-				refresh && self.set(value);
-			}
-		}
-
-		container.find(cls2 + '-item').each(function() {
-			var el = $(this);
-			var index = +el.attrd('index');
-			var checked = false;
-			if (!value || !value.length)
-				checked = false;
-			else if (data[index])
-				checked = data[index];
-			checked && (checked = value.indexOf(checked.value) !== -1);
-			el.tclass(cls + '-checked', checked);
-		});
-
-		if (!label && value && config.cleaner !== false) {
-			// invalid data
-			// it updates model without notification
-			self.rewrite([]);
-		}
-
-		if (!label && config.placeholder) {
-			values.rattr('title', '');
-			values.html('<span class="{1}-placeholder">{0}</span>'.format(config.placeholder, cls));
-		} else {
-			if (count == data.length && config.alltext !== 'null' && config.alltext)
-				label = config.alltext;
-			else if (config.visible && count > config.visible)
-				label = config.selectedtext.format(count, data.length);
-			values.attr('title', label);
-			values.html(label);
-		}
-	};
-
-	self.state = function(type) {
-		if (!type)
-			return;
-		var invalid = config.required ? self.isInvalid() : false;
-		if (invalid === self.$oldstate)
-			return;
-		self.$oldstate = invalid;
-		self.tclass(cls + '-invalid', invalid);
-	};
-
-	if (!W.$dropdowncheckboxevent) {
-		W.$dropdowncheckboxevent = true;
-		$(document).on('click', function() {
-			if (W.$dropdowncheckboxelement) {
-				W.$dropdowncheckboxelement.aclass('hidden');
-				W.$dropdowncheckboxelement = null;
-			}
-		});
-	}
-});
+// Component: j-ViewBox
+// Version: 1
+// Updated: 2021-06-03 21:39
+COMPONENT('viewbox','margin:0;scroll:true;delay:100;initdelay:250;scrollbar:0;visibleY:1;height:100;invisible:1',function(self,config,cls){var eld,elb,scrollbar,cls2='.'+cls,init=false,cache,scrolltoforce;self.readonly();self.init=function(){var resize=function(){for(var i=0;i<M.components.length;i++){var com=M.components[i];if(com.name==='viewbox'&&com.dom.offsetParent&&com.$ready&&!com.$removed)com.resizeforce()}};ON('resize2',function(){setTimeout2('viewboxresize',resize,200)})};self.destroy=function(){scrollbar&&scrollbar.destroy()};self.configure=function(key,value,init){switch(key){case'disabled':eld.tclass('hidden',!value);break;case'minheight':case'margin':case'marginxs':case'marginsm':case'marginmd':case'marginlg':!init&&self.resizeforce();break;case'selector':config.parent=value;self.resize();break}};self.scrollbottom=function(val){if(val==null)return elb[0].scrollTop;elb[0].scrollTop=(elb[0].scrollHeight-self.dom.clientHeight)-(val||0);return elb[0].scrollTop};self.scrolltop=function(val){if(val==null)return elb[0].scrollTop;elb[0].scrollTop=(val||0);return elb[0].scrollTop};self.make=function(){config.invisible&&self.aclass('invisible');config.scroll&&MAIN.version>17&&self.element.wrapInner('<div class="'+cls+'-body"></div>');self.element.prepend('<div class="'+cls+'-disabled hidden"></div>');eld=self.find('> .{0}-disabled'.format(cls)).eq(0);elb=self.find('> .{0}-body'.format(cls)).eq(0);self.aclass('{0} {0}-hidden'.format(cls));if(config.scroll){if(config.scrollbar){if(MAIN.version>17){scrollbar=W.SCROLLBAR(self.find(cls2+'-body'),{shadow:config.scrollbarshadow,visibleY:config.visibleY,visibleX:config.visibleX,orientation:config.visibleX?null:'y',parent:self.element});self.scrolltop=scrollbar.scrollTop;self.scrollbottom=scrollbar.scrollBottom}else self.aclass(cls+'-scroll')}else{self.aclass(cls+'-scroll');self.find(cls2+'-body').aclass('noscrollbar')}}self.resize()};self.released=function(is){!is&&self.resize()};var css={};self.resize=function(){setTimeout2(self.ID,self.resizeforce,200)};self.resizeforce=function(){var el=self.parent(config.parent);var h=el.height();var w=el.width();var width=WIDTH();var mywidth=self.element.width();var key=width+'x'+mywidth+'x'+w+'x'+h+'x'+config.margin;if(cache===key){scrollbar&&scrollbar.resize();if(scrolltoforce){if(scrolltoforce==='bottom')self.scrollbottom(0);else self.scrolltop(0);scrolltoforce=null}return}cache=key;var margin=config.margin,responsivemargin=config['margin'+width];if(responsivemargin!=null)margin=responsivemargin;if(margin==='auto')margin=self.element.offset().top;if(h===0||w===0){self.$waiting&&clearTimeout(self.$waiting);self.$waiting=setTimeout(self.resize,234);return}h=((h/100)*config.height)-margin;if(config.minheight&&h<config.minheight)h=config.minheight;css.height=h;css.width=mywidth;eld.css(css);css.width='';self.css(css);elb.length&&elb.css(css);self.element.SETTER('*','resize');var c=cls+'-hidden';self.hclass(c)&&self.rclass(c,100);scrollbar&&scrollbar.resize();if(scrolltoforce){if(scrolltoforce==='bottom')self.scrollbottom(0);else self.scrolltop(0);scrolltoforce=null}if(!init){self.rclass('invisible',config.initdelay);init=true}};self.resizescrollbar=function(){scrollbar&&scrollbar.resize()};self.setter=function(){scrolltoforce=config.scrollto||config.scrolltop;if(scrolltoforce){if(scrolltoforce==='bottom')self.scrollbottom(0);else self.scrolltop(0);scrolltoforce=null}setTimeout(self.resize,config.delay,scrolltoforce)}});
+// End: j-ViewBox
+
+// Component: j-Message
+// Version: 1
+// Updated: 2021-04-20 15:52
+COMPONENT('message','button:OK',function(self,config,cls){var cls2='.'+cls,is,events={};self.readonly();self.singleton();self.nocompile&&self.nocompile();self.make=function(){var pls=(config.style===2?(' '+cls+'2'):'');self.aclass(cls+' hidden'+pls);if(config.closeoutside)self.event('click',function(e){var node=e.target,skip={SPAN:1,A:1,I:1};if(!skip[node.tagName])self.hide()});else self.event('click','button',self.hide)};events.keyup=function(e){if(e.which===27)self.hide()};events.bind=function(){if(!events.is){$(W).on('keyup',events.keyup);events.is=false}};events.unbind=function(){if(events.is){events.is=false;$(W).off('keyup',events.keyup)}};self.warning=function(message,icon,fn){if(typeof(icon)==='function'){fn=icon;icon=undefined}self.callback=fn;self.content(cls+'-warning',message,icon||'warning')};self.info=function(message,icon,fn){if(typeof(icon)==='function'){fn=icon;icon=undefined}self.callback=fn;self.content(cls+'-info',message,icon||'info-circle')};self.success=function(message,icon,fn){if(typeof(icon)==='function'){fn=icon;icon=undefined}self.callback=fn;self.content(cls+'-success',message,icon||'check-circle')};self.response=function(message,callback,response){var fn;if(typeof(message)==='function'){response=callback;fn=message;message=null}else if(typeof(callback)==='function')fn=callback;else{response=callback;fn=null}if(response instanceof Array){var builder=[];for(var i=0;i<response.length;i++){var err=response[i].error;err&&builder.push(err)}self.warning(builder.join('<br />'));SETTER('!loading/hide')}else if(typeof(response)==='string'){self.warning(response);SETTER('!loading/hide')}else{if(message){if(message.length<40&&message.charAt(0)==='?')SET(message,response);else self.success(message)}if(typeof(fn)==='string')SET(fn,response);else if(fn)fn(response)}};self.hide=function(){events.unbind();self.callback&&self.callback();self.aclass('hidden')};self.content=function(classname,text,icon){if(icon.indexOf(' ')===-1)icon='fa fa-'+icon;!is&&self.html('<div><div class="{0}-icon"><i class="{1}"></i></div><div class="{0}-body"><div class="{0}-text"></div><hr /><button>{2}</button></div></div>'.format(cls,icon,config.button));self.rclass2(cls+'-').aclass(classname);self.find(cls2+'-body').rclass().aclass(cls+'-body');is&&self.find(cls2+'-icon').find('.fa').rclass2('fa').aclass(icon);self.find(cls2+'-text').html(text);self.rclass('hidden');self.element.focus();is=true;events.bind();document.activeElement&&document.activeElement.blur();setTimeout(function(){self.aclass(cls+'-visible');setTimeout(function(){self.find(cls2+'-icon').aclass(cls+'-icon-animate');document.activeElement&&document.activeElement.blur()},300)},100)}});
+// End: j-Message
+
+// Component: j-Validation
+// Version: 1
+// Updated: 2021-03-16 21:25
+COMPONENT('validation','delay:100;flags:visible',function(self,config,cls){var elements=null,def='button[name="submit"]',flags=null,tracked=false,reset=0,old,track;self.readonly();self.make=function(){elements=self.find(config.selector||def)};self.configure=function(key,value,init){switch(key){case'selector':if(!init)elements=self.find(value||def);break;case'flags':if(value){flags=value.split(',');for(var i=0;i<flags.length;i++)flags[i]='@'+flags[i]}else flags=null;break;case'track':track=value.split(',').trim();break}};var settracked=function(){tracked=0};self.setter=function(value,path,type){var is=path===self.path||path.length<self.path.length;if(reset!==is){reset=is;self.tclass(cls+'-modified',!reset)}if((type===1||type===2)&&track&&track.length){for(var i=0;i<track.length;i++){if(path.indexOf(track[i])!==-1){tracked=1;return}}if(tracked===1){tracked=2;setTimeout(settracked,config.delay*3)}}};var check=function(){var path=self.path.replace(/\.\*$/,'');var disabled=tracked||config.validonly?!VALID(path,flags):DISABLED(path,flags);if(!disabled&&config.if)disabled=!EVALUATE(path,config.if);if(disabled!==old){elements.prop('disabled',disabled);self.tclass(cls+'-ok',!disabled);self.tclass(cls+'-no',disabled);old=disabled}};self.state=function(type,what){if(type===3||what===3){self.rclass(cls+'-modified');tracked=0}setTimeout2(self.ID,check,config.delay)}});
+// End: j-Validation
+
+// Component: j-Exec
+// Version: 1
+// Updated: 2021-07-04 13:10
+COMPONENT('exec',function(self,config){var regparent=/\?\d/;self.readonly();self.blind();self.make=function(){var scope=null,scopepath=function(el,val){if(!scope)scope=el.scope();return val==null?scope:scope?scope.makepath?scope.makepath(val):val.replace(/\?/g,el.scope().path):val};var fn=function(plus,forceprevent){return function(e){var el=$(this);var attr=el.attrd('exec'+plus);var path=el.attrd('path'+plus);var href=el.attrd('href'+plus);var def=el.attrd('def'+plus);var reset=el.attrd('reset'+plus);scope=null;var prevent=forceprevent?'1':el.attrd('prevent'+plus);if(prevent==='true'||prevent==='1'){e.preventDefault();e.stopPropagation()}if(attr){if(attr.charCodeAt(0)==='@'){attr=attr.substring(1);var com=el.component();if(com&&typeof(com[attr])==='function')com[attr](el,e);return}if(attr.indexOf('?')!==-1){var tmp=scopepath(el);if(tmp){var isparent=regparent.test(attr);attr=tmp.makepath?tmp.makepath(attr):attr.replace(/\?/g,tmp.path);if(isparent&&attr.indexOf('/')!==-1)M.scope(attr.split('/')[0]);else M.scope(tmp.path)}}EXEC(attr,el,e)}href&&NAV.redirect(href);if(def){if(def.indexOf('?')!==-1)def=scopepath(el,def);DEFAULT(def)}if(reset){if(reset.indexOf('?')!==-1)reset=scopepath(el,reset);RESET(reset)}if(path){var val=el.attrd('value');if(val){if(path.indexOf('?')!==-1)path=scopepath(el,path);var v=GET(path);SET(path,new Function('value','return '+val)(v),true)}}}};self.event('contextmenu',config.selector3||'.exec3',fn('3',true));self.event('dblclick',config.selector2||'.exec2',fn('2'));self.event('click',config.selector||'.exec',fn(''))}});
+// End: j-Exec
+
+// Component: j-Menu
+// Version: 1
+// Updated: 2020-12-03 11:08
+COMPONENT('menu',function(self,config,cls){self.singleton();self.readonly();self.nocompile&&self.nocompile();var cls2='.'+cls,is=false,issubmenu=false,isopen=false,events={},ul,children,prevsub,parentclass;self.make=function(){self.aclass(cls+' hidden '+cls+'-style-'+(config.style||1));self.append('<div class="{0}-items"><ul></ul></div><div class="{0}-submenu hidden"><ul></ul></div>'.format(cls));ul=self.find(cls2+'-items').find('ul');children=self.find(cls2+'-submenu');self.event('click','li',function(e){clearTimeout2(self.ID);var el=$(this);if(!el.hclass(cls+'-divider')&&!el.hclass(cls+'-disabled')){self.opt.scope&&M.scope(self.opt.scope);var index=el.attrd('index').split('-');if(index.length>1){self.opt.callback(self.opt.items[+index[0]].children[+index[1]]);self.hide()}else if(!issubmenu){self.opt.callback(self.opt.items[+index[0]]);self.hide()}}e.preventDefault();e.stopPropagation()});events.hide=function(){is&&self.hide()};self.event('scroll',events.hide);self.on('reflow + scroll + resize + resize2',events.hide);events.click=function(e){if(is&&!isopen&&(!self.target||(self.target!==e.target&&!self.target.contains(e.target))))setTimeout2(self.ID,self.hide,isMOBILE?700:300)};events.hidechildren=function(){if($(this.parentNode.parentNode).hclass(cls+'-items')){if(prevsub&&prevsub[0]!==this){prevsub.rclass(cls+'-selected');prevsub=null;children.aclass('hidden');issubmenu=false}}};events.children=function(){if(prevsub&&prevsub[0]!==this){prevsub.rclass(cls+'-selected');prevsub=null}issubmenu=true;isopen=true;setTimeout(function(){isopen=false},500);var el=prevsub=$(this);var index=+el.attrd('index');var item=self.opt.items[index];el.aclass(cls+'-selected');var html=self.makehtml(item.children,index);children.find('ul').html(html);children.rclass('hidden');var css={},offset=el.position();css.left=ul.width()-5;css.top=offset.top-5;var offsetX=offset.left;offset=self.element.offset();var w=children.width();var left=offset.left+css.left+w;if(left>WW+30)css.left=(offsetX-w)+5;children.css(css)}};self.bindevents=function(){events.is=true;$(document).on('touchstart mouseenter mousedown',cls2+'-children',events.children).on('touchstart mousedown',events.click);$(W).on('scroll',events.hide);self.element.on('mouseenter','li',events.hidechildren)};self.unbindevents=function(){events.is=false;$(document).off('touchstart mouseenter mousedown',cls2+'-children',events.children).off('touchstart mousedown',events.click);$(W).off('scroll',events.hide);self.element.off('mouseenter','li',events.hidechildren)};self.showxy=function(x,y,items,callback){var opt={};opt.x=x;opt.y=y;opt.items=items;opt.callback=callback;self.show(opt)};self.makehtml=function(items,index){var builder=[],tmp;for(var i=0;i<items.length;i++){var item=items[i];if(typeof(item)==='string'){if(item==='-')tmp='<hr />';else tmp='<span>{0}</span>'.format(item);builder.push('<li class="{0}-divider">{1}</li>'.format(cls,tmp));continue}var cn=item.classname||'',icon='';if(item.icon)icon='<i class="{0}"></i>'.format(item.icon.charAt(0)==='!'?item.icon.substring(1):item.icon.indexOf('fa-')===-1?('fa fa-'+item.icon):item.icon);else cn=(cn?(cn+' '):'')+cls+'-nofa';tmp='';if(index==null&&item.children&&item.children.length){cn+=(cn?' ':'')+cls+'-children';tmp+='<i class="fa fa-play pull-right"></i>'}if(item.selected)cn+=(cn?' ':'')+cls+'-selected';if(item.disabled)cn+=(cn?' ':'')+cls+'-disabled';tmp+='<div class="{0}-name">{1}{2}{3}</div>'.format(cls,icon,item.name,item.shortcut?'<b>{0}</b>'.format(item.shortcut):'');if(item.note)tmp+='<div class="ui-menu-note">{0}</div>'.format(item.note);builder.push('<li class="{0}" data-index="{2}">{1}</li>'.format(cn,tmp,(index!=null?(index+'-'):'')+i))}return builder.join('')};self.show=function(opt){if(typeof(opt)==='string'){opt={align:opt};opt.element=arguments[1];opt.items=arguments[2];opt.callback=arguments[3];opt.offsetX=arguments[4];opt.offsetY=arguments[5]}var tmp=opt.element?opt.element instanceof jQuery?opt.element[0]:opt.element.element?opt.element.dom:opt.element:null;if(is&&tmp&&self.target===tmp){self.hide();return}var tmp;self.target=tmp;self.opt=opt;opt.scope=M.scope();if(parentclass&&opt.classname!==parentclass){self.rclass(parentclass);parentclass=null}if(opt.large)self.aclass('ui-large');else self.rclass('ui-large');isopen=false;issubmenu=false;prevsub=null;var css={};children.aclass('hidden');children.find('ul').empty();clearTimeout2(self.ID);ul.html(self.makehtml(opt.items));if(!parentclass&&opt.classname){self.aclass(opt.classname);parentclass=opt.classname}if(is){css.left=0;css.top=0;self.element.css(css)}else{self.rclass('hidden');self.aclass(cls+'-visible',100);is=true;if(!events.is)self.bindevents()}var target=$(opt.element);var w=self.width();var offset=target.offset();if(opt.element){switch(opt.align){case'center':css.left=Math.ceil((offset.left-w/2)+(target.innerWidth()/2));break;case'right':css.left=(offset.left-w)+target.innerWidth();break;default:css.left=offset.left;break}css.top=opt.position==='bottom'?(offset.top-self.element.height()-10):(offset.top+target.innerHeight()+10)}else{css.left=opt.x;css.top=opt.y}if(opt.position==='bottom')css.top+=10;else css.top-=10;if(opt.offsetX)css.left+=opt.offsetX;if(opt.offsetY)css.top+=opt.offsetY;var mw=w,mh=self.height();if(css.left<0)css.left=10;else if((mw+css.left)>WW)css.left=(WW-mw)-10;if(css.top<0)css.top=10;else if((mh+css.top)>WH)css.top=(WH-mh)-10;self.element.css(css)};self.hide=function(){events.is&&self.unbindevents();is=false;self.opt&&self.opt.hide&&self.opt.hide();self.target=null;self.opt=null;self.aclass('hidden');self.rclass(cls+'-visible')}});
+// End: j-Menu
+
+// Component: j-Checkboxlist
+// Version: 1
+// Updated: 2020-05-19 11:17
+COMPONENT('checkboxlist','checkicon:check',function(self,config,cls){var cls2='.'+cls;!W.$checkboxlist&&(W.$checkboxlist=Tangular.compile('<div{{ if $.class}} class="{{ $.class}}"{{ fi}}><div class="'+cls+'-item" data-index="{{ index}}"><div><i class="fa fa-{{ $.checkicon}}"></i></div><span>{{ text}}</span></div></div>'));var template=W.$checkboxlist,container,data,datasource,content,dataold,render=null;self.nocompile&&self.nocompile();self.validate=function(value){return config.disabled||!config.required?true:!!(value&&value.length>0)};self.configure=function(key,value,init){if(init)return;var redraw=false;switch(key){case'type':self.type=value;break;case'checkicon':self.find('i').rclass().aclass((value.indexOf(' ')===-1?'fa fa-':'')+value);break;case'disabled':self.tclass('ui-disabled',value);self.reset();break;case'datasource':self.datasource(value,self.bind);datasource&&self.refresh();datasource=value;break;case'icon':if(!self.find(cls2+'-label').find('i').rclass().aclass((value.indexOf(' ')===-1?'fa fa-':'')+value).length)redraw=true;break;case'required':self.tclass(cls+'-required',value);self.state(1,1);break;case'label':redraw=true;break;case'items':if(value instanceof Array){self.bind('',value);return}var items=[];value.split(',').forEach(function(item){item=item.trim().split('|');var val=(item[1]==null?item[0]:item[1]).trim();if(config.type==='number')val=+val;items.push({name:item[0].trim(),id:val})});self.bind('',items);self.refresh();break}redraw&&setTimeout2(self.id+'.redraw',function(){self.redraw();self.bind('',dataold);self.refresh()},100)};self.make=function(){self.aclass(cls);content=self.html();config.type&&(self.type=config.type);config.disabled&&self.aclass('ui-disabled');self.redraw();if(config.items)self.reconfigure({items:config.items});else if(config.datasource)self.reconfigure({datasource:config.datasource});else self.bind('',null);self.event('click',cls2+'-item',function(e){e.stopPropagation();if(config.disabled)return;var el=$(this);var is=!el.hasClass(cls+'-checked');var index=+el.attrd('index');var value=data[index];if(value==null)return;value=value.value;var arr=self.get();if(!(arr instanceof Array))arr=[];index=arr.indexOf(value);if(is){index===-1&&arr.push(value)}else{index!==-1&&arr.splice(index,1)}self.reset(true);self.set(arr,2);self.change()})};self.redraw=function(){var label=config.label||content,icon=config.icon?((config.icon.indexOf(' ')===-1?'fa fa-':'')+config.icon):'';self.tclass(cls+'-required',!!config.required);if(label)label='<div class="{0}-label">{1}{2}:</div>'.format(cls,icon?'<i class="{0}"></i>'.format(icon):'',label);self.html(label+'<div class="'+cls+'-container"></div>');container=self.find(cls2+'-container')};self.selectall=function(){if(config.disabled)return;var arr=[],inputs=self.find(cls2+'-item');var value=self.get();self.change(true);if(value&&inputs.length===value.length){self.set(arr);return}inputs.each(function(){var el=$(this);arr.push(self.parser(data[+el.attrd('index')].value))});self.set(arr)};self.bind=function(path,value){if(!value)return;var kv=config.value||'id',kt=config.text||'name';render='';data=[];dataold=value;for(var i=0,length=value.length;i<length;i++){var isString=typeof(value[i])==='string';var item={value:isString?value[i]:value[i][kv],text:isString?value[i]:value[i][kt],index:i};render+=template(item,config);data.push(item)}if(render)container.html(render);else container.html(config.empty);path&&setTimeout(function(){self.refresh()},200)};self.setter=function(value){container.find(cls2+'-item').each(function(){var el=$(this);var index=+el.attrd('index');var checked=false;if(!value||!value.length)checked=false;else if(data[index])checked=data[index];checked&&(checked=value.indexOf(checked.value)!==-1);el.tclass(cls+'-checked',checked)})};self.state=function(type){if(type){var invalid=config.required?self.isInvalid():false;if(invalid!==self.$oldstate){self.$oldstate=invalid;self.tclass(cls+'-invalid',invalid)}}}});
+// End: j-Checkboxlist
+
+// Component: j-Loading
+// Version: 1
+// Updated: 2021-02-11 09:46
+COMPONENT('loading',function(self,config,cls){var delay,prev;self.readonly();self.singleton();self.nocompile();self.make=function(){self.aclass(cls+' '+cls+'-'+(config.style||1));self.append('<div><div class="'+cls+'-text hellip"></div></div>')};self.show=function(text){clearTimeout(delay);if(prev!==text){prev=text;self.find('.'+cls+'-text').html(text||'')}self.rclass('hidden');document.activeElement&&document.activeElement.blur();return self};self.hide=function(timeout){clearTimeout(delay);delay=setTimeout(function(){self.aclass('hidden')},timeout||1);return self}});
+// End: j-Loading
+
+// Component: j-Centered
+// Version: 1
+// Updated: 2021-02-01 11:16
+COMPONENT('centered','closebutton:1;closeesc:1;scrollbar:1;visibleY:0',function(self,config,cls){var cls2='.'+cls,events={},container,scroller;events.bind=function(){if(!events.is){events.is=true;$(W).on('keydown',events.keydown)}};events.keydown=function(e){if(e.which===27)self.set('')};events.unbind=function(){if(events.is){events.is=false;$(W).off('keydown',events.keydown)}};self.resize=function(){setTimeout2(self.ID,self.resizeforce,300)};self.resizeforce=function(){var css={width:WW,height:WH};self.css(css);$(scroller).css(css);$(container).css({height:WH});self.scrollbar&&self.scrollbar.resize()};self.readonly();self.make=function(){self.aclass(cls+'-container hidden invisible');self.event('click','[data-name="close"],[name="close"]',function(){self.set('')});if(self.dom.children[0].nodeName===('SCRI'+'PT')){var html=self.dom.children[0].innerHTML;self.makeforce=function(){self.html('<span class="fas fa-times {0}-button{2}" data-name="close"></span><div class="{0}-content"><div class="{0}-body">{1}</div></div>'.format(cls,html,config.closebutton?'':' hidden'));if(html.COMPILABLE())COMPILE();self.makeforce=null}}else{container=document.createElement('DIV');container.setAttribute('class',cls+'-content');var div=document.createElement('DIV');div.setAttribute('class',cls+'-body');for(var i=0;i<self.dom.children.length;i++)div.appendChild(self.dom.children[i]);container.appendChild(div);scroller=document.createElement('DIV');scroller.appendChild(container);if(config.scrollbar)self.scrollbar=SCROLLBAR($(scroller),{visibleY:config.visibleY});self.dom.appendChild(scroller);self.element.prepend('<span class="fas fa-times {0}-button{1}" data-name="close"></span>'.format(cls,config.closebutton?'':' hidden'))}config.closeoutside&&self.find(cls2+'-body'+(typeof(config.closeoutside)==='string'?(','+config.closeoutside):'')).on('mousedown touchstart',function(e){if(e.target===this)self.set('')});self.on('resize2',self.resize)};self.setter=function(value){var is=value===config.if,hs=self.hclass('hidden');if(is===hs){if(is){self.makeforce&&self.makeforce();config.closeesc&&events.bind();config.default&&DEFAULT(self.makepath(config.default),true);config.reload&&self.EXEC(config.reload,self);config.zindex&&self.css('z-index',config.zindex);if(!isMOBILE&&config.autofocus){setTimeout(function(){self.find(typeof(config.autofocus)==='string'?config.autofocus:'input[type="text"],select,textarea').eq(0).focus()},1000)}}else config.closeesc&&events.unbind();self.tclass('hidden',!is);self.resizeforce();self.rclass('invisible');$('html').tclass(cls+'-noscroll',is)}}});
+// End: j-Centered
+
+// Component: j-Enter
+// Version: 1
+// Updated: 2021-06-09 00:43
+COMPONENT('enter','validate:1;trigger:button[name="submit"];flags:visible;timeout:1500',function(self,config){var flags;self.readonly();self.make=function(){self.event('keydown','input',function(e){if(e.which===13&&(!config.validate||CAN(self.path,flags))){if(config.exec){if(!BLOCKED(self.ID,config.timeout))EXEC(self.makepath(config.exec),self)}else{var btn=self.find(config.trigger);if(!btn.prop('disabled')){if(!BLOCKED(self.ID,config.timeout))btn.trigger('click')}}}})};self.configure=function(key,value){switch(key){case'flags':if(value){flags=value.split(',');for(var i=0;i<flags.length;i++)flags[i]='@'+flags[i]}else flags=null;break}}});
+// End: j-Enter
+
+// Component: j-Spotlight
+// Version: 1
+// Updated: 2020-11-05 00:25
+COMPONENT('spotlight','height:40;placeholder:Search',function(self,config,cls){var cls2='.'+cls,container,timeout,input,search,scroller=null,is=false,selectedindex=0,resultscount=0,skip=false,checksum;self.items=null;self.template=Tangular.compile('<figure data-index="{{ $.index}}"{{ if selected}} class="selected"{{ fi}}>{{ if icon}}<i class="{{ icon}}"></i>{{ fi}}{{ if html}}{{ html | raw}}{{ else}}{{ name | raw}}{{ fi}}</figure>');self.callback=null;self.readonly();self.singleton();self.nocompile&&self.nocompile();var onclick=function(e){if(is&&(!$(e.target).closest(cls2).length))self.hide()};self.select=function(index){var item=self.items[index];if(item){self.opt.callback&&self.opt.callback(item);if(!self.opt.recent)return;var key='spotlight'+(self.opt.id||'');var arr=PREF[key]||[],id=HASH(item)+'';item.spotlightid=id;if(arr.length&&arr.findItem('spotlightid',id))return;arr.unshift(item);if(arr.length>10)arr.pop();PREF.set(key,arr,typeof(self.opt.recent)==='string'?self.opt.recent:'1 month')}};self.make=function(){self.aclass(cls+'-layer hidden');self.append('<div class="{1}"><div class="{1}-search"><span><i class="fa fa-search"></i></span><div><input type="text" placeholder="{0}" class="{1}-search-input" /></div></div><div class="{1}-container"><div class="{1}-items"></div></div></div>'.format(config.placeholder,cls));container=self.find(cls2+'-items');scroller=self.find(cls2+'-container');input=self.find('input');search=self.find(cls2);self.event('click','figure[data-index]',function(e){self.select(+this.getAttribute('data-index'));self.hide();e.preventDefault();e.stopPropagation()});self.on('resize2',function(){is&&self.hide(0)});self.event('keydown','input',function(e){skip=false;switch(e.which){case 27:skip=true;self.hide();self.opt.cancel&&self.opt.cancel();break;case 13:skip=true;var sel=self.find('figure.selected');sel.length&&self.select(+sel.attrd('index'));self.hide();break;case 38:skip=true;selectedindex--;if(selectedindex<0)selectedindex=0;else self.move();break;case 40:skip=true;selectedindex++;if(selectedindex>=resultscount)selectedindex=resultscount;else self.move();break}if(skip){e.preventDefault();e.stopPropagation()}});self.event('keyup','input',function(){if(!skip)setTimeout2(self.id,self.search,self.opt.delay||100,null,this.value)})};self.search=function(value){if(typeof(self.opt.search)==='function')self.opt.search(value,self.render);else{var url=self.opt.search.format(encodeURIComponent(value));if(self.opt.cache)AJAXCACHE(url,self.render,self.opt.cache);else AJAX(url,self.render)}};self.move=function(){var counter=0,h=scroller.css('max-height').parseInt();container.find('figure').each(function(){var el=$(this);if(el.hclass('hidden'))return;var is=selectedindex===counter;el.tclass('selected',is);if(is){var t=(config.height*counter)-config.height;if((t+config.height*5)>h)scroller.scrollTop(t);else scroller.scrollTop(0)}counter++})};self.render=function(items,noremap){if(items){if(!(items instanceof Array)){self.render(items.items||items.response);return}if(!noremap&&self.opt.remap){var tmp=self.opt.remap(items);if(tmp)items=tmp}var newchecksum;if(self.items&&items){newchecksum=HASH(STRINGIFY(items,true));if(checksum===newchecksum)return}checksum=newchecksum;self.items=items}selectedindex=0;resultscount=self.items.length;var builder=[],indexer={};for(var i=0;i<self.items.length;i++){var item=items[i];indexer.index=i;if(item.icon&&item.icon.indexOf(' ')===-1)item.icon='fa fa-'+item.icon;builder.push(self.template(item,indexer))}container.html(builder);self.move()};self.show=function(opt){if(is){clearTimeout(timeout);self.hide(0);return}var key='spotlight'+(opt.id||'');var recent=PREF[key];$(document).on('touchstart mousedown',onclick);self.opt=opt;self.rclass('hidden');if(opt.recent==null)opt.recent='3 days';if(opt.clear)input.val('');if(!self.items||!self.items.length){selectedindex=0;if(recent&&recent.length)self.render(recent,true);else{self.render([]);opt.init&&self.search('')}}var w=((WW/(isMOBILE?1.1:1.3))>>0);search.css({width:w,left:((WW-w)/2)});scroller.css({width:w+50,'max-height':(WH/1.3)>>0});setTimeout(function(){self.aclass(cls+'-visible')},100);setTimeout(function(){input.focus()},500);is=true;$('html,body').aclass(cls+'-noscroll')};self.hide=function(sleep){if(is){clearTimeout(timeout);timeout=setTimeout(function(){$(document).off('touchstart mousedown',onclick);self.aclass('hidden').rclass(cls+'-visible');is=false;$('html,body').rclass(cls+'-noscroll')},sleep?sleep:100)}}});
+// End: j-Spotlight
+
+// Component: j-Movable
+// Version: 1
+// Updated: 2020-08-03 01:49
+COMPONENT('movable',function(self,config){var events={},draggable;self.readonly();self.make=function(){var target=config.global?$(document):config.parent?self.parent(config.parent):self.element;target.on('dragenter dragover dragexit drop dragleave dragstart',config.selector,events.ondrag).on('mousedown',config.selector,events.ondown)};events.ondrag=function(e){if(!draggable)return;if(e.type!=='dragstart'){e.stopPropagation();e.preventDefault()}switch(e.type){case'drop':var parent=draggable.parentNode,a=draggable,b=e.target,ai=-1,bi=-1,is=false;while(true){if(b.parentNode===parent){is=true;break}b=b.parentNode;if(b==null||b.tagName==='HTML')break}if(a===b||!is)return;for(var i=0;i<parent.children.length;i++){var child=parent.children[i];if(a===child)ai=i;else if(b===child)bi=i;if(bi!==-1&&ai!==-1)break}if(ai>bi)parent.insertBefore(a,b);else parent.insertBefore(a,b.nextSibling);config.exec&&EXEC(self.makepath(config.exec),$(parent).find(config.selector),a,b);self.path&&self.change(true);break;case'dragstart':var eo=e.originalEvent;eo.dataTransfer&&eo.dataTransfer.setData('text','1');break;case'dragenter':case'dragover':case'dragexit':case'dragleave':break}};events.ondown=function(){draggable=this};self.destroy=function(){$(document).off('dragenter dragover dragexit drop dragleave dragstart',config.selector,events.ondrag).off('mousedown',config.selector,events.ondown)}});
+// End: j-Movable
+
+// Component: j-TextboxList
+// Version: 1
+// Updated: 2021-07-15 14:37
+COMPONENT('textboxlist','maxlength:100;required:false;error:You reach the maximum limit;movable:false',function(self,config,cls){var container,content,empty={},skip=false,cempty=cls+'-empty',crequired='required',helper=null,cls2='.'+cls;self.setter=null;self.getter=null;self.nocompile&&self.nocompile();self.template=Tangular.compile(('<div class="{0}-item"><div>'+(config.movable?'<i class="fa fa-angle-up {0}-up"></i><i class="fa fa-angle-down {0}-down"></i>':'')+'<i class="far fa-trash-o {0}-remove"></i></div><div><input type="text" maxlength="{{ max}}" placeholder="{{ placeholder}}"{{ if disabled}} disabled="disabled"{{ fi}} value="{{ value}}" /></div></div>').format(cls));self.configure=function(key,value,init,prev){if(init)return;var redraw=false;switch(key){case'disabled':self.tclass(crequired,value);self.find('input').prop('disabled',true);empty.disabled=value;self.reset();break;case'maxlength':empty.max=value;self.find('input').prop(key,value);break;case'placeholder':empty.placeholder=value;self.find('input').prop(key,value);break;case'label':redraw=true;break;case'icon':if(value&&prev)self.find('i').rclass().aclass(value);else redraw=true;break}if(redraw){skip=false;self.redraw();self.refresh()}};self.redraw=function(){var icon='',html=config.label||content;if(config.icon)icon='<i class="{0}"></i>'.format(config.icon.indexOf(' ')===-1?('fa fa-'+config.icon):config.icon);empty.value='';self.tclass(cls+'-movable',!!config.movable);self.html((html?('<div class="'+cls+'-label{2}">{1}{0}:</div>').format(html,icon,config.required?(' '+cls+'-required'):''):'')+('<div class="'+cls+'-items"></div>'+self.template(empty).replace('-item"','-item '+cls+'-base"')));container=self.find(cls2+'-items')};self.make=function(){empty.max=config.max;empty.placeholder=config.placeholder;empty.value='';empty.disabled=config.disabled;if(config.disabled)self.aclass('ui-disabled');content=self.html();self.aclass(cls);self.redraw();self.move=function(offset,el){var arr=self.get();var index=el.index();var tmp;if(offset===1){if(arr[index]==null||arr[index+1]==null)return}else{if(arr[index]==null||arr[index-1]==null)return}tmp=arr[index];arr[index]=arr[index+offset];arr[index+offset]=tmp;var items=self.find(cls2+'-item');items.eq(index).find('input').val(arr[index]);items.eq(index+offset).find('input').val(arr[index+offset])};self.event('click',cls2+'-up',function(){self.move(-1,$(this).closest(cls2+'-item'))});self.event('click',cls2+'-down',function(){self.move(1,$(this).closest(cls2+'-item'))});self.event('click',cls2+'-remove',function(){if(config.disabled)return;var el=$(this);var parent=el.closest(cls2+'-item');var value=parent.find('input').val();var arr=self.get();helper!=null&&helper.remove();helper=null;parent.remove();var index=arr.indexOf(value);if(index===-1)return;arr.splice(index,1);self.tclass(cempty,!arr.length);self.tclass(crequired,config.required&&!arr.length);skip=true;SET(self.path,arr,2);self.change(true)});self.event('change keypress blur','input',function(e){if((e.type==='keypress'&&e.which!==13)||config.disabled)return;var el=$(this);var value=this.value.trim();if(!value)return;var arr=[],base=el.closest(cls2+'-base');var len=base.length>0;if(len&&e.type==='change')return;var raw=self.get();if(config.limit&&len&&raw.length>=config.limit){if(!helper){base.after(('<div class="'+cls+'-helper"><i class="fa fa-warning" aria-hidden="true"></i> {0}</div>').format(config.error));helper=container.closest(cls2).find(cls2+'-helper')}return}if(len){if(!raw||raw.indexOf(value)===-1)self.push(value);this.value='';self.change(true);return}skip=true;container.find('input').each(function(){var temp=this.value.trim();switch(config.type){case'lower':temp=temp.toLowerCase();break;case'upper':temp=temp.toUpperCase();break;case'number':temp=temp.parseInt();break;case'date':temp=temp.parseDate();break;case'a-z':temp=temp.toLowerCase().replace(/[^a-z]/g,'');break}if(arr.indexOf(temp)===-1)arr.push(temp);else skip=false});self.set(arr,2);self.change(true)})};self.setter=function(value){if(skip){skip=false;return}if(!value||!value.length){self.aclass(cempty);config.required&&self.aclass(crequired);container.empty();return}self.rclass(cempty);self.rclass(crequired);var builder=[];for(var i=0;i<value.length;i++){empty.value=value[i];builder.push(self.template(empty))}container.empty().append(builder.join(''))};self.validate=function(value,init){if(init)return true;var valid=!config.required,items=container.children();if(!value||!value.length)return valid;for(var i=0;i<value.length;i++){var item=value[i];!item&&(item='');switch(config.type){case'email':valid=item.isEmail();break;case'url':valid=item.isURL();break;case'currency':case'number':valid=item>0;break;case'date':valid=item instanceof Date&&!isNaN(item.getTime());break;default:valid=item.length>0;break}items.eq(i).tclass(cls+'-item-invalid',!valid)}return valid}});
+// End: j-TextboxList
+
+// Component: j-Approve
+// Version: 1
+// Updated: 2021-02-11 09:41
+COMPONENT('approve','cancel:Cancel',function(self,config,cls){var cls2='.'+cls,events={},buttons,oldcancel;self.readonly();self.singleton();self.nocompile&&self.nocompile();self.make=function(){self.aclass(cls+' hidden');self.html('<div><div class="{0}-body"><span class="{0}-close"><i class="fa fa-times"></i></span><div class="{0}-content"></div><div class="{0}-buttons"><button data-index="0"></button><button data-index="1"></button></div></div></div>'.format(cls));buttons=self.find(cls2+'-buttons').find('button');self.event('click','button',function(){self.hide(+$(this).attrd('index'))});self.event('click',cls2+'-close',function(){self.callback=null;self.hide(-1)});self.event('click',function(e){var t=e.target.tagName;if(t!=='DIV')return;var el=self.find(cls2+'-body');el.aclass(cls+'-click');setTimeout(function(){el.rclass(cls+'-click')},300)})};events.keydown=function(e){var index=e.which===13?0:e.which===27?1:null;if(index!=null){self.find('button[data-index="{0}"]'.format(index)).trigger('click');e.preventDefault();e.stopPropagation();events.unbind()}};events.bind=function(){$(W).on('keydown',events.keydown)};events.unbind=function(){$(W).off('keydown',events.keydown)};self.show=function(message,a,b,fn){if(typeof(b)==='function'){fn=b;b=config.cancel}if(M.scope)self.currscope=M.scope();self.callback=fn;var icon=a.match(/"[a-z0-9-\s]+"/);if(icon){var tmp=icon+'';if(tmp.indexOf(' ')==-1)tmp='fa fa-'+tmp;a=a.replace(icon,'').trim();icon='<i class="{0}"></i>'.format(tmp.replace(/"/g,''))}else icon='';var color=a.match(/#[0-9a-f]+/i);if(color)a=a.replace(color,'').trim();buttons.eq(0).css('background-color',color||'').html(icon+a);if(oldcancel!==b){oldcancel=b;buttons.eq(1).html(b)}self.find(cls2+'-content').html(message.replace(/\n/g,'<br />'));$('html').aclass(cls+'-noscroll');self.rclass('hidden');events.bind();self.aclass(cls+'-visible',5);document.activeElement&&document.activeElement.blur()};self.hide=function(index){if(!index){self.currscope&&M.scope(self.currscope);self.callback&&self.callback(index)}self.rclass(cls+'-visible');events.unbind();setTimeout2(self.id,function(){$('html').rclass(cls+'-noscroll');self.aclass('hidden')},1000)}});
+// End: j-Approve
+
+// Component: j-RadioButton
+// Version: 1
+// Updated: 2021-04-26 16:41
+COMPONENT('radiobutton','inline:1',function(self,config,cls){var cls2='.'+cls,template='<div data-value="{1}"><i></i><span>{0}</span></div>';self.nocompile();self.configure=function(key,value,init){if(init)return;switch(key){case'disabled':self.tclass('ui-disabled',value);break;case'required':self.find(cls2+'-label').tclass(cls+'-label-required',value);break;case'type':self.type=config.type;break;case'label':self.find(cls2+'-label').html(value);break;case'items':self.find('div[data-value]').remove();var builder=[];value.split(/[^\\],/).forEach(function(item){item=item.split('|');builder.push(template.format((item[0]||item[1]).replace(/\\,/g,','),item[1]||item[0]))});self.append(builder.join(''));self.refresh();break;case'datasource':self.datasource(value,self.bind);break}};self.make=function(){var builder=[],label=config.label||self.html();label&&builder.push('<div class="'+cls+'-label{1}">{0}</div>'.format(label,config.required?(' '+cls+'-label-required'):''));self.aclass(cls+(!config.inline?(' '+cls+'-block'):'')+(config.disabled?' ui-disabled':''));self.event('click','div[data-value]',function(){if(config.disabled)return;var value=self.parser($(this).attrd('value'));self.set(value);self.change(true)});self.html(builder.join(''));config.items&&self.reconfigure('items:'+config.items);config.datasource&&self.reconfigure('datasource:'+config.datasource);config.type&&(self.type=config.type)};self.validate=function(value){return config.disabled||!config.required?true:!!value};self.setter=function(value){self.find('div[data-value]').each(function(){var el=$(this);var is=el.attrd('value')===(value==null?null:value.toString());el.tclass(cls+'-selected',is);el.find('.fa').tclass('fa-circle-o',!is).tclass('fa-circle',is)})};self.bind=function(path,arr){if(!arr)arr=EMPTYARRAY;var builder=[],propText=config.text||'name',propValue=config.value||'id',type=typeof(arr[0]);var notObj=type==='string'||type==='number';for(var i=0,length=arr.length;i<length;i++){var item=arr[i];if(notObj)builder.push(template.format(item,item));else builder.push(template.format(item[propText],item[propValue]))}self.find('div[data-value]').remove();self.append(builder.join(''));self.refresh()}});
+// End: j-RadioButton
+
+// Component: j-Clipboard
+// Version: 1
+// Updated: 2019-01-07 23:56
+COMPONENT('clipboard',function(self){var container;self.singleton();self.readonly();self.nocompile&&self.nocompile();self.copy=function(value){container.val(value);container.focus();container.select();document.execCommand('copy');container.blur()};self.make=function(){var id='clipboard'+self.id;$(document.body).append('<textarea id="{0}" class="ui-clipboard"></textarea>'.format(id));container=$('#'+id)};self.setter=function(value){value&&self.copy(value)}});
+// End: j-Clipboard
+
+// Component: j-Shortcuts
+// Version: 1
+// Updated: 2021-05-19 21:36
+COMPONENT('shortcuts',function(self){var items=[],length=0,keys={},keys_session={},issession=false;self.singleton();self.readonly();self.blind();self.nocompile&&self.nocompile();var cb=function(o,e){o.callback(e,o.owner)};self.make=function(){$(W).on('keydown',function(e){var f=e.key||'',c=e.keyCode;if(f.length>1&&f.charAt(0)==='F')c=0;else f='-';var key=(e.ctrlKey?1:0)+''+(e.altKey?1:0)+''+(e.shiftKey?1:0)+''+(e.metaKey?1:0)+f+c;if(issession){if(!keys_session[key])return}else{if(!keys[key])return}if(length&&!e.isPropagationStopped()){for(var i=0;i<length;i++){var o=items[i];if(o.fn(e)){if(o.prevent){e.preventDefault();e.stopPropagation()}setTimeout(cb,100,o,e);return}}}});ON('component + knockknock',self.refresh)};self.refreshforce=function(){var arr=document.querySelectorAll('.shortcut');var index=0;while(true){var item=items[index++];if(item==null)break;if(item.owner){index--;items.splice(index,1)}}for(var i=0;i<arr.length;i++){var shortcut=arr[i].getAttribute('data-shortcut');shortcut&&self.register(shortcut,self.execshortcut,true,arr[i])}};self.session=function(callback){issession=true;keys_session={};callback(self.register)};self.end=function(){issession=false};self.execshortcut=function(e,owner){$(owner).trigger('click')};self.refresh=function(){setTimeout2(self.ID,self.refreshforce,500)};self.exec=function(shortcut){var item=items.findItem('shortcut',shortcut.toLowerCase().replace(/\s/g,''));item&&item.callback(EMPTYOBJECT,item.owner)};self.register=function(shortcut,callback,prevent,owner){var currentkeys=issession?keys_session:keys;shortcut.split(',').trim().forEach(function(shortcut){var builder=[],alias=[],cachekey=[0,0,0,0,'-',0];shortcut.split('+').trim().forEach(function(item){var lower=item.toLowerCase();alias.push(lower);switch(lower){case'ctrl':cachekey[0]=1;break;case'alt':cachekey[1]=1;break;case'shift':cachekey[2]=1;break;case'win':case'meta':case'cmd':cachekey[3]=1;break}switch(lower){case'ctrl':case'alt':case'shift':builder.push('e.{0}Key'.format(lower));return;case'win':case'meta':case'cmd':builder.push('e.metaKey');return;case'ins':builder.push('e.keyCode===45');cachekey[5]=45;return;case'space':builder.push('e.keyCode===32');cachekey[5]=32;return;case'tab':builder.push('e.keyCode===9');cachekey[5]=9;return;case'esc':builder.push('e.keyCode===27');cachekey[5]=27;return;case'enter':builder.push('e.keyCode===13');cachekey[5]=13;return;case'backspace':builder.push('e.keyCode===8');cachekey[5]=8;break;case'del':case'delete':builder.push('e.keyCode===46');cachekey[5]=46;return;case'save':builder.push('(e.metaKey&&e.keyCode===115)');cachekey[5]=-1;return;case'remove':builder.push('((e.metaKey&&e.keyCode===8)||e.keyCode===46)');cachekey[5]=-1;return;case'up':builder.push('e.keyCode===38');cachekey[5]=38;return;case'down':builder.push('e.keyCode===40');cachekey[5]=40;return;case'right':builder.push('e.keyCode===39');cachekey[5]=39;return;case'left':builder.push('e.keyCode===37');cachekey[5]=37;return;case'f1':case'f2':case'f3':case'f4':case'f5':case'f6':case'f7':case'f8':case'f9':case'f10':case'f11':case'f12':var a=item.toUpperCase();builder.push('e.key===\'{0}\''.format(a));cachekey[4]=a;return;case'capslock':builder.push('e.which===20');cachekey[5]=20;return}var num=item.parseInt();if(num){builder.push('e.which==='+num);cachekey[5]=num}else{num=item.toUpperCase().charCodeAt(0);cachekey[5]=num;builder.push('e.keyCode==={0}'.format(num))}});items.push({shortcut:alias.join('+'),fn:new Function('e','return '+builder.join('&&')),callback:callback,prevent:prevent,owner:owner});length=items.length;var k;if(cachekey[5]===-1){cachekey[5]=8;k=cachekey.join('');currentkeys[k]=1;cachekey[5]=46}k=cachekey.join('');currentkeys[k]=1});if(!owner)self.refresh();return self}});
+// End: j-Shortcuts
+
+// Component: j-Importer
+// Version: 1
+// Updated: 2021-03-29 11:15
+COMPONENT('importer',function(self,config){var init=false,clid=null,pending=false,content='',replace=function(value){return self.scope?self.makepath(value):value.replace(/\?/g,config.path||config.if)};var replace2=function(value){return value?value.replace(/~PATH~/g,config.path||config.if):value};self.readonly();self.make=function(){var scr=self.find('script');content=scr.length?scr.html():''};self.reload=function(recompile){config.reload&&EXEC(replace(config.reload));recompile&&COMPILE();setTimeout(function(){pending=false;init=true},1000)};self.setter=function(value){if(pending)return;if(config.if!==value){if(config.cleaner&&init&&!clid)clid=setTimeout(self.clean,config.cleaner*60000);return}pending=true;if(clid){clearTimeout(clid);clid=null}if(init){self.reload();return}if(content){self.html(replace2(content));setTimeout(self.reload,50,true)}else self.import(config.url,self.reload,true,replace2)};self.clean=function(){config.clean&&EXEC(replace(config.clean));setTimeout(function(){self.empty();init=false;clid=null},1000)}});
+// End: j-Importer
+
+// Component: j-BackToTop
+// Version: 1
+// Updated: 2021-02-18 14:44
+COMPONENT('backtotop','icon:fa fa-arrow-circle-up',function(self,config,cls){var visible=false,timeout=null,$W;self.singleton();self.nocompile&&self.nocompile();self.onscroll=function(){timeout=null;var position=$W.scrollTop();if(position>WH){if(visible)return;visible=true}else{if(!visible)return;visible=false}self.tclass('active',visible)};self.make=function(){self.aclass(cls);self.html('<span><i class="{0}"></i></span>'.format(self.faicon(config.icon)));self.event('click',function(){document.body.scrollTop=0;document.documentElement.scrollTop=0});$W=$(W);$W.on('scroll',function(){timeout&&clearTimeout(timeout);timeout=setTimeout(self.onscroll,200)})}});
+// End: j-BackToTop
+
+// Component: j-Layout
+// Version: 1
+// Updated: 2020-10-25 13:02
+COMPONENT('layout','space:1;border:0;parent:window;margin:0;remember:1;autoresize:1',function(self,config,cls){var cls2='.'+cls,cache={},drag={},s={},events={},istop2=false,isbottom2=false,isright2=false,loaded=false,resizecache='',settings,prefkey='',prefexpire='1 month',isreset=false,layout=null;self.readonly();self.init=function(){ON('resize2 + resize',function(){for(var i=0;i<M.components.length;i++){var com=M.components[i];if(com.name==='layout'&&com.dom.offsetParent&&com.$ready&&!com.$removed&&com.config.autoresize)com.resize()}})};self.make=function(){self.aclass(cls);self.find('> section').each(function(){var el=$(this);var type=el.attrd('type');if(type.charAt(type.length-1)==='2'){type=type.substring(0,type.length-1);switch(type){case'top':istop2=true;break;case'bottom':isbottom2=true;break;case'right':isright2=true;break}}el.aclass(cls+'-'+type+' hidden ui-layout-section');el.after('<div class="{0}-resize-{1} {0}-resize" data-type="{1}"></div>'.format(cls,type));el.after('<div class="{0}-lock hidden" data-type="{1}"></div>'.format(cls,type));s[type]=el});self.find('> .{0}-resize'.format(cls)).each(function(){var el=$(this);s[el.attrd('type')+'resize']=el});self.find('> .{0}-lock'.format(cls)).each(function(){var el=$(this);s[el.attrd('type')+'lock']=el});var tmp=self.find('> script');if(tmp.length){self.rebind(tmp.html(),true);tmp.remove()}events.bind=function(){var el=self.element;el.bind('mousemove',events.mmove);el.bind('mouseup',events.mup);el.bind('mouseleave',events.mup)};events.unbind=function(){var el=self.element;el.unbind('mousemove',events.mmove);el.unbind('mouseup',events.mup);el.unbind('mouseleave',events.mup)};events.mdown=function(e){var target=$(e.target);var type=target.attrd('type');var w=self.width();var h=self.height();var m=2;self.element.find('iframe').css('pointer-events','none');drag.cur=self.element.offset();drag.cur.top-=10;drag.cur.left-=8;drag.offset=target.offset();drag.el=target;drag.x=e.pageX;drag.y=e.pageY;drag.horizontal=type==='left'||type==='right'?1:0;drag.type=type;drag.plusX=10;drag.plusY=10;var ch=cache[type],offset=0,min=ch.minsize?(ch.minsize.value-1):0;target.aclass(cls+'-drag');switch(type){case'top':drag.min=min||(ch.size-m);drag.max=(h-(cache.bottom?s.bottom.height():0)-50);break;case'right':offset=w;drag.min=(cache.left?s.left.width():0)+50+min;drag.max=offset-(min||ch.size);break;case'bottom':offset=h;drag.min=(cache.top?s.top.height():0)+50;drag.max=offset-(min||ch.size);break;case'left':drag.min=min||(ch.size-m);drag.max=w-(cache.right?s.right.width():0)-50;break}events.bind()};events.mmove=function(e){if(drag.horizontal){var x=drag.offset.left+(e.pageX-drag.x)-drag.plusX-drag.cur.left;if(x<drag.min)x=drag.min+1;if(x>drag.max)x=drag.max-1;drag.el.css('left',x+'px')}else{var y=drag.offset.top+(e.pageY-drag.y)-drag.plusY;if(y<drag.min)y=drag.min+1;if(y>drag.max)y=drag.max-1;drag.el.css('top',(y-drag.cur.top)+'px')}};events.mup=function(){self.element.find('iframe').css('pointer-events','');var offset=drag.el.offset();var d=WIDTH();var pk=prefkey+'_'+layout+'_'+drag.type+'_'+d;drag.el.rclass(cls+'-drag');if(drag.horizontal){offset.left-=drag.cur.left;if(offset.left<drag.min)offset.left=drag.min;if(offset.left>drag.max)offset.left=drag.max;var w=offset.left-(drag.offset.left-drag.cur.left);if(!isright2&&drag.type==='right')w=w*-1;drag.el.css('left',offset.left);w=s[drag.type].width()+w;s[drag.type].css('width',w);config.remember&&PREF.set(pk,w,prefexpire)}else{offset.top-=drag.cur.top;if(offset.top<drag.min)offset.top=drag.min;if(offset.top>drag.max)offset.top=drag.max;drag.el.css('top',offset.top);var h=offset.top-(drag.offset.top-drag.cur.top);if(drag.type==='bottom'||drag.type==='preview')h=h*-1;h=s[drag.type].height()+h;s[drag.type].css('height',h);config.remember&&PREF.set(pk,h,prefexpire)}events.unbind();self.refresh()};self.find('> '+cls2+'-resize').on('mousedown',events.mdown)};self.lock=function(type,b){var el=s[type+'lock'];el&&el.tclass('hidden',b==null?b:!b)};self.rebind=function(code,noresize){code=code.trim();prefkey='L'+HASH(code);resizecache='';settings=new Function('return '+code)();!noresize&&self.resize()};var getSize=function(display,data){var obj=data[display];if(obj)return obj;switch(display){case'md':return getSize('lg',data);case'sm':return getSize('md',data);case'xs':return getSize('sm',data)}return data};self.resize=function(){if(self.dom.offsetParent==null){setTimeout(self.resize,100);return}if(settings==null)return;var d=WIDTH();var el=self.parent(config.parent);var width=el.width();var height=el.height();var key=d+'x'+width+'x'+height;if(resizecache===key)return;var tmp=layout?settings[layout]:settings;if(tmp==null){WARN('j-Layout: layout "{0}" not found'.format(layout));tmp=settings}var size=getSize(d,tmp);var keys=Object.keys(s);height-=config.margin;resizecache=key;self.css({width:width,height:height});for(var i=0;i<keys.length;i++){var key=keys[i];el=s[key];self.update(key,size[key]?size[key]:settings[key])}config.resize&&EXEC(config.resize,d,width,height)};var parseSize=function(val,size){var str=typeof(val)==='string';var obj={raw:str?val.parseFloat():val,percentage:str?val.charAt(val.length-1)==='%':false};obj.value=obj.percentage?((((size/100)*obj.raw)>>0)-config.space):obj.raw;return obj};self.reset=function(){isreset=true;resizecache='';self.resize()};self.layout=function(name){if(name==null)name='';if(layout!=name){layout=name;resizecache='';self.resize()}};self.update=function(type,opt){if(opt==null)return;if(typeof(opt)==='string')opt=opt.parseConfig();if(s[type]==null)return;var el=s[type],css={},is=0,size=null,d=WIDTH();var c=cache[type];if(c==null)c=cache[type]={};var w=self.width();var h=self.height();var pk=prefkey+'_'+layout+'_'+type+'_'+d,cached=PREF.get(pk,prefexpire);if(isreset){cached&&PREF.set(pk);cached=0}c.minsize=opt.minwidth?parseSize(opt.minwidth,w):opt.minsize?parseSize(opt.minsize,w):0;var def=getSize(d,settings);var width=(opt.size||opt.width)||(def[type]?def[type].width:0);var height=(opt.size||opt.height)||(def[type]?def[type].height:0);if(width&&(type==='left'||type==='right')){size=parseSize(width,w);c.size=size.value;css.width=cached?cached:size.value;is=1}c.minsize=opt.minheight?parseSize(opt.minheight,w):opt.minsize?parseSize(opt.minsize,w):0;if(height&&(type==='top'||type==='bottom')){size=parseSize(height,h);c.size=size.value;css.height=(cached?cached:size.value);is=1}if(opt.show==null)opt.show=true;el.tclass('hidden',!opt.show);c.show=!!opt.show;c.resize=opt.resize==null?false:!!opt.resize;el.tclass(cls+'-resizable',c.resize);s[type+'resize'].tclass('hidden',!c.show||!c.resize);is&&el.css(css);setTimeout2(self.ID+'refresh',self.refresh,50)};var getWidth=function(el){return el.hclass('hidden')?0:el.width()};var getHeight=function(el){return el.hclass('hidden')?0:el.height()};self.refresh=function(){var top=0,bottom=0,right=0,left=0,hidden='hidden',top2=0,bottom2=0,space=2,topbottomoffset=0,right2visible=isright2&&!s.right.hclass(hidden);if(s.top)top=top2=getHeight(s.top);if(s.bottom)bottom=bottom2=getHeight(s.bottom);var width=self.width()-(config.border*2);var height=self.height()-(config.border*2);if(istop2){topbottomoffset++;top2=0}if(isbottom2){topbottomoffset--;bottom2=0}if(s.left&&!s.left.hclass(hidden)){var cssleft={};space=top&&bottom?2:top||bottom?1:0;cssleft.left=0;cssleft.top=istop2?config.border:(top?(top+config.space):0);cssleft.height=isbottom2?(height-top2-config.border):(height-top2-bottom2-(config.space*space));cssleft.height+=topbottomoffset;s.left.css(cssleft);cssleft.width=s.left.width();s.leftlock.css(cssleft);delete cssleft.width;left=s.left.width();cssleft.left=s.left.width();s.leftresize.css(cssleft);s.leftresize.tclass(hidden,!s.left.hclass(cls+'-resizable'))}if(s.right&&!s.right.hclass(hidden)){right=s.right.width();space=top&&bottom?2:top||bottom?1:0;var cssright={};cssright.left=right2visible?(getWidth(s.left)+config.border+config.space):(width-right);cssright.top=istop2?config.border:(top?(top+config.space):0);cssright.height=isbottom2?(height-top2-config.border):(height-top2-bottom2-(config.space*space));cssright.height+=topbottomoffset;s.right.css(cssright);cssright.width=s.right.width();if(!isright2&&(cssright.left-cssright.width)<=0){s.right.css('left',0);cssright.width++}s.rightlock.css(cssright);delete cssright.width;if(right2visible)cssright.left+=s.right.width();else cssright.left=width-right-2;s.rightresize.css(cssright);s.rightresize.tclass(hidden,!s.right.hclass(cls+'-resizable'))}if(s.top){var csstop={};space=left?config.space:0;csstop.left=istop2?(left+space):0;if(right2visible&&istop2)csstop.left+=getWidth(s.right)+config.space;space=left&&right?2:left||right?1:0;csstop.width=istop2?(width-right-left-(config.space*space)):width;csstop.top=0;s.top.css(csstop);s.topresize.css(csstop);csstop.height=s.top.height();s.toplock.css(csstop);delete csstop.height;csstop.top=s.top.height();s.topresize.css(csstop);s.topresize.tclass(hidden,!s.top.hclass(cls+'-resizable'))}if(s.bottom){var cssbottom={};cssbottom.top=height-bottom;space=left?config.space:0;cssbottom.left=isbottom2?(left+space):0;if(right2visible&&isbottom2)cssbottom.left+=getWidth(s.right)+config.space;space=left&&right?2:left||right?1:0;cssbottom.width=isbottom2?(width-right-left-(config.space*space)):width;s.bottom.css(cssbottom);cssbottom.height=s.bottom.height();s.bottomlock.css(cssbottom);delete cssbottom.height;cssbottom.top=cssbottom.top-2;s.bottomresize.css(cssbottom);s.bottomresize.tclass(hidden,!s.bottom.hclass(cls+'-resizable'))}var space=left&&right?2:left?1:right?1:0,css={};css.left=left?left+config.space:0;if(right2visible)css.left+=getWidth(s.right)+config.space;css.width=(width-left-right-(config.space*space));css.top=top?top+config.space:0;space=top&&bottom?2:top||bottom?1:0;css.height=height-top-bottom-(config.space*space);s.main&&s.main.css(css);s.mainlock&&s.mainlock.css(css);self.element.SETTER('*','resize');if(loaded==false){loaded=true;self.rclass('invisible')}isreset=false};self.setter=function(value){self.layout(value)}});
+// End: j-Layout
+
+// Component: j-Selected
+// Version: 1
+// Updated: 2021-05-14 12:16
+COMPONENT('selected','class:selected;selector:a;attr:if;attror:or',function(self,config){self.readonly();self.configure=function(key,value){switch(key){case'datasource':self.datasource(value,function(){setTimeout(self.refresh,50)});break}};self.setter=function(value){var cls=config.class;self.find(config.selector).each(function(){var el=$(this);var or=el.attrd(config.attror)||'';if(el.attrd(config.attr)===value||(or&&or.indexOf(value)!==-1))el.aclass(cls);else el.hclass(cls)&&el.rclass(cls)})}});
+// End: j-Selected
+
+// Component: j-LargeForm
+// Version: 1
+// Updated: 2021-04-08 10:53
+COMPONENT('largeform','zindex:12;padding:30;scrollbar:1;scrolltop:1;style:1',function(self,config,cls){var cls2='.'+cls,csspos={},nav=false,init=false;if(!W.$$largeform){W.$$largeform_level=W.$$largeform_level||1;W.$$largeform=true;$(document).on('click',cls2+'-button-close',function(){SET($(this).attrd('path'),'')});var resize=function(){setTimeout2(self.name,function(){for(var i=0;i<M.components.length;i++){var com=M.components[i];if(com.name==='largeform'&&!HIDDEN(com.dom)&&com.$ready&&!com.$removed)com.resize()}},200)};ON('resize2',resize);$(document).on('click',cls2+'-container',function(e){if(e.target===this){var com=$(this).component();if(com&&com.config.closeoutside){com.set('');return}}var el=$(e.target);if(el.hclass(cls+'-container')&&!el.hclass(cls+'-style-2')){var form=el.find(cls2);var c=cls+'-animate-click';form.aclass(c);setTimeout(function(){form.rclass(c)},300)}})}self.readonly();self.submit=function(){if(config.submit)self.EXEC(config.submit,self.hide,self.element);else self.hide()};self.cancel=function(){config.cancel&&self.EXEC(config.cancel,self.hide);self.hide()};self.hide=function(){if(config.independent)self.hideforce();self.esc(false);self.set('')};self.icon=function(value){var el=this.rclass2('fa');value.icon&&el.aclass(value.icon.indexOf(' ')===-1?('fa fa-'+value.icon):value.icon)};self.resize=function(){if(self.hclass('hidden'))return;var padding=isMOBILE?0:config.padding,ui=self.find(cls2);csspos.height=WH-(config.style==1?(padding*2):padding);csspos.top=padding;ui.css(csspos);var el=self.find(cls2+'-title');var th=el.height();var w=ui.width();if(w>WW)w=WW;csspos={height:csspos.height-th,width:w};if(nav)csspos.height-=nav.height();self.find(cls2+'-body').css(csspos);self.scrollbar&&self.scrollbar.resize();self.element.SETTER('*','resize')};self.make=function(){$(document.body).append('<div id="{0}" class="hidden {4}-container invisible"><div class="{4}" style="max-width:{1}px"><div data-bind="@config__text span:value.title__change .{4}-icon:@icon" class="{4}-title"><button name="cancel" class="{4}-button-close{3}" data-path="{2}"><i class="fa fa-times"></i></button><i class="{4}-icon"></i><span></span></div><div class="{4}-body"></div></div>'.format(self.ID,config.width||800,self.path,config.closebutton==false?' hidden':'',cls));var scr=self.find('> script');self.template=scr.length?scr.html().trim():'';scr.length&&scr.remove();var el=$('#'+self.ID);var body=el.find(cls2+'-body')[0];while(self.dom.children.length){var child=self.dom.children[0];if(child.tagName==='NAV'){nav=$(child);body.parentNode.appendChild(child)}else body.appendChild(child)}self.rclass('hidden invisible');self.replace(el,true);if(config.scrollbar)self.scrollbar=SCROLLBAR(self.find(cls2+'-body'),{shadow:config.scrollbarshadow,visibleY:config.visibleY,orientation:'y'});if(config.style===2)self.aclass(cls+'-style-2');self.event('scroll',function(){EMIT('scroll',self.name);EMIT('reflow',self.name)});self.event('click','button[name]',function(){var t=this;switch(t.name){case'submit':self.submit(self.hide);break;case'cancel':!t.disabled&&self[t.name](self.hide);break}});config.enter&&self.event('keydown','input',function(e){e.which===13&&!self.find('button[name="submit"]')[0].disabled&&setTimeout(self.submit,800)})};self.configure=function(key,value,init,prev){if(!init){switch(key){case'width':value!==prev&&self.find(cls2).css('max-width',value+'px');break;case'closebutton':self.find(cls2+'-button-close').tclass('hidden',value!==true);break}}};self.esc=function(bind){if(bind){if(!self.$esc){self.$esc=true;$(W).on('keydown',self.esc_keydown)}}else{if(self.$esc){self.$esc=false;$(W).off('keydown',self.esc_keydown)}}};self.esc_keydown=function(e){if(e.which===27&&!e.isPropagationStopped()){var val=self.get();if(!val||config.if===val){e.preventDefault();e.stopPropagation();self.hide()}}};self.hideforce=function(){if(!self.hclass('hidden')){self.aclass('hidden');self.release(true);self.find(cls2).rclass(cls+'-animate');W.$$largeform_level--}};var allowscrollbars=function(){$('html').tclass(cls+'-noscroll',!!$(cls2+'-container').not('.hidden').length)};self.setter=function(value){setTimeout2(self.name+'-noscroll',allowscrollbars,50);var isHidden=value!==config.if;if(self.hclass('hidden')===isHidden){if(!isHidden){config.reload&&self.EXEC(config.reload,self);config.default&&DEFAULT(self.makepath(config.default),true);config.scrolltop&&self.scrollbar&&self.scrollbar.scrollTop(0)}return}setTimeout2(cls,function(){EMIT('reflow',self.name)},10);if(isHidden){if(!config.independent)self.hideforce();return}if(self.template){var is=self.template.COMPILABLE();self.find(cls2).append(self.template);self.template=null;is&&COMPILE()}if(W.$$largeform_level<1)W.$$largeform_level=1;W.$$largeform_level++;self.css('z-index',W.$$largeform_level*config.zindex);self.aclass('invisible');self.rclass('hidden');self.release(false);config.scrolltop&&self.scrollbar&&self.scrollbar.scrollTop(0);config.reload&&self.EXEC(config.reload,self);config.default&&DEFAULT(self.makepath(config.default),true);if(!isMOBILE&&config.autofocus){setTimeout(function(){self.find(typeof(config.autofocus)==='string'?config.autofocus:'input[type="text"],select,textarea').eq(0).focus()},1000)}self.resize();setTimeout(function(){self.rclass('invisible');self.find(cls2).aclass(cls+'-animate');if(!init&&isMOBILE){$('body').aclass('hidden');setTimeout(function(){$('body').rclass('hidden')},50)}init=true},200);setTimeout2(self.ID,function(){self.css('z-index',(W.$$largeform_level*config.zindex)+1)},500);config.closeesc&&self.esc(true)}});
+// End: j-LargeForm
+
+// Component: j-Form
+// Version: 2
+// Updated: 2021-04-08 10:52
+COMPONENT('form','zindex:12;scrollbar:1',function(self,config,cls){var cls2='.'+cls,container,csspos={};if(!W.$$form){W.$$form_level=W.$$form_level||1;W.$$form=true;$(document).on('click',cls2+'-button-close',function(){SET($(this).attrd('path'),'')});var resize=function(){setTimeout2('form',function(){for(var i=0;i<M.components.length;i++){var com=M.components[i];if(com.name==='form'&&!HIDDEN(com.dom)&&com.$ready&&!com.$removed)com.resize()}},200)};ON('resize2',resize);$(document).on('click',cls2+'-container',function(e){var el=$(e.target);if(e.target===this||el.hclass(cls+'-container-padding')){var com=$(this).component();if(com&&com.config.closeoutside){com.set('');return}}if(!(el.hclass(cls+'-container-padding')||el.hclass(cls+'-container')))return;var form=$(this).find(cls2);var c=cls+'-animate-click';form.aclass(c);setTimeout(function(){form.rclass(c)},300)})}self.readonly();self.submit=function(){if(config.submit)self.EXEC(config.submit,self.hide,self.element);else self.hide()};self.cancel=function(){config.cancel&&self.EXEC(config.cancel,self.hide);self.hide()};self.hide=function(){if(config.independent)self.hideforce();self.esc(false);self.set('')};self.icon=function(value){var el=this.rclass2('fa');value.icon&&el.aclass(value.icon.indexOf(' ')===-1?('fa fa-'+value.icon):value.icon);el.tclass('hidden',!value.icon)};self.resize=function(){if(self.scrollbar){container.css('height',WH);self.scrollbar.resize()}if(!config.center||self.hclass('hidden'))return;var ui=self.find(cls2);var fh=ui.innerHeight();var wh=WH,r=(wh/2)-(fh/2);csspos.marginTop=(r>30?(r-15):20)+'px';ui.css(csspos)};self.make=function(){$(document.body).append('<div id="{0}" class="hidden {4}-container invisible"><div class="{4}-scrollbar"><div class="{4}-container-padding"><div class="{4}" style="max-width:{1}px"><div data-bind="@config__text span:value.title__change .{4}-icon:@icon" class="{4}-title"><button name="cancel" class="{4}-button-close{3}" data-path="{2}"><i class="fa fa-times"></i></button><i class="{4}-icon"></i><span></span></div></div></div></div>'.format(self.ID,config.width||800,self.path,config.closebutton==false?' hidden':'',cls));var scr=self.find('> script');self.template=scr.length?scr.html().trim():'';if(scr.length)scr.remove();var el=$('#'+self.ID);var body=el.find(cls2)[0];container=el.find(cls2+'-scrollbar');if(config.scrollbar){el.css('overflow','hidden');self.scrollbar=SCROLLBAR(el.find(cls2+'-scrollbar'),{visibleY:1,orientation:'y'})}while(self.dom.children.length)body.appendChild(self.dom.children[0]);self.rclass('hidden invisible');self.replace(el,true);self.event('scroll',function(){EMIT('scroll',self.name);EMIT('reflow',self.name)});self.event('click','button[name]',function(){var t=this;switch(t.name){case'submit':self.submit(self.hide);break;case'cancel':!t.disabled&&self[t.name](self.hide);break}});config.enter&&self.event('keydown','input',function(e){e.which===13&&!self.find('button[name="submit"]')[0].disabled&&setTimeout(self.submit,800)})};self.configure=function(key,value,init,prev){if(init)return;switch(key){case'width':value!==prev&&self.find(cls2).css('max-width',value+'px');break;case'closebutton':self.find(cls2+'-button-close').tclass('hidden',value!==true);break}};self.esc=function(bind){if(bind){if(!self.$esc){self.$esc=true;$(W).on('keydown',self.esc_keydown)}}else{if(self.$esc){self.$esc=false;$(W).off('keydown',self.esc_keydown)}}};self.esc_keydown=function(e){if(e.which===27&&!e.isPropagationStopped()){var val=self.get();if(!val||config.if===val){e.preventDefault();e.stopPropagation();self.hide()}}};self.hideforce=function(){if(!self.hclass('hidden')){self.aclass('hidden');self.release(true);self.find(cls2).rclass(cls+'-animate');W.$$form_level--}};var allowscrollbars=function(){$('html').tclass(cls+'-noscroll',!!$(cls2+'-container').not('.hidden').length)};self.setter=function(value){setTimeout2(self.name+'-noscroll',allowscrollbars,50);var isHidden=value!==config.if;if(self.hclass('hidden')===isHidden){if(!isHidden){config.reload&&self.EXEC(config.reload,self);config.default&&DEFAULT(self.makepath(config.default),true)}return}setTimeout2(cls,function(){EMIT('reflow',self.name)},10);if(isHidden){if(!config.independent)self.hideforce();return}if(self.template){var is=self.template.COMPILABLE();self.find(cls2).append(self.template);self.template=null;is&&COMPILE()}if(W.$$form_level<1)W.$$form_level=1;W.$$form_level++;self.css('z-index',W.$$form_level*config.zindex);self.aclass('invisible');self.rclass('hidden');self.resize();self.release(false);if(self.scrollbar)self.scrollbar.scrollTop(0);else self.element.scrollTop(0);config.reload&&self.EXEC(config.reload,self);config.default&&DEFAULT(self.makepath(config.default),true);if(!isMOBILE&&config.autofocus){setTimeout(function(){self.find(typeof(config.autofocus)==='string'?config.autofocus:'input[type="text"],select,textarea').eq(0).focus()},1000)}setTimeout(function(){self.rclass('invisible');if(self.scrollbar)self.scrollbar.scrollTop(0);else self.element.scrollTop(0);self.find(cls2).aclass(cls+'-animate')},200);setTimeout2(self.ID,function(){self.css('z-index',(W.$$form_level*config.zindex)+1)},500);config.closeesc&&self.esc(true)}});
+// End: j-Form

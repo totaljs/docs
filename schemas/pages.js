@@ -15,7 +15,16 @@ NEWSCHEMA('Pages', function(schema) {
 	schema.define('sortindex', Number);
 
 	schema.setQuery(function($) {
-		NOSQL('db').find().where('kind', 'page').where('libraryid', $.query.library).callback($.callback);
+
+		var id = $.query.library;
+		if (MAIN.private[id]) {
+			if (!$.user || (!$.user.sa && (!$.user.access || $.user.access.indexOf(id) === -1))) {
+				$.callback([]);
+				return;
+			}
+		}
+
+		NOSQL('db').find().where('kind', 'page').where('libraryid', id).callback($.callback);
 	});
 
 	schema.setRead(function($) {

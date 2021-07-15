@@ -8,7 +8,7 @@
 					<div data---="input__?.name__required:1__''" class="m">@(Name)</div>
 				</div>
 				<div class="col-md-4 m">
-					<div data---="dropdowncheckbox__?.pageid__datasource:common.pagessorted;required:1">@(Section)</div>
+					<div data---="input__?.pageid__dirsource:common.pagessorted;multiple:1;dirplaceholder:@(Search);required:1">@(Section)</div>
 				</div>
 			</div>
 			<div class="row">
@@ -32,10 +32,10 @@
 					<div data---="input__?.note__null__''">@(Note)</div>
 				</div>
 			</div>
-			<div data---="checkbox__?.newbie__null__false">@(Highlight as newbie)</div>
-			<div data---="checkbox__?.deprecated__null__false">@(Deprecated)</div>
+			<div data---="input__?.newbie__type:checkbox__false">@(Highlight as newbie)</div>
+			<div data---="input__?.deprecated__type:checkbox__false">@(Deprecated)</div>
 			<div data-bind="?.type__show:value==='text'" class="hidden">
-				<div data---="checkbox__?.bottom__null__false">@(Put to bottom)</div>
+				<div data---="input__?.bottom__type:checkbox__false">@(Put to bottom)</div>
 			</div>
 			<hr />
 			<div data---="codemirror__?.body__required:1;type:markdown;linenumbers:0;parent:auto;minheight:300;margin:460;drop:?/drop__''" class="m">@(Body)</div>
