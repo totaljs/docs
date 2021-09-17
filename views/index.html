@@ -272,7 +272,7 @@
 					NUL('common.items');
 					NUL('common.page');
 					exports.refreshpages();
-					callback && callback();
+					callback && setTimeout(callback, 1);
 					maketitle();
 				});
 			};
@@ -315,7 +315,6 @@
 				uncategorized.quicksort('sortindex');
 
 				SET('common.pages2', arr);
-
 				var pages = response.slice(0);
 				pages.quicksort('name');
 				SET('common.pagessorted', pages);
@@ -372,6 +371,7 @@
 				opt.items.push({ id: 'add', name: '@(Add item)', icon: 'far fa-plus-circle green', classname: 'b' });
 				opt.items.push('-');
 				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'far fa-pencil' });
+				opt.items.push({ id: 'clone', name: '@(Clone)', icon: 'far fa-clone' });
 				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'far fa-trash-o red' });
 
 				opt.callback = function(item) {
@@ -386,6 +386,12 @@
 							SET('pageform @reset', response);
 							SET('common.form', 'pageform');
 						});
+					} else if (item.id === 'clone') {
+						SETTER('loading/show');
+						AJAX('GET /api/pages/{0}/clone/'.format(id), ASETTER('message/response', function() {
+							SETTER('loading/hide', 1000);
+							exports.refresh_libraries();
+						}));
 					} else if (item.id === 'remove') {
 						SETTER('approve/show', '@(Are you sure you want to remove selected page?)', '"trash-o" @(Remove)', function() {
 							AJAX('DELETE /api/pages/{0}/'.format(id), function() {

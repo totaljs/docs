@@ -16,6 +16,7 @@ exports.install = function() {
 	// Pages
 	ROUTE('GET        /api/pages/                    *Pages       --> query');
 	ROUTE('GET        /api/pages/{id}/               *Pages       --> read');
+	ROUTE('+GET       /api/pages/{id}/clone/         *Pages       --> clone', [10000]);
 	ROUTE('+POST      /api/pages/                    *Pages       --> save');
 	ROUTE('+DELETE    /api/pages/{id}/               *Pages       --> remove');
 	ROUTE('+GET       /api/pages/reindex/            *Pages       --> reindex');

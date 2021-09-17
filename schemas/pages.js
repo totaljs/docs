@@ -83,4 +83,51 @@ NEWSCHEMA('Pages', function(schema) {
 		$.success();
 	});
 
+	schema.addWorkflow('clone', function($) {
+
+		var id = $.id;
+		var db = NOSQL('db');
+
+		db.one().id(id).callback(function(err, response) {
+
+			if (response) {
+
+				var insert = [];
+
+				response.id = UID16();
+				response.dtcreated = NOW;
+				response.name += ' cloned';
+				delete response.updater;
+				delete response.dtupdated;
+
+				insert.push(response);
+
+				db.find().where('pageid', id).callback(function(err, items) {
+
+					for (var item of items) {
+						item.id = UID16();
+						var index = item.pageid.indexOf(id);
+						if (index !== -1) {
+							item.pageid[index] = response.id;
+							item.dtcreated = NOW;
+							delete item.dtupdated;
+							delete item.updater;
+							insert.push(item);
+						}
+					}
+
+					for (var item of insert)
+						db.insert(item);
+
+					setTimeout($.done(), 1500);
+
+				});
+
+			} else
+				$.invalid(404);
+
+		});
+
+	});
+
 });
