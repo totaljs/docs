@@ -1,3 +1,0 @@
-FUNC.unauthorized = function($, type) {
-
-};
