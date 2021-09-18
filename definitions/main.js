@@ -14,11 +14,22 @@ AUTH(function($) {
 });
 
 FUNC.refresh_private = function() {
+
 	MAIN.private = {};
+
 	NOSQL('db').find().where('kind', 'library').where('private', true).fields('id').callback(function(err, response) {
 		for (var item of response)
 			MAIN.private[item.id] = 1;
 	});
+
+	NOSQL('users').count().callback(function(err, response) {
+		if (!response.count) {
+			// create new
+			EXEC('+Users --> insert', { name: 'Admin', email: 'info@totaljs.com',  password: '123456', sa: true }, console.log);
+		}
+	});
+
+
 };
 
 ON('ready', FUNC.refresh_private);

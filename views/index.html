@@ -163,7 +163,7 @@
 	<div data---="importer__common.form__url:/forms/login.html;if:login"></div>
 
 	@{json(user, 'userdata')}
-	@{json(PREF.settings.groups, 'groupsdata')}
+	@{json(PREF?.settings?.groups, 'groupsdata')}
 
 	<script src="https://cdn.componentator.com/visitors.min@1.js" async defer></script>
 

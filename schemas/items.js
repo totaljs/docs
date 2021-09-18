@@ -62,7 +62,7 @@ NEWSCHEMA('Items', function(schema) {
 			db.modify(model).id(model.id).callback($.done(model.id));
 		} else {
 			model.kind = 'item';
-			model.id = UID16();
+			model.id = UID();
 			model.creator = $.user.name;
 			model.dtcreated = NOW;
 			db.insert(model).callback($.done(model.id));

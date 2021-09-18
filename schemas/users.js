@@ -18,7 +18,7 @@ NEWSCHEMA('Users', function(schema) {
 	});
 
 	schema.setInsert(function($, model) {
-		model.id = UID16();
+		model.id = UID();
 		model.dtcreated = NOW;
 		model.dtupdated = NOW;
 		model.password = model.password.sha256(CONF.admin_password);
