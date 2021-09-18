@@ -2,6 +2,7 @@ mkdir -p .bundle/
 
 cd .bundle
 mkdir resources
+cp -a ../config config
 cp -a ../controllers/ controllers
 cp -a ../definitions/ definitions
 cp -a ../modules/ modules

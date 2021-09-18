@@ -25,7 +25,7 @@ FUNC.refresh_private = function() {
 	NOSQL('users').count().callback(function(err, response) {
 		if (!response.count) {
 			// create new
-			EXEC('+Users --> insert', { name: 'Admin', email: 'info@totaljs.com',  password: '123456', sa: true }, console.log);
+			EXEC('+Users --> insert', { name: 'Admin', email: 'info@totaljs.com',  password: '123456', sa: true }, ERROR('admin'));
 		}
 	});
 
