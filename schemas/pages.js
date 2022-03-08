@@ -17,6 +17,7 @@ NEWSCHEMA('Pages', function(schema) {
 	schema.setQuery(function($) {
 
 		var id = $.query.library;
+
 		if (MAIN.private[id]) {
 			if (!$.user || (!$.user.sa && (!$.user.access || $.user.access.indexOf(id) === -1))) {
 				$.callback([]);
@@ -24,22 +25,33 @@ NEWSCHEMA('Pages', function(schema) {
 			}
 		}
 
-		NOSQL('db').find().where('kind', 'page').where('libraryid', id).callback($.callback);
+		var arr = [];
+
+		for (var item of MAIN.db.items) {
+			if (item.kind === 'page' && item.libraryid === id)
+				arr.push(item);
+		}
+
+		$.callback(arr);
 	});
 
 	schema.setRead(function($) {
-		NOSQL('db').read().where('kind', 'page').id($.id).callback($.callback, 'error-pages-404');
+		var item = MAIN.db.items.findItem('id', $.id);
+		if (item && item.kind === 'page')
+			$.callback(item);
+		else
+			$.invalid(404);
 	});
 
 	schema.setSave(function($, model) {
 
 		if (!$.user.sa && $.user.libraries.indexOf(model.libraryid) === -1) {
-			$.invalid('error-permissions');
+			$.invalid(401);
 			return;
 		}
 
-		var db = NOSQL('db');
 		var welcome = model.welcome;
+		var item;
 
 		model.dtupdated = NOW;
 		model.linker = model.name.slug();
@@ -48,38 +60,77 @@ NEWSCHEMA('Pages', function(schema) {
 		delete model.welcome;
 
 		if (model.id) {
-			model.updater = $.user.name;
-			db.modify(model).id(model.id).callback($.done(model.id));
+			item = MAIN.db.items.findItem('id', model.id);
+			if (item && item.kind === 'page') {
+				model.updater = $.user.name;
+				COPY(model, item);
+				FUNC.save();
+				$.success(model.id);
+			} else {
+				$.invalid(404);
+				return;
+			}
+
 		} else {
-			model.id = UID16();
+			model.id = UID();
 			model.kind = 'page';
 			model.creator = $.user.name;
 			model.dtcreated = NOW;
 			model.sortindex = Date.now() - TS;
-			db.insert(model).callback($.done(model.id));
+			MAIN.db.items.push(model);
+			FUNC.save();
+			$.success(model.id);
 		}
 
-		welcome && NOSQL('db').modify({ pageid: model.id }).id(model.libraryid).where('kind', 'library');
+		if (welcome) {
+			item = MAIN.db.items.findItem('id', model.libraryid);
+			if (item && item.kind === 'library')
+				item.pageid = model.id;
+		}
+
 	});
 
 	schema.setRemove(function($) {
-		var builder = NOSQL('db').remove();
 
-		if (!$.user.sa)
-			builder.in('libraryid', $.user.libraries);
+		if (!$.user.sa) {
+			$.invalid(401);
+			return;
+		}
 
-		builder.in('kind', ['page', 'item']);
-		builder.or(function(builder) {
-			builder.where('pageid', $.id);
-			builder.id($.id);
-		}).callback($.done());
+		var index = 0;
+		var count = 0;
+
+		while (true) {
+			var item = MAIN.db.items[index];
+			if (item) {
+				if ((item.kind === 'page' && item.id === $.id) || (item.kind === 'item' && item.pageid && item.pageid.indexOf($.id) !== -1)) {
+					if ($.user.sa || $.user.libraries.indexOf(item.libraryid) !== -1) {
+						count++;
+						MAIN.db.items.splice(index, 1);
+					} else
+						index++;
+				} else
+					index++;
+			} else
+				break;
+		}
+
+		count && FUNC.save();
+		$.success();
+
 	});
 
 	schema.addWorkflow('reindex', function($) {
 		var arr = $.query.id.split(',');
-		var db = NOSQL('db');
-		for (var i = 0; i < arr.length; i++)
-			db.modify({ sortindex: i }).where('id', arr[i]).where('kind', 'page');
+		for (var item of MAIN.db.items) {
+			if (item.kind === 'page') {
+				var index = arr.indexOf(item.id);
+				if (index !== -1)
+					item.sortindex = index;
+			}
+		}
+
+		FUNC.save();
 		$.success();
 	});
 
@@ -94,7 +145,7 @@ NEWSCHEMA('Pages', function(schema) {
 
 				var insert = [];
 
-				response.id = UID16();
+				response.id = UID();
 				response.dtcreated = NOW;
 				response.name += ' cloned';
 				delete response.updater;
@@ -105,7 +156,7 @@ NEWSCHEMA('Pages', function(schema) {
 				db.find().where('pageid', id).callback(function(err, items) {
 
 					for (var item of items) {
-						item.id = UID16();
+						item.id = UID();
 						var index = item.pageid.indexOf(id);
 						if (index !== -1) {
 							item.pageid[index] = response.id;

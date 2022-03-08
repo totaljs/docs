@@ -1,6 +1,5 @@
-<div data---="largeform__common.form__if:libraryform;icon:far fa-book;autofocus:true;reload:libraryform/reload;scrollbar:1;submit:libraryform/submit;width:600" class="hidden">
-	<div data-scope="libraryform">
-
+<div data---="box__common.form__if:~PATH~;icon:far fa-book;autofocus:true;reload:?/reload;scrollbar:1;submit:?/submit;width:600" class="hidden" data-scope="~PATH~">
+	<div>
 		<div class="padding bg-smoke">
 			<div class="row">
 				<div class="col-md-6 m">
@@ -30,7 +29,7 @@
 			<div data---="textboxlist__?.groups__movable:1;placeholder:@(Type a group name and press enter)">@(Groups)</div>
 		</div>
 	</div>
-	<nav data---="validation__libraryform">
+	<nav data---="validate__?">
 		<button name="submit" disabled><i class="fa fa-check-circle"></i>@(SUBMIT)</button>
 		<button name="cancel">@(Cancel)</button>
 	</nav>
@@ -38,7 +37,7 @@
 
 <script>
 
-	PLUGIN('libraryform', function(exports) {
+	PLUGIN('~PATH~', function(exports) {
 
 		exports.reload = function(com) {
 			var model = GET('?');

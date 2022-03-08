@@ -1,18 +1,19 @@
-<div data---="largeform__common.form__if:itemform;icon:far fa-code-branch;autofocus:true;reload:itemform/reload;scrollbar:1;submit:itemform/submit;width:800" class="hidden">
-	<div data-scope="itemform">
+<div data---="box__common.form__if:~PATH~;icon:far fa-code-branch;autofocus:true;reload:?/reload;scrollbar:1;submit:?/submit;width:900" class="hidden" data-scope="~PATH~">
+	<div>
 		<div class="padding bg-smoke">
-			<div data---="radiobutton__?.type__items:@(Text)|text,@(Property)|property,@(Delegate)|delegate,@(Method)|method,@(Event)|event,@(Command)|command,@(REST endpoint)|rest,@(FAQ)|faq,@(Help)|help,@(Glossary)|glossary" class="m"></div>
-
 			<div class="row">
-				<div class="col-md-8 m">
-					<div data---="input__?.name__required:1__''" class="m">@(Name)</div>
+				<div class="col-md-6 m">
+					<div data---="input__?.name__required:1__''">@(Name)</div>
 				</div>
-				<div class="col-md-4 m">
+				<div class="col-md-3 m">
+					<div data---="input__?.type__required:1;dirsource:text|@(Text),property|@(Property),delegate|@(Delegate),method|@(Method),event|@(Event),command|@(Command),rest|@(REST endpoint),faq|@(FAQ),help|@(Help),glossary|@(Glossary);dirplaceholder:@(Search)__''">@(Type)</div>
+				</div>
+				<div class="col-md-3 m">
 					<div data---="input__?.pageid__dirsource:common.pagessorted;multiple:1;dirplaceholder:@(Search);required:1">@(Section)</div>
 				</div>
 			</div>
 			<div class="row">
-				<div class="col-md-8 m">
+				<div class="col-md-6 m">
 					<div data---="input__?.changelog__''">@(Changelog)</div>
 				</div>
 				<div class="col-md-3 m">
@@ -32,16 +33,20 @@
 					<div data---="input__?.note__null__''">@(Note)</div>
 				</div>
 			</div>
-			<div data---="input__?.newbie__type:checkbox__false">@(Highlight as newbie)</div>
-			<div data---="input__?.deprecated__type:checkbox__false">@(Deprecated)</div>
-			<div data-bind="?.type__show:value==='text'" class="hidden">
+			<div class="relative mr10">
+				<div data---="input__?.newbie__type:checkbox__false">@(Highlight as newbie)</div>
+			</div>
+			<div class="relative mr10">
+				<div data---="input__?.deprecated__type:checkbox__false">@(Deprecated)</div>
+			</div>
+			<div data-bind="?.type__show:value==='text'" class="hidden relative">
 				<div data---="input__?.bottom__type:checkbox__false">@(Put to bottom)</div>
 			</div>
 			<hr />
-			<div data---="codemirror__?.body__required:1;type:markdown;linenumbers:0;parent:auto;minheight:300;margin:460;drop:?/drop__''" class="m">@(Body)</div>
+			<div data---="codemirror__?.body__required:1;contextmenu:?/contextmenu;type:markdown;linenumbers:0;parent:auto;minheight:300;margin:370;drop:?/drop;$assign:EDITOR__''" class="m">@(Body)</div>
 		</div>
 	</div>
-	<nav data---="validation__itemform">
+	<nav data---="validate__?">
 		<button name="submit" disabled><i class="fa fa-check-circle"></i>@(SUBMIT)</button>
 		<button name="cancel">@(Cancel)</button>
 	</nav>
@@ -49,12 +54,51 @@
 
 <script>
 
-	PLUGIN('itemform', function(exports) {
+	function parseKeywords(md) {
+
+		var arr = md.split('\n');
+		var keywords = [];
+		var iscode = false;
+
+		for (var line of arr) {
+
+			if (line.substring(0, 3) === '```') {
+				if (iscode)
+					iscode = false;
+				else
+					iscode = true;
+				continue;
+			}
+
+			if (iscode)
+				continue;
+
+			var m = line.match(/^#{1,5}\s.*?$/);
+			if (!m)
+				m = line.match(/_[^_]+_|\*[^*]+\*/g);
+
+			if (m) {
+				var w = m[0].replace(/#{1,}|_|\*/g, '').trim().toLowerCase();
+				if (keywords.indexOf(w) === -1)
+					keywords.push(w);
+			}
+		}
+
+		return keywords;
+	}
+
+	PLUGIN('~PATH~', function(exports) {
+
+		var editor;
+
+		WAIT('EDITOR', function() {
+			editor = EDITOR.editor;
+		});
 
 		exports.reload = function(com) {
 			var model = GET('?');
 			var id = model ? model.id : null;
-			com.reconfigure({ title: id ? '@(Update item)' : '@(Create item)' });
+			com.reconfigure({ title: id ? '@(Update item)' : '@(Add item)' });
 		};
 
 		exports.drop = function(e, editor) {
@@ -79,9 +123,69 @@
 
 		};
 
+		exports.contextmenu = function(e, editor) {
+			var items = [];
+			var sel = editor.getSelections();
+			var text = sel.join('');
+			var can = text.length > 0;
+			var sub = [];
+			var tools = [];
+			var tmp;
+
+			if (can) {
+				items.push({ name: '@(Copy)', icon: '!far fa-copy', command: 'copy' });
+				items.push('-');
+			}
+
+			items.push({ name: '@(Insert color)', icon: 'fill-drip colorize', value: 'colorpicker' });
+			items.push({ name: '@(Insert icon)', icon: 'image blue', value: 'faicons' });
+
+			SETTER('menu/showxy', e.pageX + 5, e.pageY - 15, items, function(value) {
+
+				if (value.command) {
+					editor.focus();
+					setTimeout(function() {
+						document.execCommand(value.command, true);
+					}, 100);
+					return;
+				}
+
+				if (value.value === 'colorpicker' || value.value === 'faicons') {
+					var opt = {};
+					opt.x = e.pageX - 15;
+					opt.y = e.pageY + 5;
+					opt.callback = function(selected) {
+						editor.replaceSelection(selected);
+					};
+					setTimeout(ASETTER(value.value + '/show', opt), 100);
+					return;
+				}
+
+			});
+		};
+
+		exports.appendcustom = function(fn) {
+			var cur = editor.getCursor();
+			var c = editor.getRange({ line: cur.line, ch: cur.ch - 1 }, { line: cur.line, ch: cur.ch });
+			fn(editor, cur, c);
+		};
+
+		exports.addicon = function() {
+			var opt = {};
+			opt.align = 'left';
+			var pos = EDITOR.find('.CodeMirror-cursor').offset();
+			opt.x = pos.left;
+			opt.y = pos.top + 20;
+			opt.callback = function(icon) {
+				editor.replaceSelection(icon);
+			};
+			SETTER('faicons/show', opt);
+		};
+
 		exports.submit = function(hide) {
 			var model = GET('? @reset');
 			common.lasttype = model.type;
+			model.keywords = parseKeywords(model.body).join(' ');
 			AJAX('POST /api/items/', model, ASETTER('message/response', function(response) {
 				if (model.id) {
 					var index = common.items.findIndex('id', model.id);

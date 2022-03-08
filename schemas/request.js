@@ -16,7 +16,7 @@ NEWSCHEMA('Request', function(schema) {
 	schema.addWorkflow('exec', function($, model) {
 
 		if (BLOCKED($, 20, '1 minute')) {
-			$.invalid('@(Exceeded max. request limit)');
+			$.invalid('Exceeded max. request limit');
 			return;
 		}
 

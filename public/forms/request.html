@@ -1,13 +1,15 @@
-<div data---="largeform__common.form__if:requestform;title:@(Create a request);icon:far fa-alien-monster;autofocus:true;reload:?/reload;scrollbar:1;submit:?/submit;width:800;$assign:requestlargeform" class="hidden" data-scope="requestform">
-	<div class="padding npt requestform">
-		<p class="gray"><b>@(IMPORTANT)</b>:<br />@(Server can process max. &lt; 5 kB response.)</p>
-		<div class="url"><b data-bind="?.method__text"></b> <span data-bind="?.url__text"></span></div>
-		<div data---="properties2__?.data"></div>
-		<div data-bind="?.method__show:value!=='GET' && value !== 'DELETE'" class="help"><span class="link exec" data-exec="?/fake"><i class="fab fa-wpforms"></i>@(Fill fake data)</span></div>
-	</div>
-	<div data-bind="?.response.body__html div__show" class="response">
-		<label>@(Response status) <b data-bind="?.response.status__text">---</b>:</label>
-		<div></div>
+<div data---="box__common.form__if:requestform;title:@(Create a request);icon:far fa-alien-monster;autofocus:true;reload:?/reload;scrollbar:1;submit:?/submit;width:800;$assign:requestlargeform" class="hidden" data-scope="~PATH~">
+	<div>
+		<div class="padding npt requestform">
+			<p class="gray"><b>@(IMPORTANT)</b>:<br />@(Server can process max. &lt; 5 kB response.)</p>
+			<div class="url"><b data-bind="?.method__text"></b> <span data-bind="?.url__text"></span></div>
+			<div data---="properties2__?.data"></div>
+			<div data-bind="?.method__show:value!=='GET' && value !== 'DELETE'" class="help"><span class="link exec" data-exec="?/fake"><i class="fab fa-wpforms"></i>@(Fill fake data)</span></div>
+		</div>
+		<div data-bind="?.response.body__html div__show" class="response">
+			<label>@(Response status) <b data-bind="?.response.status__text">---</b>:</label>
+			<div></div>
+		</div>
 	</div>
 	<nav>
 		<button name="submit"><i class="fa fa-check-circle"></i>@(MAKE REQUEST)</button>
@@ -17,7 +19,7 @@
 
 <script>
 
-	PLUGIN('requestform', function(exports) {
+	PLUGIN('~PATH~', function(exports) {
 
 		exports.reload = function(com) {
 			var model = GET('?');

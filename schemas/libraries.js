@@ -11,81 +11,125 @@ NEWSCHEMA('Libraries', function(schema) {
 	schema.define('private', Boolean);
 
 	schema.setQuery(function($) {
-		NOSQL('db').find().where('kind', 'library').sort('group').callback(function(err, response) {
 
-			for (var item of response) {
-				if (item.private && (!$.user || (!$.user.sa && (!$.user.access || $.user.access.indexOf(item.id) === -1))))
-					response.splice(response.indexOf(item), 1);
+		var arr = [];
+
+		for (var item of MAIN.db.items) {
+			if (item.kind === 'library') {
+				if (!item.private || ($.user && ($.user.sa || ($.user.access && $.user.access.indexOf(item.id) !== -1))))
+					arr.push(item);
 			}
+		}
 
-			$.callback(response);
-		});
+		arr.quicksort('group');
+		$.callback(arr);
 	});
 
 	schema.setRead(function($) {
-		NOSQL('db').read().where('kind', 'library').id($.id).callback($.callback, 'error-libraries-404');
+
+		var item = MAIN.db.items.findItem('id', $.id);
+		if (item && item.kind === 'library') {
+			if (!item.private || ($.user && ($.user.sa || ($.user.access && $.user.access.indexOf(item.id) !== -1)))) {
+				$.callback(item);
+				return;
+			}
+		}
+
+		$.invalid('@(Library not found)');
 	});
 
 	schema.setSave(function($, model) {
 
 		if (!$.user.sa) {
-			$.invalid('error-permissions');
+			$.invalid(401);
 			return;
 		}
 
-		var db = NOSQL('db');
-
 		model.dtupdated = NOW;
 
-		var done = function() {
-			$.success();
-			FUNC.refresh_private();
-		};
-
 		if (model.id) {
-			model.updater = $.user.name;
-			db.modify(model).id(model.id).callback($.successful(done));
+			var item = MAIN.db.items.findItem('id', model.id);
+			if (item && item.kind === 'library') {
+				item.updater = $.user.name;
+				COPY(model, item);
+				FUNC.save();
+				FUNC.refresh();
+				$.success(model.linker);
+			} else
+				$.invalid(404);
 		} else {
 			model.kind = 'library';
-			model.id = UID16();
+			model.id = UID();
 			model.dtcreated = NOW;
 			model.creator = $.user.name;
-			db.insert(model).callback($.successful(done));
+			MAIN.db.items.push(model);
+			FUNC.save();
+			FUNC.refresh();
+			$.success(model.linker);
 		}
+
 	});
 
 	schema.setRemove(function($) {
 
 		if (!$.user.sa) {
-			$.invalid('error-permissions');
+			$.invalid(401);
 			return;
 		}
 
-		NOSQL('db').remove().or(function(builder) {
-			builder.where('libraryid', $.id);
-			builder.id($.id);
-		}).callback($.successful(function() {
-			FUNC.refresh_private();
-			$.success();
-		}));
+		var index = 0;
+		var count = 0;
+
+		while (true) {
+			var item = MAIN.db.items[index];
+			if (item) {
+				if (item.libraryid === $.id || item.id === $.id) {
+					count++;
+					MAIN.db.items.splice(index, 1);
+				} else
+					index++;
+			} else
+				break;
+		}
+
+		if (count) {
+			FUNC.refresh();
+			FUNC.save();
+		}
+
+		$.success();
 
 	});
 
 	schema.addWorkflow('groups', function($) {
-		NOSQL('db').scalar('group', 'group').where('libraryid', $.id).where('kind', 'page').contains('group').callback(function(err, response) {
-			var keys = Object.keys(response);
-			var arr = [];
-			for (var i = 0; i < keys.length; i++)
-				arr.push({ id: keys[i], name: keys[i] });
-			$.callback(arr);
-		});
+
+		var groups = {};
+
+		for (var item of MAIN.db.items) {
+			if (item.libraryid === $.id && item.kind === 'page' && item.group)
+				groups[item.group] = 1;
+		}
+
+		var arr = [];
+		for (var key in groups)
+			arr.push({ id: key, name: key });
+
+		$.callback(arr);
 	});
 
 	schema.addWorkflow('reindex', function($) {
+
 		var arr = $.query.id.split(',');
-		var db = NOSQL('db');
-		for (var i = 0; i < arr.length; i++)
-			db.modify({ sortindex: i }).where('id', arr[i]).where('kind', 'library');
+
+		for (var item of MAIN.db.items) {
+			if (item.kind === 'library') {
+				var index = arr.indexOf(item.id);
+				if (index !== -1)
+					item.sortindex = index;
+			}
+		}
+
+		FUNC.save();
 		$.success();
 	});
 

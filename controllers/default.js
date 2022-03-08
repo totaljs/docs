@@ -2,8 +2,8 @@ exports.install = function() {
 
 	// Routing
 	ROUTE('GET        /                                          ', view_index);
-	ROUTE('GET        /{library}/                                ', 'index');
-	ROUTE('GET        /{library}/{page}/                         ', 'index');
+	ROUTE('GET        /{library}/                                ', view_index);
+	ROUTE('GET        /{library}/{page}/                         ', view_index);
 
 	// Libraries
 	ROUTE('GET        /api/libraries/                *Libraries   --> query');
@@ -37,24 +37,27 @@ exports.install = function() {
 	// Settings
 	ROUTE('+GET       /api/settings/                 *Settings    --> read');
 	ROUTE('+POST      /api/settings/                 *Settings    --> save');
+	ROUTE('+GET       /api/settings/groups/          *Settings    --> groups');
 
 	// Profile
 	ROUTE('+GET       /api/profile/                  *Profile     --> read');
 	ROUTE('+POST      /api/profile/                  *Profile     --> save');
 	ROUTE('POST       /api/login/                    *Login       --> exec');
 	ROUTE('POST       /api/request/                  *Request     --> exec');
+	ROUTE('POST       /api/password/                 *Password    --> exec');
 
-	ROUTE('+POST     /api/upload/', upload, ['upload'], 1024 * 10);
-	ROUTE('GET       /logoff/', logoff);
+	ROUTE('+POST     /api/upload/',  upload,  ['upload'], 1024 * 10);
+	ROUTE('GET       /logoff/',      logoff);
+
+	ROUTE('+GET      /backup/',      backup,  [1000 * 60]);
+	ROUTE('+POST     /restore/',     restore, ['upload', 1000 * 60], 1024 * 100); // Max. 100 MB
 
 	ROUTE('FILE /download/*.*', files);
-	ROUTE('FILE /openplatform.json', openplatform);
-
 };
 
 function view_index() {
 	var self = this;
-	if (self.query.url && ((/^http(s)?:\/\/[a-z0-9]+/).test(self.query.url))) {
+	if (self.url === '/' && self.query.url && ((/^http(s)?:\/\/[a-z0-9]+/).test(self.query.url))) {
 		NOSQL('external').insert({ id: UID(), url: self.query.url, ip: self.ip, ua: self.ua, dtcreated: NOW });
 		var opt = {};
 		opt.method = 'GET';
@@ -69,8 +72,23 @@ function view_index() {
 				self.view('external', response.body);
 		};
 		REQUEST(opt);
-	} else
+	} else {
+
+		if (PREF.settings && PREF.settings.password) {
+
+			if (BLOCKED(self, 10))
+				return;
+
+			if (self.cookie(CONF.password_cookie) !== CONF.contentpassword) {
+				self.view('login');
+				return;
+			}
+
+			BLOCKED(self, -1);
+		}
+
 		self.view('index');
+	}
 }
 
 function openplatform(req, res) {
@@ -125,4 +143,39 @@ function logoff() {
 	}
 
 	self.redirect('/');
+}
+
+function backup() {
+
+	var $ = this;
+
+	if (!$.user.sa) {
+		$.invalid(401);
+		return;
+	}
+
+	var filename = CONF.name.slug() + '-{0}.txt'.format(NOW.format('yyyy-MM-dd'));
+
+	MAIN.fs.backup(PATH.temp(filename), function(err, meta) {
+		if (meta)
+			$.file('~' + meta.filename, filename);
+		else
+			$.invalid(err);
+	});
+}
+
+function restore() {
+	var $ = this;
+
+	if (!$.user.sa) {
+		$.invalid(401);
+		return;
+	}
+
+	MAIN.fs.restore($.files[0].path, function(err, meta) {
+		if (meta && meta.files)
+			FUNC.load($.done());
+		else
+			$.success();
+	});
 }

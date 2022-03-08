@@ -1,5 +1,7 @@
 MAIN.version = 1;
 MAIN.session = SESSION();
+MAIN.fs = FILESTORAGE('files');
+MAIN.db = { items: [] };
 
 MAIN.session.ondata = function(meta, next) {
 	NOSQL('users').read().fields('-password').where('isdisabled', false).id(meta.id).callback(next);
@@ -13,23 +15,33 @@ AUTH(function($) {
 	MAIN.session.getcookie($, opt, $.done());
 });
 
-FUNC.refresh_private = function() {
+function save() {
+	MAIN.db.version = MAIN.version;
+	MAIN.db.dtupdated = NOW;
+	MAIN.fs.savejson('meta', MAIN.db, NOOP);
+}
 
-	MAIN.private = {};
-
-	NOSQL('db').find().where('kind', 'library').where('private', true).fields('id').callback(function(err, response) {
-		for (var item of response)
-			MAIN.private[item.id] = 1;
-	});
-
-	NOSQL('users').count().callback(function(err, response) {
-		if (!response.count) {
-			// create new
-			EXEC('+Users --> insert', { name: 'Admin', email: 'info@totaljs.com',  password: '123456', sa: true }, ERROR('admin'));
-		}
-	});
-
-
+FUNC.save = function() {
+	setTimeout2('FUNC.save', save, 5000);
 };
 
-ON('ready', FUNC.refresh_private);
+FUNC.load = function(callback) {
+	MAIN.fs.readjson('meta', function(err, response) {
+		if (!response)
+			response = { items: [], config: { groups: [] }};
+		MAIN.db = response;
+		FUNC.refresh();
+		EXEC('-Settings --> load', NOOP);
+		callback && callback();
+	});
+};
+
+FUNC.refresh = function() {
+	MAIN.private = {};
+	for (var item of MAIN.db.items) {
+		if (item.private && item.kind === 'library')
+			MAIN.private[item.id] = 1;
+	}
+};
+
+FUNC.load();

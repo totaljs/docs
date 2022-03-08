@@ -1,22 +1,28 @@
 NEWSCHEMA('Login', function(schema) {
 
-	schema.define('email', 'Email', true);
+	schema.define('login', 'String(150)', true);
 	schema.define('password', 'String(30)', true);
 
 	schema.addWorkflow('exec', function($, model) {
 
-		NOSQL('users').read().where('email', model.email).where('password', model.password.sha256(CONF.admin_password)).callback(function(err, response) {
+		if (BLOCKED($, 10)) {
+			$.invalid('@(Invalid credentials)');
+			return;
+		}
+
+		NOSQL('users').read().where('login', model.login).where('password', model.password.sha256(CONF.admin_password)).callback(function(err, response) {
 
 			if (!response) {
-				$.invalid('error-credentials');
+				$.invalid('@(Invalid credentials)');
 				return;
 			}
 
 			if (response.isdisabled) {
-				$.invalid('error-blocked');
+				$.invalid('@(Account has been blocked)');
 				return;
 			}
 
+			BLOCKED($, -1);
 			delete response.password;
 
 			var opt = {};
@@ -26,6 +32,8 @@ NEWSCHEMA('Login', function(schema) {
 			opt.expire = '1 month';
 			opt.data = response;
 			opt.note = $.ua + ' (' + $.ip + ')';
+
+			PREF.login && PREF.set('login', null);
 
 			SESSION().setcookie($, opt, $.done());
 

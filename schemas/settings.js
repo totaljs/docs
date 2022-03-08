@@ -1,57 +1,52 @@
 NEWSCHEMA('Settings', function(schema) {
 
 	schema.define('name', String, true);
-	// schema.define('url', 'URL', true);
+	schema.define('url', 'URL', true);
+	schema.define('password', String);
+	schema.define('color', 'Color');
+	schema.define('darkmode', Boolean);
+
 	// schema.define('smtp', String);
 	// schema.define('smtp_options', 'JSON');
-	// schema.define('darkmode', Boolean);
 	schema.define('groups', '[String]');
 
 	schema.setRead(function($) {
-
-		if (!$.user.sa) {
-			$.invalid('error-permissions');
-			return;
-		}
-
-		if (PREF.settings) {
-			var model = CLONE(PREF.settings);
-
-			if (model.users) {
-				for (var i = 0; i < model.users.length; i++) {
-					var item = model.users[i];
-					item.password = '*********';
-				}
-			}
-
-			$.callback(model);
-
-		} else
-			$.callback({});
+		if ($.user.sa)
+			$.callback(MAIN.db.config);
+		else
+			$.invalid(401);
 	});
 
 	schema.setSave(function($) {
 
 		if (!$.user.sa) {
-			$.invalid('error-permissions');
+			$.invalid(401);
 			return;
 		}
 
-		var model = $.clean();
-		PREF.set('settings', model);
-		$WORKFLOW('Settings', 'load', $.done());
+		MAIN.db.config = $.model;
+		FUNC.save();
+		EXEC('-Settings --> load', NOOP);
+		$.success();
 	});
 
 	schema.addWorkflow('load', function($) {
 
-		var settings = PREF.settings;
-		if (settings)
-			CONF.name = settings.name;
+		var config = MAIN.db.config;
+
+		if (config.name)
+			CONF.name = config.name;
+
+		if (config.password)
+			CONF.contentpassword = config.password.sha256(CONF.admin_secret);
+		else
+			delete CONF.contentpassword;
+
 		$.success();
 	});
 
-});
+	schema.addWorkflow('groups', function($) {
+		$.callback(MAIN.db.config.groups);
+	});
 
-ON('ready', function() {
-	$WORKFLOW('Settings', 'load', NOOP);
 });

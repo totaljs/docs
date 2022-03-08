@@ -1,5 +1,5 @@
-<div data---="largeform__common.form__if:pageform;icon:far fa-file-alt;autofocus:true;reload:pageform/reload;scrollbar:1;submit:pageform/submit;width:600" class="hidden">
-	<div data-scope="pageform">
+<div data---="box__common.form__if:~PATH~;icon:far fa-file-alt;autofocus:true;reload:?/reload;scrollbar:1;submit:?/submit;width:600" class="hidden" data-scope="~PATH~">
+	<div>
 		<div class="padding bg-smoke">
 			<div class="row">
 				<div class="col-md-6 m">
@@ -27,7 +27,7 @@
 			<div data---="input__?.welcome__type:checkbox__false">@(Set as start page)</div>
 		</div>
 	</div>
-	<nav data---="validation__pageform">
+	<nav data---="validate__pageform">
 		<button name="submit" disabled><i class="fa fa-check-circle"></i>@(SUBMIT)</button>
 		<button name="cancel">@(Cancel)</button>
 	</nav>
@@ -48,6 +48,8 @@
 			var model = GET('? @reset');
 			AJAX('POST /api/pages/', model, ASETTER('message/response', function(response) {
 
+				var newbie = false;
+
 				var item = common.pages.findItem('id', model.id);
 				if (item) {
 					COPY(model, item);
@@ -55,10 +57,28 @@
 				} else {
 					model.id = response.value;
 					model.sortindex = Date.now();
+					newbie = true;
 					PUSH('common.pages', model);
 				}
 
 				EXEC('common/refreshpages');
+				if (newbie) {
+					var library = common.libraries.findItem('id', model.libraryid);
+					if (library) {
+						if (model.welcome)
+							library.pageid = model.id;
+						REDIRECT('/{0}/{1}/'.format(library.linker, model.id));
+					}
+				} else {
+
+					if (model.welcome) {
+						var library = common.libraries.findItem('id', model.libraryid);
+						if (library)
+							library.pageid = model.id;
+					}
+
+					NAV.refresh();
+				}
 				hide();
 			}));
 		};

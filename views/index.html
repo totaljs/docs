@@ -9,16 +9,20 @@
 	<meta name="format-detection" content="telephone=no" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
 	<meta name="robots" content="all,follow" />
-	<link rel="stylesheet" href="https://cdn.componentator.com/spa.min@18pro.css" />
+	<link rel="stylesheet" href="https://cdn.componentator.com/spa.min@19pro.css" />
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" />
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js"></script>
-	<script src="https://cdn.componentator.com/spa.min@18.js"></script>
+	<script src="https://cdn.componentator.com/spa.min@19.js"></script>
 	@{import('meta', 'head', 'ui.css + default.css', 'default.js + ui.js', 'favicon.ico')}
+	@{if MAIN.db.config.color}
+	<style>:root{--color:@{MAIN.db.config.color}}</style>
+	@{fi}
 </head>
-<body data---="exec"@{if query.darkmode==='1'} class="ui-dark"@{fi}>
+<body data---="exec"@{if query.darkmode==='1' || MAIN.db.config.darkmode} class="ui-dark"@{fi}>
 
 	<div data---="LAZY loading__null__style:2" class="hidden"></div>
 	<div data---="LAZY message__null__style:2"></div>
+	<div data---="LAZY notify__null__position:bottom right"></div>
 	<div data---="LAZY approve__null"></div>
 	<div data---="LAZY colorpicker"></div>
 	<div data---="LAZY faicons"></div>
@@ -26,106 +30,50 @@
 	<div data---="LAZY spotlight"></div>
 	<div data---="LAZY directory"></div>
 	<div data---="LAZY clipboard"></div>
+	<div data---="LAZY filebrowser"></div>
 	<div data---="shortcuts"></div>
 	<div data---="markdown"></div>
 	<div data---="backtotop"></div>
 
-	<div data---="layout__common.layout__parent:window" class="invisible">
-
-		<script type="text/plain">
-			{
-				left: { size: 200 },
-				right: { size: 250 },
-				bottom: { show: false },
-				main: {},
-				xs: {
-					left: { show: false },
-					right: { show: false },
-					bottom: { show: true, height: 35 },
-					main: {}
-				},
-				pages: {
-					lg: {
-						left: { show: true },
-						right: { show: true },
-						bottom: { show: false },
-						main: { show: true }
-					},
-					xs: {
-						left: { show: false },
-						right: { show: true, width: '100%' },
-						bottom: { show: true, height: 35 },
-						main: { show: false }
-					}
-				},
-				libraries: {
-					lg: {
-						left: { show: true },
-						right: { show: true },
-						bottom: { show: false },
-						main: { show: true }
-					},
-					xs: {
-						left: { show: true, width: '100%' },
-						right: { show: false },
-						bottom: { show: true, height: 35 },
-						main: { show: false }
-					}
-				}
-			}
-		</script>
-
-		<section data-type="bottom">
-			<nav class="mobilenavigation" data---="selected__common.layout__selector:button">
-				<button class="exec" data-exec="common/layout" data-if="libraries">@(Libraries)</button>
-				<button class="exec" data-exec="common/layout" data-if="pages">@(Pages)</button>
-				<button class="exec" data-exec="common/layout" data-if="">@(Content)</button>
-			</nav>
-		</section>
-
-		<section data-type="left">
-			<div data---="viewbox__null__parent:.ui-layout-section;scrollbar:1;visibleY:0;margin:45;scrollbarshadow:1" class="invisible">
+	<div data---="ready__null__rclass:invisible;delay:300" class="invisible">
+		<section class="plibraries" data-bind="common.layout__.visible:value==='libraries'">
+			<div data---="viewbox__null__parent:window;scrollbar:1;visibleY:0;margin:35;scrollbarshadow:0" class="invisible">
 				<a href="/" class="logo jR">
 					@{CONF.name}
 				</a>
 				<nav class="nav nmt" data---="movable__null__selector:.jR;exec:common/movelibrary">
 					<div class="hidden" data-bind="user__show">
-						<div class="item exec" data-exec="common/options"><i class="far fa-cog"></i><div class="b">@(Options)</div></div>
+						<div class="item options exec" data-exec="common/options"><i class="far fa-cog"></i><div class="b">@(Options)</div></div>
 						<hr />
 					</div>
-					<div data-bind="common.libraries2__template" data---="selected__common.libraryid__selector:.jR">
-					<script type="text/html">
-						{{ foreach n in value }}
-							{{ if n.name }}
-								<div class="group">{{ n.name }}</div>
-							{{ fi }}
-							<div class="m">
-							{{ foreach m in n.items }}
-								<a href="/{{ m.linker }}/" class="jR" data-if="{{ m.id }}"{{ if m.draggable }} draggable="true"{{ fi }}><b class="exec" data-exec="common/editlibrary" data-prevent="true"><i class="far fa-pencil"></i></b><i class="{{ if m.icon }}{{ m.icon }}{{ else }}far fa-book{{ fi }}"{{ if m.color }} style="color:{{ m.color }}"{{ fi }}></i><span>{{ m.name }}{{ if m.newbie }}<b>@(new)</b>{{ fi }}</span></a>
+					<div data-bind="common.libraries2__template" data---="selected__common.libraryid__selector:.jR;datasource:common.libraries2;delay:500">
+						<script type="text/html">
+							{{ foreach n in value }}
+								{{ if n.name }}
+									<div class="group">{{ n.name }}</div>
+								{{ fi }}
+								<div class="m">
+								{{ foreach m in n.items }}
+									<a href="/{{ m.linker }}/" class="jR" data-if="{{ m.id }}"{{ if m.draggable }} draggable="true"{{ fi }}><b class="exec" data-exec="common/editlibrary" data-prevent="true"><i class="far fa-pencil"></i></b><i class="{{ if m.icon }}{{ m.icon }}{{ else }}far fa-book{{ fi }}"{{ if m.color }} style="color:{{ m.color }}"{{ fi }}></i><span>{{ m.name }}{{ if m.newbie }}<b>@(new)</b>{{ fi }}</span></a>
+								{{ end }}
+								</div>
 							{{ end }}
-							</div>
-						{{ end }}
-					</script>
+						</script>
 					</div>
 				</nav>
 			</div>
-			<footer data---="ready__null__rclass:hidden" class="hidden">
-				<div class="loginbutton exec" data-exec="common/login" data-bind="user__hide" title="@(Administration area)"><i class="far fa-user"></i></div>
-				<b>Powered by</b><br /><a href="https://www.totaljs.com" target="_blank">Total.js Platform</a> &copy; @{NOW.getFullYear()}
-			</footer>
 		</section>
 
-		<section data-type="right2">
+		<section class="ppages" data-bind="common.layout__.visible:value==='pages'">
 
 			<div class="search exec" data-exec="common/search">
 				<i class="far fa-search"></i>
 				<!-- <div><input type="text" placeholder="@(Search)" /></div> -->
 				<div><span>F1</span>@(Search items)</div>
 			</div>
-			<div data---="viewbox__common.pages2__parent:.ui-layout-section;scrollbar:1;visibleY:0;margin:47;scrollbarshadow:1" data-bind="common.libraryid__exec:common/permissions">
-
+			<div data---="viewbox__common.pages2__parent:window;scrollbar:1;visibleY:0;margin:82;scrollbarshadow:0" data-bind="common.libraryid__exec:common/permissions">
 				<nav class="nav nav2 nmt" data---="movable__null__selector:.jR;exec:common/movepage">
-					<div data-bind="common.pages2__template" data---="selected__common.pageid__selector:.jR">
+					<div data-bind="common.pages2__template" data---="selected__common.pageid__selector:.jR;datasource:common.pages2;delay:300">
 						<script type="text/html">
 						{{ foreach n in value }}
 							{{ if n.name }}
@@ -140,36 +88,54 @@
 						</script>
 					</div>
 				</nav>
-				<!-- <div data---="nav__common.pageid__datasource:common.pages;edit:common/editpage"></div> -->
 			</div>
 		</section>
 
-		<section data-type="main">
-			<div data---="viewbox__common.page__parent:.ui-layout-section;scrollbar:1;scrolltop:1;scrollbarshadow:1" data-bind="common.libraryid__exec:common/permissions">
+		<section class="pmain" data-bind="common.layout__.visible:value===''">
+			<div data---="viewbox__common.page__parent:window;margin:35;scrollbar:1;scrolltop:1;scrollbarshadow:0;$assign:VIEWBOX" data-bind="common.libraryid__exec:common/permissions">
 				<header>
-					<h1 data-bind="common.page.name__text"></h1>
+					<h1 data-bind="common.page.name__text__visible"></h1>
 				</header>
 				<div data---="items__common.items__edit:common/edititem"></div>
 				<br />
 			</div>
 		</section>
+
+		<footer>
+			<div class="loginbutton exec" data-exec="common/login" data-bind="user__hide" title="@(Administration area)"><i class="far fa-user"></i></div>
+			Powered by <a href="https://www.totaljs.com" target="_blank"><strong>Total.js Platform</strong></a> - &copy; @{NOW.getFullYear()}
+		</footer>
+
+		<section class="pbuttons">
+			<nav class="mobilenavigation" data---="selected__common.layout__selector:button">
+				<button class="exec" data-exec="common/layout" data-if="libraries"><span>@(Libraries)</span></button>
+				<button class="exec" data-exec="common/layout" data-if="pages"><span>@(Pages)</span></button>
+				<button class="exec" data-exec="common/layout" data-if=""><span>@(Content)</span></button>
+			</nav>
+		</section>
 	</div>
+
 
 	<div data---="importer__common.form__url:/forms/item.html;if:itemform"></div>
 	<div data---="importer__common.form__url:/forms/page.html;if:pageform"></div>
 	<div data---="importer__common.form__url:/forms/library.html;if:libraryform"></div>
 	<div data---="importer__common.form__url:/forms/settings.html;if:settingsform"></div>
+	<div data---="importer__common.form__url:/forms/users.html;if:usersform"></div>
 	<div data---="importer__common.form__url:/forms/profile.html;if:profileform"></div>
 	<div data---="importer__common.form__url:/forms/login.html;if:login"></div>
 
 	@{json(user, 'userdata')}
-	@{json(PREF?.settings?.groups, 'groupsdata')}
+	@{json(MAIN.db.config.groups, 'groupsdata')}
 
-	<script src="https://cdn.componentator.com/visitors.min@1.js" async defer></script>
+	@{if PREF.login}
+		@{json(PREF.login, 'logindata')}
+	@{fi}
+
+	<!--<script src="https://cdn.componentator.com/visitors.min@1.js" async defer></script>-->
 
 	<script>
 
-		var common = { library: 'total4', admin: true, maingroups: PARSE('#groupsdata') || EMPTYARRAY };
+		var common = { library: '', admin: true, maingroups: PARSE('#groupsdata') || EMPTYARRAY, credentials: PARSE('#logindata') };
 		var user = PARSE('#userdata');
 
 		common.title = document.title;
@@ -260,8 +226,10 @@
 
 				common.url = '/' + id + '/';
 				AJAX('GET /api/pages/?library=' + common.library.id, function(response) {
+
 					if (!common.library.groups)
 						common.library.groups = EMPTYARRAY;
+
 					SET('common.libraryid', common.library.id);
 					SET('common.pages', response);
 					SET('common.groups', common.library.groups);
@@ -507,7 +475,16 @@
 
 				if (W.user) {
 					opt.items.push({ id: 'profile', name: '@(My profile)', icon: 'far fa-user-circle' });
-					W.user.sa && opt.items.push({ id: 'settings', name: '@(Settings)', classname: 'b', icon: 'far fa-wrench' });
+					if (W.user.sa) {
+						opt.items.push({ id: 'users', name: '@(Users)', icon: 'far fa-user-friends' });
+						opt.items.push({ id: 'settings', name: '@(Settings)', classname: 'b', icon: 'far fa-wrench' });
+					}
+				}
+
+				if (user.sa) {
+					opt.items.push('-');
+					opt.items.push({ id: 'backup', name: '@(Backup)', icon: 'fas fa-cloud-download' });
+					opt.items.push({ id: 'restore', name: '@(Restore)', icon: 'far fa-cloud-upload-alt' });
 				}
 
 				opt.items.push('-');
@@ -518,6 +495,42 @@
 				};
 
 				SETTER('menu/show', opt);
+			};
+
+			exports.backup = function() {
+				location.href = '/backup/';
+			};
+
+			exports.restore = function() {
+				var opt = {};
+				opt.multiple = false;
+				opt.callback = function(files, e) {
+
+					var fd = new FormData();
+					for (var i = 0; i < files.length; i++) {
+
+						var filename = files[i].name;
+						var index = filename.lastIndexOf('/');
+
+						if (index === -1)
+							index = filename.lastIndexOf('\\');
+
+						if (index !== -1)
+							filename = filename.substring(index + 1);
+
+						fd.append('file' + i, files[i], filename);
+					}
+
+					SETTER('approve/show', '@(Are you sure you want to import data?)', '"far fa-cloud-upload" @(Import)', function() {
+						SETTER('loading/show');
+						UPLOAD('/restore/', fd, ASETTER('message/response @hideloading', function() {
+							location.reload();
+						}));
+					});
+
+				};
+
+				SETTER('filebrowser/show', opt);
 			};
 
 			exports.logoff = function() {
@@ -535,9 +548,13 @@
 
 			exports.settings = function() {
 				user.sa && AJAX('GET /api/settings/', ASETTER('message/response', function(response) {
-					SET('settingsform.main @reset', response);
+					SET('settingsform @reset', response);
 					SET('common.form', 'settingsform');
 				}));
+			};
+
+			exports.users = function() {
+				SET('common.form', 'usersform');
 			};
 
 			exports.login = function() {
@@ -575,8 +592,14 @@
 			});
 
 			ROUTE('/{libraryid}/', ['libraries'], function(libraryid) {
-				SET('common.layout', 'pages');
+
+				if (isMOBILE) {
+					SETTER('loading/show');
+					SETTER('loading/hide', 1000);
+				}
+
 				exports.loadlibrary(libraryid, exports.loadfirst);
+				SET('common.layout', 'pages', 100);
 			});
 
 			ROUTE('/{libraryid}/{pageid}/', ['libraries'], function(libraryid, pageid) {
@@ -595,7 +618,8 @@
 									el.closest('.ui-scrollbar-area').scrollTop(el.offset().top - 50);
 							}
 						}, 1000);
-					}
+					} else
+						VIEWBOX.scrollbar.scrollTop(0);
 				});
 			});
 
@@ -634,7 +658,10 @@
 				};
 
 				opt.callback = function(item) {
-					REDIRECT('/{0}/{1}/#{2}'.format(common.library.linker, item.pageid[0], item.id));
+					if (item.kind === 'page')
+						REDIRECT('/{0}/{1}/'.format(common.library.linker, item.id));
+					else
+						REDIRECT('/{0}/{1}/#{2}'.format(common.library.linker, item.pageid[0], item.id));
 				};
 
 				SETTER('spotlight/show', opt);
@@ -657,8 +684,10 @@
 			RECONFIGURE('movable', 'disabled:' + (value && value.sa ? '0':  '1'));
 		}, true);
 
-		$(document).on('click', 'h1,h2,h3', function() {
-			location.hash = $(this).attr('id');
+		$(document).on('click', 'h1,h2,h3,h4,h5', function() {
+			var id = $(this).attr('id');
+			if (id)
+				location.hash = id;
 		});
 
 		MIDDLEWARE('libraries', function(next) {
