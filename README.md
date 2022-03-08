@@ -1,6 +1,9 @@
-# Documentation: Total.js Platform
+# Documentation Tool
 
-## Credentails
+- [Chat support](https://platform.totaljs.com/?open=messenger)
+- [Join __Total.js Telegram__](https://t.me/totalplatform)
+- [Support](https://www.totaljs.com/support/)
 
-- email: `info@totaljs.com`
-- password: `123456`
+__Requirements__:
+
+- Total.js 4 - `$ npm install total4`
