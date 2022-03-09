@@ -185,10 +185,10 @@
 					var opt = {};
 					opt.x = e.pageX - 15;
 					opt.y = e.pageY + 5;
-					opt.callback = function(selected) {
-						editor.replaceSelection(selected);
+					opt.callback = function(val) {
+						editor.replaceSelection(val);
 					};
-					setTimeout(ASETTER(value.value + '/show', opt), 100);
+					setTimeout(ASETTER(selected.value + '/show', opt), 100);
 					return;
 				}
 
