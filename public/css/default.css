@@ -172,7 +172,7 @@ hr { border-color: #E0E0E0; }
 .markdown p code, .markdown li code, .markdown section code, .markdown blockquote code, .markdown h1 code, .markdown h2 code, .markdown h3 code, .markdown h4 code, .markdown td code { background-color: #E0E0E0; padding: 1px 3px 2px; border-radius: var(--radius); font-size: 14px; }
 .markdown p code, .markdown section code, .markdown li code, .markdown blockquote code, .markdown td code { border: 1px solid #E0E0E0; background-color: #F5F5F5; }
 .markdown .code { margin-bottom: 15px; }
-.markdown i { padding: 0 3px; }
+.markdown i { padding: 0 2px; }
 .markdown i:first-child { padding-left: 0; }
 .markdown pre { padding: 0; border-radius: var(--radius); margin: 0; width: 100%; }
 .markdown pre code { padding: 10px; font-size: 14px; line-height: 17px; overflow-scrolling: touch; border-radius: var(--radius); overflow-x: auto; overflow-y: hidden; }
