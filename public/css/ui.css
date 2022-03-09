@@ -17,7 +17,7 @@ $monospace  : Menlo,Menlo2,Consolas,monospace;
 .ui-nav ul li a em { float: right; font-size: 10px; margin: 2px 0 0; color: gray; font-style: normal; }
 .admin .ui-nav ul li a em { margin-right: 5px; }
 
-.ui-items-topiclist { max-width: 300px; margin: 0 0 10px 20px; padding: 0; border-radius: var(--radius); border: 1px solid #E0E0E0; font-size: 15px; }
+.ui-items-topiclist { max-width: 300px; margin: 0 0 20px 20px; padding: 0; border-radius: var(--radius); border: 1px solid #E0E0E0; font-size: 15px; }
 .ui-items-topiclist a { color: var(--color); }
 .ui-items-topiclist i { margin-right: 10px; color: var(--color); }
 .ui-items-topiclist div { padding: 10px 15px; background-color: #F8F8F8; border-bottom: 1px solid #E0E0E0; font-weight: bold; border-radius: var(--radius) var(--radius) 0 0; }
@@ -28,10 +28,10 @@ $monospace  : Menlo,Menlo2,Consolas,monospace;
 .ui-items-topic:hover { border-bottom-color: #000; }
 .ui-items-topic:hover label { color: #000; }
 .ui-items-topics h2 { margin: 5px 0 10px 0; padding: 0; font-size: 22px; }
-.ui-items-content { padding: 10px 0; border-top: 2px solid #F0F0F0; margin: 5px 0 0; max-width: 800px; }
+.ui-items-content { padding: 20px 0 10px; border-top: 2px solid #F0F0F0; margin: 5px 0 0; max-width: 800px; }
 .ui-items-content-name { font-size: 11px; color: #A0A0A0; margin-bottom: 8px; }
 .ui-items-text { margin: 0 20px; }
-.ui-items-text:last-child { padding-bottom: 0; }
+.ui-items-text:last-child { padding-bottom: 0; padding-top: 10px; }
 .ui-items-text:last-child .ui-items-content { padding-bottom: 0; }
 .ui-items-edit { float: right; font-size: 11px; color: gray; margin: 3px 0 0 5px; cursor: pointer; display: none; }
 .ui-items-edit:hover { text-decoration: underline; }
@@ -59,7 +59,8 @@ $monospace  : Menlo,Menlo2,Consolas,monospace;
 .ui-items-changelog { padding: 8px 10px; border-radius: var(--radius); background-color: #F9F5DD; border: 1px solid #EDE7C2; margin-bottom: 10px; font-size: 12px; color: #8D8562; }
 .ui-items-changelog code { background-color: #f3e0ac; padding: 1px 3px 2px; border-radius: var(--radius); font-family: $monospace; }
 
-.ui-items-text:first-child .ui-items-content { border-top: 0; }
+.ui-items-text:first-child { padding-top: 0; }
+.ui-items-text:first-child .ui-items-content { border-top: 0; padding-top: 0; margin-top: 0; }
 .ui-items-topic > em { float: right; font-size: 10px; color: gray; margin: 2px 10px 0 0; }
 .ui-items-topic dt { width: 100px; }
 .ui-items-topic dd { margin-left: 100px; }
