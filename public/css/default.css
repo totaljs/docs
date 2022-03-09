@@ -172,6 +172,8 @@ hr { border-color: #E0E0E0; }
 .markdown p code, .markdown li code, .markdown section code, .markdown blockquote code, .markdown h1 code, .markdown h2 code, .markdown h3 code, .markdown h4 code, .markdown td code { background-color: #E0E0E0; padding: 1px 3px 2px; border-radius: var(--radius); font-size: 14px; }
 .markdown p code, .markdown section code, .markdown li code, .markdown blockquote code, .markdown td code { border: 1px solid #E0E0E0; background-color: #F5F5F5; }
 .markdown .code { margin-bottom: 15px; }
+.markdown i { padding: 0 3px; }
+.markdown i:first-child { padding-left: 0; }
 .markdown pre { padding: 0; border-radius: var(--radius); margin: 0; width: 100%; }
 .markdown pre code { padding: 10px; font-size: 14px; line-height: 17px; overflow-scrolling: touch; border-radius: var(--radius); overflow-x: auto; overflow-y: hidden; }
 .markdown-small p code, .markdown-small li code, .markdown-small section code, .markdown-small blockquote code, .markdown-small h1 code, .markdown-small h2 code, .markdown-small h3 code, .markdown-small h4 code, .markdown-small td code, .markdown-small pre code { font-size: 12px; }
@@ -325,3 +327,15 @@ dd:before { content: ':'; margin-right: 8px; color: gray; }
 .keyvalue > span i { width: 14px; margin-right: 5px; }
 .keyvalue > div { margin-left: 120px; }
 .keyvalue > div i { width: 14px; margin-right: 5px; }
+
+.colorize { animation: colorize 1.3s infinite alternate; }
+
+@keyframes colorize {
+	0% { color: #d7cd17; }
+	15% { color: #83c83c; }
+	30% { color: #2e67c5; }
+	45% { color: #b92865; }
+	60% { color: #62c9ca; }
+	75% { color: white; }
+	100% { color: #8c42f6; }
+}
