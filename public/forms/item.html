@@ -131,6 +131,18 @@
 
 		};
 
+		var generatetopics = function() {
+			var lines = EDITOR.editor.getValue().split('\n');
+			var arr = [];
+			for (var line of lines) {
+				if ((/#{1,5}\s/).test(line)) {
+					var index = line.indexOf(' ') - 1;
+					arr.push((index > 1 ? (''.padLeft(index - 1, '\t')) : '') + '- [' + line.substring(index + 2) + '](#)');
+				}
+			}
+			return arr.join('\n');
+		};
+
 		exports.contextmenu = function(e, editor) {
 			var items = [];
 			var sel = editor.getSelections();
@@ -149,8 +161,17 @@
 			items.push({ name: '@(Insert icon)', icon: 'image blue', value: 'faicons' });
 			items.push({ name: '@(Insert file)', icon: 'far fa-file-alt', value: 'file' });
 			items.push({ name: '@(Link item)', icon: 'far fa-link', value: 'link' });
+			items.push({ name: '@(Generate topics)', icon: 'fas fa-list-ul', value: 'topics' });
 
 			SETTER('menu/showxy', e.pageX + 5, e.pageY - 15, items, function(selected) {
+
+				if (selected.value === 'topics') {
+					editor.focus();
+					setTimeout(function() {
+						var topics = generatetopics();
+						topics && editor.replaceSelection(topics);
+					}, 100);
+				}
 
 				if (selected.command) {
 					editor.focus();
