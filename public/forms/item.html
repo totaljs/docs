@@ -90,6 +90,7 @@
 	PLUGIN('~PATH~', function(exports) {
 
 		var editor;
+		var filelist = null;
 
 		WAIT('EDITOR', function() {
 			editor = EDITOR.editor;
@@ -116,8 +117,15 @@
 				if (file.width && file.height)
 					md = '![' + file.name + '](' + file.url + ')';
 				else
-					md = '[' + file.name + ' (' + (file.size / 1024).toFixed(2) + ' kB)](' + file.url + ')';
+					md = '[' + file.name + ' (' + Thelpers.filesize(file.size) + ')](' + file.url + ')';
 
+				file.filename = file.name;
+
+				file.name += ' ' + Thelpers.filesize(file.size);
+				if (file.width)
+					file.name += ' ({width}x{height})'.arg(file);
+
+				filelist && filelist.push(file);
 				editor.replaceSelection(md);
 			});
 
@@ -139,18 +147,20 @@
 
 			items.push({ name: '@(Insert color)', icon: 'fill-drip colorize', value: 'colorpicker' });
 			items.push({ name: '@(Insert icon)', icon: 'image blue', value: 'faicons' });
+			items.push({ name: '@(Insert file)', icon: 'far fa-file-alt', value: 'file' });
+			items.push({ name: '@(Link item)', icon: 'far fa-link', value: 'link' });
 
-			SETTER('menu/showxy', e.pageX + 5, e.pageY - 15, items, function(value) {
+			SETTER('menu/showxy', e.pageX + 5, e.pageY - 15, items, function(selected) {
 
-				if (value.command) {
+				if (selected.command) {
 					editor.focus();
 					setTimeout(function() {
-						document.execCommand(value.command, true);
+						document.execCommand(selected.command, true);
 					}, 100);
 					return;
 				}
 
-				if (value.value === 'colorpicker' || value.value === 'faicons') {
+				if (selected.value === 'colorpicker' || selected.value === 'faicons') {
 					var opt = {};
 					opt.x = e.pageX - 15;
 					opt.y = e.pageY + 5;
@@ -159,6 +169,84 @@
 					};
 					setTimeout(ASETTER(value.value + '/show', opt), 100);
 					return;
+				}
+
+				if (selected.value === 'file') {
+
+					var opt = {};
+
+					opt.x = e.pageX - 15;
+					opt.y = e.pageY + 5;
+					opt.minwidth = 350;
+					opt.placeholder = '@(Search)';
+					opt.callback = function(selected) {
+						var text = '[' + selected.filename + (selected.width ? '' : (' (' + Thelpers.filesize(selected.size) + ')')) + '](' + selected.url + ')';
+						if (selected.width && selected.height)
+							text = '!' + text;
+						editor.replaceSelection(text);
+					};
+
+					if (filelist) {
+						opt.items = filelist;
+						SETTER('directory/show', opt);
+						return;
+					}
+
+					AJAX('GET /api/files/', function(response) {
+
+						for (var file of response) {
+							file.filename = file.name;
+							file.name += ' ' + Thelpers.filesize(file.size);
+							if (file.width)
+								file.name += ' ({width}x{height})'.arg(file);
+						}
+
+						opt.items = response;
+						SETTER('directory/show', opt);
+					});
+
+					return;
+				}
+
+				if (selected.value === 'link') {
+
+					var opt = {};
+
+					opt.x = e.pageX - 15;
+					opt.y = e.pageY + 5;
+					opt.minwidth = 350;
+					opt.placeholder = '@(Search in this library)';
+					opt.raw = true;
+					opt.key = 'html';
+					opt.callback = function(selected) {
+						var url = '';
+						if (selected.kind === 'page')
+							url = '/{0}/{1}/'.format(common.library.linker, selected.id);
+						else
+							url = '/{0}/{1}/#{2}'.format(common.library.linker, selected.pageid[0], selected.id);
+
+						var name = selected.name;
+						if ((/\(|\[/).test(name))
+							name = '`' + name + '`';
+						editor.replaceSelection('[' + name + '](' + url + ')');
+					};
+
+					opt.items = function(q, next) {
+						AJAX('GET /api/items/search/?library={0}&q={1}'.format(common.libraryid, encodeURIComponent(q)), function(response) {
+							for (var item of response) {
+								item.html = item.name;
+								if (item.pageid) {
+									var page = common.pages.findValue('id', item.pageid[0], 'name');
+									if (page)
+										item.html = '<span class="gray">' + page + '</span> / ' + item.name;
+								}
+							}
+
+							next(response);
+						});
+					};
+
+					SETTER('directory/show', opt);
 				}
 
 			});

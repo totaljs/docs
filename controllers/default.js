@@ -26,6 +26,7 @@ exports.install = function() {
 	ROUTE('GET        /api/items/{id}/               *Items       --> read');
 	ROUTE('+POST      /api/items/                    *Items       --> save');
 	ROUTE('+DELETE    /api/items/{id}/               *Items       --> remove');
+	ROUTE('GET        /api/items/search/             *Items       --> search');
 
 	// Users
 	ROUTE('+GET       /api/users/                    *Users       --> query');
@@ -45,6 +46,8 @@ exports.install = function() {
 	ROUTE('POST       /api/login/                    *Login       --> exec');
 	ROUTE('POST       /api/request/                  *Request     --> exec');
 	ROUTE('POST       /api/password/                 *Password    --> exec');
+	ROUTE('+GET       /api/clean/',  clean);
+	ROUTE('+GET       /api/files/',  files_browse);
 
 	ROUTE('+POST     /api/upload/',  upload,  ['upload'], 1024 * 10);
 	ROUTE('GET       /logoff/',      logoff);
@@ -91,10 +94,6 @@ function view_index() {
 	}
 }
 
-function openplatform(req, res) {
-	res.file(PATH.root('openplatform.json'));
-}
-
 const isIMAGE = { jpg: 1, png: 1, gif: 1, svg: 1 };
 
 function files(req, res) {
@@ -115,6 +114,11 @@ function upload() {
 	if (!file) {
 		self.json(null);
 		return;
+	}
+
+	if (!file.extension) {
+		file.extension = 'dat';
+		file.filename += '.dat';
 	}
 
 	var id = UID();
@@ -178,4 +182,56 @@ function restore() {
 		else
 			$.success();
 	});
+}
+
+async function clean() {
+
+	var self = this;
+
+	if (!self.user.sa) {
+		self.invalid(401);
+		return;
+	}
+
+	var files = await MAIN.fs.browse2();
+	var cache = {};
+
+	for (var item of MAIN.db.items) {
+		if (item.body) {
+			var m = item.body.match(/\/download\/.*?\.\w{1,8}/g);
+			if (m) {
+				for (var i = 0; i < m.length; i++)
+					cache[m[i].substring(10).split('-')[0]] = 1;
+			}
+		}
+	}
+
+	var rem = [];
+
+	for (var file of files) {
+
+		if (file.id === 'meta')
+			continue;
+
+		if (!cache[file.id])
+			rem.push(file.id);
+	}
+
+	rem.wait(function(id, next) {
+		MAIN.fs.remove(id, next);
+	});
+
+	self.success(true, rem.length);
+}
+
+async function files_browse() {
+
+	var files = await MAIN.fs.browse2();
+	var index = files.findIndex('id', 'meta');
+	files.splice(index, 1);
+
+	for (var file of files)
+		file.url = '/download/' + file.id + '-' + file.id.makeid() + '-' + (file.width || 0) + 'x' + (file.height || 0) + '-1.' + file.ext;
+
+	this.json(files);
 }

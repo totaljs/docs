@@ -109,4 +109,40 @@ NEWSCHEMA('Items', function(schema) {
 			$.invalid(404);
 	});
 
+	schema.addWorkflow('search', function($) {
+
+		var id = $.query.library;
+
+		if (MAIN.private[id]) {
+			if (!$.user || (!$.user.sa && (!$.user.access || $.user.access.indexOf(id) === -1))) {
+				$.callback([]);
+				return;
+			}
+		}
+
+		var arr = [];
+		var q = $.query.q ? $.query.q.toSearch() : '';
+
+		for (var item of MAIN.db.items) {
+
+			if (item.libraryid !== id)
+				continue;
+
+			if (item.kind === 'page' || item.kind === 'item') {
+
+				if (q && item.search.indexOf(q) === -1)
+					continue;
+
+				arr.push({ id: item.id, pageid: item.pageid, name: item.name, type: item.type, icon: item.icon, color: item.color, kind: item.kind });
+
+				if (arr.length > 50)
+					break;
+			}
+		}
+
+		arr.quicksort('name');
+		$.callback(arr);
+
+	});
+
 });

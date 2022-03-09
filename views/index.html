@@ -485,6 +485,7 @@
 					opt.items.push('-');
 					opt.items.push({ id: 'backup', name: '@(Backup)', icon: 'fas fa-cloud-download' });
 					opt.items.push({ id: 'restore', name: '@(Restore)', icon: 'far fa-cloud-upload-alt' });
+					opt.items.push({ id: 'clean', name: '@(Clean unused files)', icon: 'far fa-archive' });
 				}
 
 				opt.items.push('-');
@@ -499,6 +500,14 @@
 
 			exports.backup = function() {
 				location.href = '/backup/';
+			};
+
+			exports.clean = function() {
+				SETTER('approve/show', '@(Are you sure you want to clean all unused files?)', '"far fa-archive" @(Clean)', function() {
+					AJAX('GET /api/clean/', ASETTER('message/response', function(response) {
+						SETTER('message/success', '@(Done, cleaned: <b>{0} files</b>.)'.format(response.value));
+					}));
+				});
 			};
 
 			exports.restore = function() {
@@ -643,13 +652,13 @@
 				opt.delay = 400;
 
 				opt.search = function(value, next) {
-					AJAX('GET /api/items/?library={0}&q={1}'.format(common.libraryid, encodeURIComponent(value)), function(response) {
+					AJAX('GET /api/items/search/?library={0}&q={1}'.format(common.libraryid, encodeURIComponent(value)), function(response) {
 						for (var i = 0; i < response.length; i++) {
 							var item = response[i];
 							if (item.pageid) {
 								var page = common.pages.findValue('id', item.pageid[0], 'name');
 								if (page)
-									item.name = '<span class="gray">' + page + '</span> / ' + item.name;
+									item.html = '<span class="gray">' + page + '</span> / ' + item.name;
 							}
 						}
 
