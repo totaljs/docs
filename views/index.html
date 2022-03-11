@@ -312,10 +312,10 @@
 
 			exports.loadpage = function(id, callback) {
 
-				// if (common.page && common.page.id === id) {
-				// 	callback && callback();
-				// 	return;
-				// }
+				if (common.page && common.page.id === id) {
+					callback && callback();
+					return;
+				}
 
 				SET('common.page', common.pages.findItem('id', id));
 				SET('common.pageid', id);
