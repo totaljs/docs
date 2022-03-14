@@ -2,13 +2,15 @@
 	<div>
 		<div class="padding npt requestform">
 			<p class="gray"><b>@(IMPORTANT)</b>:<br />@(Server can process max. &lt; 5 kB response.)</p>
-			<div class="url"><b data-bind="?.method__text"></b> <span data-bind="?.url__text"></span></div>
+			<div class="url"><b data-bind="?.method__text"></b> <span data-bind="?.url__text"></span> <strong data-bind="?.operation__show__text"></strong></div>
 			<div data---="properties2__?.data"></div>
-			<div data-bind="?.method__show:value!=='GET' && value !== 'DELETE'" class="help"><span class="link exec" data-exec="?/fake"><i class="fab fa-wpforms"></i>@(Fill fake data)</span></div>
+			<div data-bind="?.ismodel__show" class="help hidden"><span class="link exec" data-exec="?/fake"><i class="fab fa-wpforms"></i>@(Fill fake data)</span></div>
 		</div>
-		<div data-bind="?.response.body__html div__show" class="response">
+		<div data-bind="?.response.body__show" class="response">
 			<label>@(Response status) <b data-bind="?.response.status__text">---</b>:</label>
-			<div></div>
+			<div data-bind="?.response.body__html" class="m"></div>
+			<label>@(Response headers):</label>
+			<div data-bind="?.response.headers__html"></div>
 		</div>
 	</div>
 	<nav>
@@ -27,8 +29,9 @@
 
 			var data = [];
 			var cache = CACHE(common.id) || EMPTYOBJECT;
-			var cachekey = common.id + '_' + HASH(model.url).toString(36);
+			var cachekey = common.id + '_' + HASH(model.url + (model.operation || '')).toString(36);
 			var cachedata = CACHE(cachekey) || {};
+			var ismodel = false;
 
 			if (!cachedata.body)
 				cachedata.body = {};
@@ -38,6 +41,9 @@
 
 			if (!cachedata.args)
 				cachedata.args = {};
+
+			data.push({ x: 'endpoint', group: 'Endpoint', type: 'string', label: '<b>URL address</b>', icon: 'far fa-globe', name: '$eurl', value: cachedata.url2 || (common.url + model.url), placeholder: 'https://api.hostname.com' });
+			data.push({ x: 'endpoint', group: 'Endpoint', type: 'string', label: '<b>Query arguments</b>', icon: 'far fa-filter', name: '$equery', value: cachedata.query2 || '', placeholder: 'key1=value&key2=value' });
 
 			data.push({ x: 'headers', group: 'Headers', type: 'string', label: 'Authorization', name: '$hauthorization', value: cache.authorization || '', placeholder: 'Type a header value' });
 			data.push({ x: 'headers', group: 'Headers', type: 'string', label: 'X-Token', name: '$htoken', value: cache.token || '', placeholder: 'Type a header value' });
@@ -59,7 +65,7 @@
 				}
 			}
 
-			if ((model.method === 'POST' || model.method === 'PUT' || model.method === 'PATCH') && model.fields && model.fields.length) {
+			if ((model.method === 'POST' || model.method === 'PUT' || model.method === 'PATCH' || (model.operation && (model.operationtype !== 'GET' && model.operationtype !== 'DELETE'))) && model.fields && model.fields.length) {
 				for (var i = 0; i < model.fields.length; i++) {
 					var n = model.fields[i];
 					var type = n.type.toLowerCase().replace(/\(.*?\)/g, '');
@@ -77,8 +83,10 @@
 					}
 					data.push({ x: 'data', group: 'Data', type: type, label: n.name + ' <code>' + n.type + '</code>', name: n.name, value: cachedata.body[n.name] || '', required: n.required == true, placeholder: 'Type a value' });
 				}
+				ismodel = i > 0;
 			}
 
+			SET('?.ismodel', ismodel);
 			SET('?.data', data);
 		};
 
@@ -105,9 +113,19 @@
 			var cache = CACHE(common.id) || {};
 			var data = {};
 			var headers = [];
+			var query = '';
+
+			data.url = common.url + model.url;
 
 			for (var i = 0; i < items.length; i++) {
 				var item = items[i];
+				if (item.x === 'endpoint') {
+					if (item.name === '$eurl')
+						data.url = item.value;
+					else if (item.name === '$equery')
+						query = item.value;
+					continue;
+				}
 
 				if (item.x === 'headers') {
 					var n = item.name.substring(2);
@@ -133,7 +151,6 @@
 			}
 
 			data.method = model.method;
-			data.url = common.url + model.url;
 			data.action = model.operation;
 
 			if (headers.length)
@@ -142,14 +159,22 @@
 			if (data.query)
 				data.query = data.query.join('&');
 
-			var cachekey = common.id + '_' + HASH(model.url).toString(36);
+			var cachekey = common.id + '_' + HASH(model.url + (model.operation || '')).toString(36);
 			CACHE(common.id, cache, '1 year');
-			CACHE(cachekey, { query: data.query, args: data.args, body: data.body }, '1 year');
+			CACHE(cachekey, { query: CLONE(data.query), args: data.args, body: data.body, query2: query, url2: data.url }, '1 year');
 
 			// hide();
+
+			if (query) {
+				if (data.query)
+					data.query += '&' + query;
+				else
+					data.query = query;
+			}
+
 			AJAX('POST /api/request/ @showloading', data, function(response) {
 				var value = response.value;
-				SET('?.response @hideloading', { status: value.status, body: FUNC.formatjson(typeof(value.body) === 'string' ? PARSE(value.body) : response.encode()) });
+				SET('?.response @hideloading', { status: value.status, body: FUNC.formatjson(typeof(value.body) === 'string' ? PARSE(value.body) : response.encode()), headers: FUNC.formatjson(value.headers, null, '\t') });
 				requestlargeform.scrollbar.resize();
 			});
 		};

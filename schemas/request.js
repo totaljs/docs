@@ -30,14 +30,18 @@ NEWSCHEMA('Request', function(schema) {
 		// Max. 5 kB limit
 		opt.limit = 1024 * 5;
 
-		NOSQL('requests').insert({ method: model.method, url: model.url, body: model.body, headers: model.headers, action: model.action, dtcreated: NOW, ip: $.ip, ua: $.ua });
+		// NOSQL('requests').insert({ method: model.method, url: model.url, body: model.body, headers: model.headers, action: model.action, dtcreated: NOW, ip: $.ip, ua: $.ua });
 
 		if (model.method !== 'GET' && model.method !== 'DELETE') {
 			if (model.method === 'API') {
-				opt.method = 'API';
+				opt.method = 'POST';
 				opt.body = {};
 				opt.body.data = model.body;
-				opt.body.schema = model.action;
+				opt.body.schema = model.action.replace(/^(-|\+|\#)/, '');
+
+				if (model.query)
+					opt.body.schema += '?' + model.query;
+
 			} else {
 				opt.method = model.method;
 				opt.body = model.body;
@@ -45,6 +49,7 @@ NEWSCHEMA('Request', function(schema) {
 
 			opt.body = JSON.stringify(opt.body);
 			opt.type = 'json';
+			console.log(opt);
 		}
 
 		for (var i = 0; i < model.headers.length; i++) {
@@ -66,11 +71,10 @@ NEWSCHEMA('Request', function(schema) {
 		}
 
 		opt.callback = function(err, response) {
-			if (err) {
+			if (err)
 				$.invalid(err);
-			} else {
-				$.success({ status: response.status, body: response.body });
-			}
+			else
+				$.success({ status: response.status, body: response.body, headers: response.headers });
 		};
 
 		REQUEST(opt);
