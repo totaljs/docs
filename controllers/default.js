@@ -60,8 +60,11 @@ exports.install = function() {
 
 function view_index() {
 	var self = this;
+
 	if (self.url === '/' && self.query.url && ((/^http(s)?:\/\/[a-z0-9]+/).test(self.query.url))) {
-		NOSQL('external').insert({ id: UID(), url: self.query.url, ip: self.ip, ua: self.ua, dtcreated: NOW });
+
+		// NOSQL('external').insert({ id: UID(), url: self.query.url, ip: self.ip, ua: self.ua, dtcreated: NOW });
+
 		var opt = {};
 		opt.method = 'GET';
 		opt.url = self.query.url;
@@ -74,10 +77,12 @@ function view_index() {
 			else
 				self.view('external', response.body);
 		};
+
 		REQUEST(opt);
+
 	} else {
 
-		if (PREF.settings && PREF.settings.password) {
+		if (MAIN.db.config && MAIN.db.config.password) {
 
 			if (BLOCKED(self, 10))
 				return;
