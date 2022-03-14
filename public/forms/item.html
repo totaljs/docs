@@ -21,7 +21,7 @@
 				</div>
 			</div>
 		</div>
-		<div class="padding">
+		<div class="padding npb">
 			<div class="row">
 				<div class="col-md-3 m">
 					<div data---="input__?.icon__type:icon__''">@(Icon)</div>
@@ -42,9 +42,10 @@
 			<div data-bind="?.type__show:value==='text'" class="hidden relative">
 				<div data---="input__?.bottom__type:checkbox__false">@(Put to bottom)</div>
 			</div>
-			<hr />
-			<div data---="codemirror__?.body__required:1;contextmenu:?/contextmenu;type:markdown;linenumbers:0;parent:auto;minheight:300;margin:370;drop:?/drop;$assign:EDITOR__''" class="m">@(Body)</div>
+			<!-- <div data---="codemirror__?.body__required:1;contextmenu:?/contextmenu;type:markdown;linenumbers:0;parent:auto;minheight:300;margin:370;drop:?/drop;$assign:EDITOR__''" class="m">@(Body)</div> -->
 		</div>
+		<hr class="nmb" />
+		<div data---="cloudeditor__?.body__required:1;contextmenu:?/contextmenu;parent:auto;linenumbers:0;minheight:300;margin:306;drop:?/drop;$assign:EDITOR__''"></div>
 	</div>
 	<nav data---="validate__?">
 		<button name="submit" disabled><i class="fa fa-check-circle"></i>@(SUBMIT)</button>
@@ -132,20 +133,24 @@
 		};
 
 		var generatetopics = function() {
-			var lines = EDITOR.editor.getValue().split('\n');
-			var arr = [];
-			for (var line of lines) {
-				if ((/#{1,5}\s/).test(line)) {
-					var index = line.indexOf(' ') - 1;
-					arr.push((index > 1 ? (''.padLeft(index - 1, '\t')) : '') + '- [' + line.substring(index + 2) + '](#)');
+			EDITOR.save(function(lines) {
+				lines = lines.split('\n');
+				var arr = [];
+				for (var line of lines) {
+					if ((/#{1,5}\s/).test(line)) {
+						var index = line.indexOf(' ') - 1;
+						arr.push((index > 1 ? (''.padLeft(index - 1, '\t')) : '') + '- [' + line.substring(index + 2) + '](#)');
+					}
 				}
-			}
-			return arr.join('\n');
+				EDITOR.replaceselection(arr.join('\n'));
+			});
 		};
 
-		exports.contextmenu = function(e, editor) {
+		exports.contextmenu = function(e) {
+
+
 			var items = [];
-			var sel = editor.getSelections();
+			var sel = e.selections;
 			var text = sel.join('');
 			var can = text.length > 0;
 			var sub = [];
@@ -163,30 +168,27 @@
 			items.push({ name: '@(Link item)', icon: 'far fa-link', value: 'link' });
 			items.push({ name: '@(Generate topics)', icon: 'fas fa-list-ul', value: 'topics' });
 
-			SETTER('menu/showxy', e.pageX + 5, e.pageY - 15, items, function(selected) {
+			SETTER('menu/showxy', e.x + 5, e.y - 15, items, function(selected) {
 
 				if (selected.value === 'topics') {
-					editor.focus();
+					EDITOR.focus();
 					setTimeout(function() {
 						var topics = generatetopics();
-						topics && editor.replaceSelection(topics);
+						topics && EDITOR.replaceselection(topics);
 					}, 100);
 				}
 
 				if (selected.command) {
-					editor.focus();
-					setTimeout(function() {
-						document.execCommand(selected.command, true);
-					}, 100);
+					EDITOR.exec(selected.command, true);
 					return;
 				}
 
 				if (selected.value === 'colorpicker' || selected.value === 'faicons') {
 					var opt = {};
-					opt.x = e.pageX - 15;
-					opt.y = e.pageY + 5;
+					opt.x = e.x - 15;
+					opt.y = e.y + 5;
 					opt.callback = function(val) {
-						editor.replaceSelection(val);
+						EDITOR.replaceselection(val);
 					};
 					setTimeout(ASETTER(selected.value + '/show', opt), 100);
 					return;
@@ -196,15 +198,15 @@
 
 					var opt = {};
 
-					opt.x = e.pageX - 15;
-					opt.y = e.pageY + 5;
+					opt.x = e.x - 15;
+					opt.y = e.y + 5;
 					opt.minwidth = 350;
 					opt.placeholder = '@(Search)';
 					opt.callback = function(selected) {
 						var text = '[' + selected.filename + (selected.width ? '' : (' (' + Thelpers.filesize(selected.size) + ')')) + '](' + selected.url + ')';
 						if (selected.width && selected.height)
 							text = '!' + text;
-						editor.replaceSelection(text);
+						EDITOR.replaceselection(text);
 					};
 
 					if (filelist) {
@@ -233,8 +235,8 @@
 
 					var opt = {};
 
-					opt.x = e.pageX - 15;
-					opt.y = e.pageY + 5;
+					opt.x = e.x - 15;
+					opt.y = e.y + 5;
 					opt.minwidth = 350;
 					opt.placeholder = '@(Search in this library)';
 					opt.raw = true;
@@ -249,7 +251,7 @@
 						var name = selected.name;
 						if ((/\(|\[/).test(name))
 							name = '`' + name + '`';
-						editor.replaceSelection('[' + name + '](' + url + ')');
+						EDITOR.replaceselection('[' + name + '](' + url + ')');
 					};
 
 					opt.items = function(q, next) {
@@ -273,12 +275,6 @@
 			});
 		};
 
-		exports.appendcustom = function(fn) {
-			var cur = editor.getCursor();
-			var c = editor.getRange({ line: cur.line, ch: cur.ch - 1 }, { line: cur.line, ch: cur.ch });
-			fn(editor, cur, c);
-		};
-
 		exports.addicon = function() {
 			var opt = {};
 			opt.align = 'left';
@@ -286,38 +282,40 @@
 			opt.x = pos.left;
 			opt.y = pos.top + 20;
 			opt.callback = function(icon) {
-				editor.replaceSelection(icon);
+				EDITOR.replaceselection(icon);
 			};
 			SETTER('faicons/show', opt);
 		};
 
 		exports.submit = function(hide) {
-			var model = GET('? @reset');
-			common.lasttype = model.type;
-			model.keywords = parseKeywords(model.body).join(' ');
-			AJAX('POST /api/items/', model, ASETTER('message/response', function(response) {
-				if (model.id) {
-					var index = common.items.findIndex('id', model.id);
-					if (index !== -1) {
-						var item = common.items[index];
-						if (model.pageid.indexOf(common.page.id) !== -1)
-							COPY(model, item);
-						else
-							common.items.splice(index, 1);
+			var model = GET('? @reset @clone @showloading');
+			EDITOR.save(function(lines) {
+				model.body = lines;
+				common.lasttype = model.type;
+				model.keywords = parseKeywords(model.body).join(' ');
+				AJAX('POST /api/items/', model, ASETTER('message/response @hideloading', function(response) {
+					if (model.id) {
+						var index = common.items.findIndex('id', model.id);
+						if (index !== -1) {
+							var item = common.items[index];
+							if (model.pageid.indexOf(common.page.id) !== -1)
+								COPY(model, item);
+							else
+								common.items.splice(index, 1);
+							common.items.quicksort('name');
+							UPD('common.items');
+						}
+					} else {
+						model.id = response.value;
+						model.dtcreated = new Date();
+						model.creator = user.name;
+						common.items.push(model);
 						common.items.quicksort('name');
 						UPD('common.items');
 					}
-				} else {
-					model.id = response.value;
-					model.dtcreated = new Date();
-					model.creator = user.name;
-					common.items.push(model);
-					common.items.quicksort('name');
-					UPD('common.items');
-				}
-
-				hide();
-			}));
+					hide();
+				}));
+			});
 		};
 
 	});

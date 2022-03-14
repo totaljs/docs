@@ -9,7 +9,7 @@ NEWSCHEMA('Password', function(schema) {
 			return;
 		}
 
-		if (model.password === PREF.settings.password) {
+		if (model.password === MAIN.db.config.password) {
 			BLOCKED($, -1);
 			$.cookie(CONF.password_cookie, CONF.contentpassword, '1 month');
 			$.success();

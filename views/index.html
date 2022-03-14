@@ -182,7 +182,7 @@
 					}
 
 					uncategorized.quicksort('sortindex');
-					arr.unshift({ name: '', items: uncategorized });
+					uncategorized.length && arr.unshift({ name: '', items: uncategorized });
 					SET('?.libraries', response);
 					SET('?.libraries2', arr);
 					SET('?.privatelibraries', privatelibraries);
@@ -207,6 +207,7 @@
 				model.pageid = [common.pageid];
 				model.libraryid = common.library.id;
 				model.type = common.lasttype || 'text';
+				model.body = { type: 'markdown', body: '', linenumbers: false };
 				SET('itemform @default', model);
 				SET('common.form', 'itemform');
 			};
@@ -442,6 +443,7 @@
 						AJAX('GET /api/items/{0}/'.format(id), function(response) {
 							if (item.id === 'clone')
 								response.id = '';
+							response.body = { type: 'markdown', body: response.body, linenumbers: false };
 							SET('itemform @reset', response);
 							SET('common.form', 'itemform');
 						});
