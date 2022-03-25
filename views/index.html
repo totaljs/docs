@@ -157,7 +157,7 @@
 				SETTER('clipboard/copy', lines.join('\n'));
 			};
 
-			exports.refresh_libraries = function() {
+			exports.refresh_libraries = function(callback) {
 				AJAX('GET /api/libraries/', function(response) {
 
 					var arr = [];
@@ -187,6 +187,7 @@
 					SET('?.libraries2', arr);
 					SET('?.privatelibraries', privatelibraries);
 					UPD('?.libraryid');
+					callback && callback();
 				});
 			};
 
@@ -410,8 +411,16 @@
 								common.privatelibraries = common.privatelibraries.remove('id', id);
 								UPD('common.libraries');
 								UPD('common.privatelibraries');
-								if (common.libraryid === id)
-									NULL('common.libraryid');
+
+								var is = common.libraryid === id;
+
+								exports.scope();
+								exports.refresh_libraries(function() {
+									if (is) {
+										NULL('common.libraryid');
+										REDIRECT('/');
+									}
+								});
 							});
 						});
 					}

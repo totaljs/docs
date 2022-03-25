@@ -47,14 +47,15 @@
 
 		exports.submit = function(hide) {
 			var model = GET('? @reset');
-			AJAX('POST /api/libraries/', model, ASETTER('message/response', function() {
-				EXEC('common/refresh_libraries');
-
-				if (common.libraryid === model.id) {
-					SET('common.groups', model.groups);
-					EXEC('common/refreshpages');
-				}
-
+			AJAX('POST /api/libraries/', model, ASETTER('message/response', function(response) {
+				model.id = response.value;
+				EXEC('common/refresh_libraries', function() {
+					if (common.libraryid === model.id) {
+						SET('common.groups', model.groups);
+						EXEC('common/refreshpages');
+					} else
+						REDIRECT('/' + model.id + '/');
+				});
 				hide();
 			}));
 		};
