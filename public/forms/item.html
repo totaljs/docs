@@ -103,7 +103,7 @@
 			com.reconfigure({ title: id ? '@(Update item)' : '@(Add item)' });
 		};
 
-		exports.drop = function(e, editor) {
+		exports.drop = function(e) {
 			var data = new FormData();
 			var files = e.dataTransfer.files;
 
@@ -127,7 +127,7 @@
 					file.name += ' ({width}x{height})'.arg(file);
 
 				filelist && filelist.push(file);
-				editor.replaceSelection(md);
+				EDITOR.replaceselection(md);
 			});
 
 		};
@@ -146,7 +146,55 @@
 			});
 		};
 
+		exports.upload = function() {
+			var opt = {};
+			opt.multiple = false;
+			opt.callback = function(files, e) {
+
+				var fd = new FormData();
+				for (var i = 0; i < files.length; i++) {
+
+					var filename = files[i].name;
+					var index = filename.lastIndexOf('/');
+
+					if (index === -1)
+						index = filename.lastIndexOf('\\');
+
+					if (index !== -1)
+						filename = filename.substring(index + 1);
+
+					fd.append('file' + i, files[i], filename);
+				}
+
+				SETTER('loading/show');
+				UPLOAD('/api/upload/', fd, function(response, err) {
+
+					var file = response;
+					var md;
+
+					if (file.width && file.height)
+						md = '![' + file.name + '](' + file.url + ')';
+					else
+						md = '[' + file.name + ' (' + Thelpers.filesize(file.size) + ')](' + file.url + ')';
+
+					file.filename = file.name;
+
+					file.name += ' ' + Thelpers.filesize(file.size);
+					if (file.width)
+						file.name += ' ({width}x{height})'.arg(file);
+
+					filelist && filelist.push(file);
+					EDITOR.replaceselection(md);
+					SETTER('loading/hide');
+
+				});
+			};
+
+			SETTER('filebrowser/show', opt);
+		};
+
 		exports.contextmenu = function(e) {
+
 
 			var items = [];
 			var sel = e.selections;
@@ -202,6 +250,12 @@
 					opt.minwidth = 350;
 					opt.placeholder = '@(Search)';
 					opt.callback = function(selected) {
+
+						if (selected.id === 'upload') {
+							exports.upload();
+							return;
+						}
+
 						var text = '[' + selected.filename + (selected.width ? '' : (' (' + Thelpers.filesize(selected.size) + ')')) + '](' + selected.url + ')';
 						if (selected.width && selected.height)
 							text = '!' + text;
@@ -223,6 +277,7 @@
 								file.name += ' ({width}x{height})'.arg(file);
 						}
 
+						response.unshift({ id: 'upload', template: '<i class="far fa-cloud-upload mr5"></i><b>@(Upload)</b>' });
 						opt.items = response;
 						SETTER('directory/show', opt);
 					});
