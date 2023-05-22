@@ -32,10 +32,10 @@
 	<div data---="LAZY clipboard"></div>
 	<div data---="LAZY filebrowser"></div>
 	<div data---="shortcuts"></div>
-	<div data---="markdown"></div>
+	<div data---="markdown__null__highlight:true;charts:false"></div>
 	<div data---="backtotop"></div>
 
-	<div data---="ready__null__rclass:invisible;delay:300" class="invisible">
+	<ui-component name="ready" config="rclass:invisible;delay:300" class="invisible">
 		<section class="plibraries" data-bind="common.layout__.visible:value==='libraries'">
 			<div data---="viewbox__null__parent:window;scrollbar:1;visibleY:0;margin:35;scrollbarshadow:0" class="invisible">
 				<a href="/" class="logo">
@@ -73,7 +73,7 @@
 			</div>
 			<div data---="viewbox__common.pages2__parent:window;scrollbar:1;visibleY:0;margin:82;scrollbarshadow:0" data-bind="common.libraryid__exec:common/permissions">
 				<nav class="nav nav2 nmt" data---="movable__null__selector:.jR;exec:common/movepage">
-					<div data-bind="common.pages2__template" data---="selected__common.pageid__selector:.jR;datasource:common.pages2;delay:300">
+					<div data-bind="common.pages2__template" data---="selected__common.pageid__selector:.jR;datasource:common.pages2;delay:100">
 						<script type="text/html">
 						{{ foreach n in value }}
 							{{ if n.name }}
@@ -113,16 +113,15 @@
 				<button class="exec" data-exec="common/layout" data-if=""><span>@(Content)</span></button>
 			</nav>
 		</section>
-	</div>
+	</ui-component>
 
-
-	<div data---="importer__common.form__url:/forms/item.html;if:itemform"></div>
-	<div data---="importer__common.form__url:/forms/page.html;if:pageform"></div>
-	<div data---="importer__common.form__url:/forms/library.html;if:libraryform"></div>
-	<div data---="importer__common.form__url:/forms/settings.html;if:settingsform"></div>
-	<div data---="importer__common.form__url:/forms/users.html;if:usersform"></div>
-	<div data---="importer__common.form__url:/forms/profile.html;if:profileform"></div>
-	<div data---="importer__common.form__url:/forms/login.html;if:login"></div>
+	<ui-component name="importer" path="common.form" config="url:/forms/item.html;if:itemform"></ui-component>
+	<ui-component name="importer" path="common.form" config="url:/forms/page.html;if:pageform"></ui-component>
+	<ui-component name="importer" path="common.form" config="url:/forms/library.html;if:libraryform"></ui-component>
+	<ui-component name="importer" path="common.form" config="url:/forms/settings.html;if:settingsform"></ui-component>
+	<ui-component name="importer" path="common.form" config="url:/forms/users.html;if:usersform"></ui-component>
+	<ui-component name="importer" path="common.form" config="url:/forms/profile.html;if:profileform"></ui-component>
+	<ui-component name="importer" path="common.form" config="url:/forms/login.html;if:login"></ui-component>
 
 	@{json(user, 'userdata')}
 	@{json(MAIN.db.config.groups, 'groupsdata')}
@@ -157,7 +156,7 @@
 				SETTER('clipboard/copy', lines.join('\n'));
 			};
 
-			exports.refresh_libraries = function(callback) {
+			exports.refresh_libraries = function() {
 				AJAX('GET /api/libraries/', function(response) {
 
 					var arr = [];
@@ -187,7 +186,6 @@
 					SET('?.libraries2', arr);
 					SET('?.privatelibraries', privatelibraries);
 					UPD('?.libraryid');
-					callback && callback();
 				});
 			};
 
@@ -325,7 +323,8 @@
 				maketitle();
 
 				AJAX('GET /api/items/?library={0}&page={1}'.format(common.library.id, id), function(response) {
-					SET('common.items', response);
+					exports.set('items', response);
+					exports.upd('pageid');
 					callback && callback();
 				});
 			};
@@ -338,11 +337,11 @@
 				opt.items = [];
 				opt.align = 'right';
 				opt.offsetY = -7;
-				opt.items.push({ id: 'add', name: '@(Add item)', icon: 'far fa-plus-circle green', classname: 'b' });
+				opt.items.push({ id: 'add', name: '@(Add item)', icon: 'ti ti-plus-circle green', classname: 'b' });
 				opt.items.push('-');
-				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'far fa-pencil' });
-				opt.items.push({ id: 'clone', name: '@(Clone)', icon: 'far fa-clone' });
-				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'far fa-trash-o red' });
+				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'ti ti-pencil' });
+				opt.items.push({ id: 'clone', name: '@(Clone)', icon: 'ti ti-clone' });
+				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'ti ti-remove red' });
 
 				opt.callback = function(item) {
 
@@ -411,16 +410,8 @@
 								common.privatelibraries = common.privatelibraries.remove('id', id);
 								UPD('common.libraries');
 								UPD('common.privatelibraries');
-
-								var is = common.libraryid === id;
-
-								exports.scope();
-								exports.refresh_libraries(function() {
-									if (is) {
-										NULL('common.libraryid');
-										REDIRECT('/');
-									}
-								});
+								if (common.libraryid === id)
+									NULL('common.libraryid');
 							});
 						});
 					}
@@ -722,6 +713,45 @@
 
 		SETTER(true, 'shortcuts/register', 'F1', function() {
 			EXEC('common/search');
+		});
+
+		function htmldecode(text) {
+			switch (text) {
+				case '&gt;':
+					return '>';
+				case '&lt;':
+					return '<';
+				case '&amp;':
+					return '&';
+				case '&quot;':
+					return '"';
+				case '&#39;':
+					return '\'';
+			}
+			return text;
+		}
+
+		ON('markdown', function(el) {
+			return;
+			var arr = el[0].tagName === 'BODY' ? el.find('.markdown pre code') : el.find('pre code');
+			for (var t of arr) {
+				if (!t.$mdcodemirror) {
+					t.$mdcodemirror = true;
+					var el = $(t);
+					var type = 'application/ld+json';
+
+					if (el.hclass('lang-js'))
+						type = 'text/javascript';
+					else if (el.hclass('lang-html'))
+						type = 'text/html';
+					else if (el.hclass('lang-sql'))
+						type = 'text/x-sql';
+
+					el.aclass('cm-s-default');
+					var code = FUNC.strim(el.html()).trim().replace(/&gt;|&lt;|&quot;|&#39;|&amp;/g, htmldecode);
+					CodeMirror.runMode(code.replace(/\t/g, '  '), type, el[0]);
+				}
+			}
 		});
 
 		NAV.clientside('.jR');

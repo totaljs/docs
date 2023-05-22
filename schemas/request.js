@@ -23,9 +23,12 @@ NEWSCHEMA('Request', function(schema) {
 		var opt = {};
 
 		if (model.args)
-			model.url = model.url.arg(model.url);
+			model.url = model.url.arg(model.args);
 
-		opt.url = model.url + (model.query ? ('?' + model.query) : '');
+		if (model.action)
+			model.action = model.action.arg(model.args) + (model.query ? ('?' + model.query) : '');
+
+		opt.url = model.url + (!model.action && model.query ? ('?' + model.query) : '');
 
 		// Max. 5 kB limit
 		opt.limit = 1024 * 5;

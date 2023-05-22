@@ -51,10 +51,17 @@
 			data.push({ x: 'headers', group: 'Headers', type: 'string', label: 'User-Agent', name: '$hua', value: cache.ua || '', placeholder: 'Type a header value' });
 
 			var arg = model.url.match(/\{.*?\}/g);
+			var isop = false;
+
+			if (!arg) {
+				arg = model.operation.match(/\{.*?\}/g);
+				isop = true;
+			}
+
 			if (arg) {
 				for (var i = 0; i < arg.length; i++) {
-					var n = arg[0].replace(/\{|\}/g, '');
-					data.push({ x: 'args', group: 'URL arguments', type: 'string', label: n, name: '$u' + n, value: cachedata.args[n] || '', placeholder: 'Type a value', required: true });
+					var n = arg[i].replace(/\{|\}/g, '');
+					data.push({ x: 'args', group: 'URL arguments', type: 'string', label: n, name: '$u' + n, value: cachedata.args[n] || '', placeholder: 'Type a value', required: true, isop: isop });
 				}
 			}
 
