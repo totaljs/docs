@@ -1,0 +1,71 @@
+<ui-component name="box" path="common.form" config="if:~PATH~;icon:ti ti-book;autofocus:true;reload:?/reload;scrollbar:1;submit:?/submit;width:600" class="hidden" plugin="~PATH~">
+	<div>
+		<div class="padding bg-smoke">
+			<div class="row">
+				<div class="col-md-6 m">
+					<ui-component name="input" path="?.name" config="required:1" default="''">@(Name)</ui-component>
+				</div>
+				<div class="col-md-6 m">
+					<ui-component name="input" path="?.group" config="dirsource:pluginlibraries.maingroups;dirempty:@(No group);dirplaceholder:@(Search)" default="''">@(Group)</ui-component>
+				</div>
+			</div>
+		</div>
+
+		<div class="padding">
+			<div class="row">
+				<div class="col-md-4 m">
+					<ui-component name="input" path="?.icon" config="type:icon" default="''">@(Icon)</ui-component>
+				</div>
+				<div class="col-md-4 m">
+					<ui-component name="input" path="?.color" config="type:color" default="''">@(Color)</ui-component>
+				</div>
+				<div class="col-md-4 m">
+					<ui-component name="input" path="?.linker" config="required:1;maxlength:50;type:slug" default="''">@(Linker)</ui-component>
+				</div>
+			</div>
+			<ui-component name="input" path="?.newbie" config="type:checkbox" default="false">@(Highlight as newbie)</ui-component>
+			<ui-component name="input" path="?.private" config="type:checkbox" default="false">@(Private)</ui-component>
+			<hr />
+			<ui-component name="textboxlist" path="?.groups" config="movable:1;placeholder:@(Type a group name and press enter)">@(Groups)</ui-component>
+		</div>
+	</div>
+	<nav>
+		<ui-component name="validate" path="?">
+			<button name="submit" disabled><i class="ti ti-check-circle"></i>@(SUBMIT)</button>
+			<button name="cancel">@(Cancel)</button>
+		</ui-component>
+	</nav>
+</ui-component>
+
+<script>
+
+	PLUGIN(function(exports) {
+
+		var caller;
+
+		exports.reload = function(com) {
+			caller = exports.caller;
+			var model = exports.model;
+			var id = model ? model.id : null;
+			com.reconfigure({ title: id ? '@(Update library)' : '@(Create library)' });
+		};
+
+		exports.submit = function(hide) {
+			var librarycall = caller.model;
+			var model = exports.form;
+			exports.tapi('libraries_save ERROR', model, function() {
+				caller.exec('refresh_libraries');
+
+				if (librarycall.libraryid && (librarycall.libraryid === model.id)) {
+					librarycall.groups = model.groups;
+					librarycall.library.groups = model.groups;
+					caller.exec('refreshpages');
+				}
+
+				hide();
+			});
+		};
+
+	});
+
+</script>

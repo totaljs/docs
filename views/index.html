@@ -13,672 +13,141 @@
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" />
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js"></script>
 	<script src="https://cdn.componentator.com/spa.min@19.js"></script>
+	<script src="@{REPO.ui}"></script>
 	@{import('meta', 'head', 'ui.css + default.css', 'default.js + ui.js', 'favicon.ico')}
 	@{if MAIN.db.config.color}
 	<style>:root{--color:@{MAIN.db.config.color}}</style>
 	@{fi}
 </head>
-<body data---="exec"@{if query.darkmode==='1' || MAIN.db.config.darkmode} class="ui-dark"@{fi}>
+<body@{if query.darkmode==='1' || MAIN.db.config.darkmode} class="ui-dark"@{fi}>
 
-	<div data---="LAZY loading__null__style:2" class="hidden"></div>
-	<div data---="LAZY message__null__style:2"></div>
-	<div data---="LAZY notify__null__position:bottom right"></div>
-	<div data---="LAZY approve__null"></div>
-	<div data---="LAZY colorpicker"></div>
-	<div data---="LAZY faicons"></div>
-	<div data---="LAZY menu__null__style:2"></div>
-	<div data---="LAZY spotlight"></div>
-	<div data---="LAZY directory"></div>
-	<div data---="LAZY clipboard"></div>
-	<div data---="LAZY filebrowser"></div>
-	<div data---="shortcuts"></div>
-	<div data---="markdown__null__highlight:true;charts:false"></div>
-	<div data---="backtotop"></div>
+	<ui-component name="exec"></ui-component>
+	<ui-component name="errorhandler"></ui-component>
+	<ui-component name="locale"></ui-component>
+	<ui-component name="loading" config="style:2" class="hidden"></ui-component>
 
-	<ui-component name="ready" config="rclass:invisible;delay:300" class="invisible">
-		<section class="plibraries" data-bind="common.layout__.visible:value==='libraries'">
-			<div data---="viewbox__null__parent:window;scrollbar:1;visibleY:0;margin:35;scrollbarshadow:0" class="invisible">
-				<a href="/" class="logo">
-					@{CONF.name}
-				</a>
-				<nav class="nav nmt" data---="movable__null__selector:.jR;exec:common/movelibrary">
-					<div class="hidden" data-bind="user__show">
-						<div class="item options exec" data-exec="common/options"><i class="far fa-cog"></i><div class="b">@(Options)</div></div>
-						<hr />
-					</div>
-					<div data-bind="common.libraries2__template" data---="selected__common.libraryid__selector:.jR;datasource:common.libraries2;delay:500">
-						<script type="text/html">
-							{{ foreach n in value }}
-								{{ if n.name }}
-									<div class="group">{{ n.name }}</div>
-								{{ fi }}
-								<div class="m">
-								{{ foreach m in n.items }}
-									<a href="/{{ m.linker }}/" class="jR" data-if="{{ m.id }}"{{ if m.draggable }} draggable="true"{{ fi }}><b class="exec" data-exec="common/editlibrary" data-prevent="true"><i class="far fa-pencil"></i></b><i class="{{ if m.icon }}{{ m.icon }}{{ else }}far fa-book{{ fi }}"{{ if m.color }} style="color:{{ m.color }}"{{ fi }}></i><span>{{ m.name }}{{ if m.newbie }}<b>@(new)</b>{{ fi }}</span></a>
-								{{ end }}
-								</div>
+	<ui-component name="LAZY message" config="style:2"></ui-component>
+	<ui-component name="LAZY notify" config="position:bottom right"></ui-component>
+	<ui-component name="LAZY approve"></ui-component>
+	<ui-component name="LAZY colorpicker"></ui-component>
+	<ui-component name="LAZY icons"></ui-component>
+	<ui-component name="LAZY menu" config="style:2"></ui-component>
+	<ui-component name="LAZY spotlight"></ui-component>
+	<ui-component name="LAZY directory"></ui-component>
+	<ui-component name="LAZY clipboard"></ui-component>
+	<ui-component name="LAZY filebrowser"></ui-component>
+
+	<ui-component name="shortcuts"></ui-component>
+	<ui-component name="markdown" config="highlight:true;charts:false"></ui-component>
+	<ui-component name="backtotop"></ui-component>
+
+	<ui-component name="ready" config="delay:300" class="invisible">
+
+		<ui-bind path="common.plugins" config="template" class="block">
+			<script type="text/html">
+				{{ foreach m in value }}
+					{{ if !m.special }}
+						<ui-component name="page" path="common.page" config="if:plugin{{ m.id }};url:/_{{ m.id }}/index.html;reload:?/reload;hidden:?/hide;id:_{{ m.id }}" class="hidden invisible"></ui-component>
+						{{ if m.routes }}
+							{{ foreach route in m.routes }}
+							<ui-component name="page" path="common.page" config="if:plugin{{ m.id }}{{ route.html }};url:/_{{ m.id }}/{{ route.html }}.html;reload:?/reload;hidden:?/hide;id:_{{ m.id }}" class="hidden invisible"></ui-component>
 							{{ end }}
-						</script>
-					</div>
-				</nav>
-			</div>
-		</section>
-
-		<section class="ppages" data-bind="common.layout__.visible:value==='pages'">
-
-			<div class="search exec" data-exec="common/search">
-				<i class="far fa-search"></i>
-				<!-- <div><input type="text" placeholder="@(Search)" /></div> -->
-				<div><span>F1</span>@(Search items)</div>
-			</div>
-			<div data---="viewbox__common.pages2__parent:window;scrollbar:1;visibleY:0;margin:82;scrollbarshadow:0" data-bind="common.libraryid__exec:common/permissions">
-				<nav class="nav nav2 nmt" data---="movable__null__selector:.jR;exec:common/movepage">
-					<div data-bind="common.pages2__template" data---="selected__common.pageid__selector:.jR;datasource:common.pages2;delay:100">
-						<script type="text/html">
-						{{ foreach n in value }}
-							{{ if n.name }}
-								<div class="group">{{ n.name }}</div>
-							{{ fi }}
-							<div class="m">
-							{{ foreach m in n.items }}
-								<a href="{{ m.linker }}" class="jR" data-if="{{ m.id }}"{{ if m.draggable }} draggable="true"{{ fi }}><b class="exec" data-exec="common/editpage" data-prevent="true"><i class="far fa-pencil"></i></b><i class="{{ if m.icon }}{{ m.icon }}{{ else }}far fa-file-alt{{ fi }}"{{ if m.color }} style="color:{{ m.color }}"{{ fi }}></i><span>{{ m.name }}{{ if m.newbie }}<b>@(new)</b>{{ fi }}</span></a>
-							{{ end }}
-							</div>
-						{{ end }}
-						</script>
-					</div>
-				</nav>
-			</div>
-		</section>
-
-		<section class="pmain" data-bind="common.layout__.visible:value===''">
-			<div data---="viewbox__common.page__parent:window;margin:35;scrollbar:1;scrolltop:1;scrollbarshadow:0;$assign:VIEWBOX" data-bind="common.libraryid__exec:common/permissions">
-				<header>
-					<h1 data-bind="common.page.name__text__visible"></h1>
-				</header>
-				<div data---="items__common.items__edit:common/edititem"></div>
-				<br />
-			</div>
-		</section>
-
-		<footer>
-			<div class="loginbutton exec" data-exec="common/login" data-bind="user__hide" title="@(Administration area)"><i class="far fa-user"></i></div>
-			Powered by <a href="https://www.totaljs.com" target="_blank"><strong>Total.js Platform</strong></a> - &copy; @{NOW.getFullYear()}
-		</footer>
-
-		<section class="pbuttons">
-			<nav class="mobilenavigation" data---="selected__common.layout__selector:button">
-				<button class="exec" data-exec="common/layout" data-if="libraries"><span>@(Libraries)</span></button>
-				<button class="exec" data-exec="common/layout" data-if="pages"><span>@(Pages)</span></button>
-				<button class="exec" data-exec="common/layout" data-if=""><span>@(Content)</span></button>
-			</nav>
-		</section>
+						{{ fi }}
+					{{ fi }}
+				{{ end }}
+			</script>
+		</ui-bind>
 	</ui-component>
 
-	<ui-component name="importer" path="common.form" config="url:/forms/item.html;if:itemform"></ui-component>
-	<ui-component name="importer" path="common.form" config="url:/forms/page.html;if:pageform"></ui-component>
-	<ui-component name="importer" path="common.form" config="url:/forms/library.html;if:libraryform"></ui-component>
 	<ui-component name="importer" path="common.form" config="url:/forms/settings.html;if:settingsform"></ui-component>
-	<ui-component name="importer" path="common.form" config="url:/forms/users.html;if:usersform"></ui-component>
-	<ui-component name="importer" path="common.form" config="url:/forms/profile.html;if:profileform"></ui-component>
-	<ui-component name="importer" path="common.form" config="url:/forms/login.html;if:login"></ui-component>
 
-	@{json(user, 'userdata')}
-	@{json(MAIN.db.config.groups, 'groupsdata')}
-
-	@{if PREF.login}
-		@{json(PREF.login, 'logindata')}
+	@{if user && user.iframe}
+	<script src="@{user.iframe}"></script>
 	@{fi}
 
-	<!--<script src="https://cdn.componentator.com/visitors.min@1.js" async defer></script>-->
+	@{json(user, 'userdata')}
+	@{json(model, 'pluginsdata')}
+	@{json(MAIN.db.config.groups, 'groupsdata')}
 
 	<script>
 
-		var common = { library: '', admin: true, maingroups: PARSE('#groupsdata') || EMPTYARRAY, credentials: PARSE('#logindata') };
+		var common = { admin: true, credentials: PARSE('#logindata') };
 		var user = PARSE('#userdata');
 
-		common.title = document.title;
+		common.openplatform = NAV.query.openplatform;
+		common.plugins = PARSE('#pluginsdata');
+		common.page = 'pluginlibraries';
+
 		DEF.dateformat = 'yyyy-MM-dd HH:mm';
+		DEF.api = '/api/';
+
+		if (common.openplatform)
+			NAV.custom();
+
+		ON('request', function(opt) {
+			if (common.openplatform)
+				opt.url = QUERIFY(opt.url, { openplatform: common.openplatform });
+		});
 
 		PLUGIN('common', function(exports) {
 
-			exports.refresh = function() {
-			};
-
 			exports.copytoclipboard = function(el) {
 				var lines = el.parent().prev().text().split('\n');
-				for (var i = 0; i < lines.length; i++) {
-					var line = lines[i];
-					lines[i] = lines[i].replace(/^\s+/g, function(text) {
-						return text.replace(/\s{4}/g, '\t');
-					});
-				}
+				for (var i = 0; i < lines.length; i++)
+					lines[i] = lines[i].replace(/^\s+/g, text => text.replace(/\s{4}/g, '\t'));
 				SETTER('clipboard/copy', lines.join('\n'));
 			};
 
-			exports.refresh_libraries = function() {
-				AJAX('GET /api/libraries/', function(response) {
+		});
 
-					var arr = [];
-					var privatelibraries = [];
 
-					for (var i = 0; i < common.maingroups.length; i++) {
-						var g = common.maingroups[i];
-						var item = { id: g, name: g };
-						item.items = response.findAll('group', g);
-						item.items.quicksort('sortindex');
-						arr.push(item);
-					}
+		ROUTE('/', function() {
+			var plugin = PLUGINS.pluginlibraries;
+			var model = plugin.model;
+			if (model.groupped && model.groupped.length) {
+				var library = model.groupped[0];
+				var plus = location.hash;
+				if (library.items && library.items.length)
+					REDIRECT('/' + library.items[0].linker + '/' + plus);
+			} else
+				plugin.set('layout', 'libraries');
+		}, 'libraries');
 
-					var uncategorized = [];
-					for (var i = 0; i < response.length; i++) {
-						var item = response[i];
-						if (!item.group || common.maingroups.indexOf(item.group) === -1)
-							uncategorized.push(item);
-						item.draggable = W.user && W.user.sa;
-						if (item.private)
-							privatelibraries.push(item);
-					}
+		ROUTE('/{libraryid}/', function(libraryid) {
 
-					uncategorized.quicksort('sortindex');
-					uncategorized.length && arr.unshift({ name: '', items: uncategorized });
-					SET('?.libraries', response);
-					SET('?.libraries2', arr);
-					SET('?.privatelibraries', privatelibraries);
-					UPD('?.libraryid');
-				});
-			};
+			var plugin = PLUGINS.pluginlibraries;
 
-			exports.addlibrary = function() {
-				SET('libraryform @default', {});
-				SET('common.form', 'libraryform');
-			};
-
-			exports.addpage = function() {
-				var model = {};
-				model.libraryid = common.library.id;
-				SET('pageform @default', model);
-				SET('common.form', 'pageform');
-			};
-
-			exports.additem = function() {
-				var model = {};
-				model.pageid = [common.pageid];
-				model.libraryid = common.library.id;
-				model.type = common.lasttype || 'text';
-				model.body = { type: 'markdown', body: '', linenumbers: false };
-				SET('itemform @default', model);
-				SET('common.form', 'itemform');
-			};
-
-			exports.loadlibrary = function(id, callback, force) {
-
-				if (!force && common.library && common.library.linker === id) {
-					callback && callback();
-					return;
-				}
-
-				if (!force) {
-					common.library = common.libraries.findItem('linker', id);
-					if (!common.library)
-						return;
-				}
-
-				common.url = '/' + id + '/';
-				AJAX('GET /api/pages/?library=' + common.library.id, function(response) {
-
-					if (!common.library.groups)
-						common.library.groups = EMPTYARRAY;
-
-					SET('common.libraryid', common.library.id);
-					SET('common.pages', response);
-					SET('common.groups', common.library.groups);
-
-					var pages = response.slice(0);
-					pages.quicksort('name');
-					SET('common.pagessorted', pages);
-					NUL('common.items');
-					NUL('common.page');
-					exports.refreshpages();
-					callback && setTimeout(callback, 1);
-					maketitle();
-				});
-			};
-
-			function maketitle() {
-
-				var name = [];
-
-				if (common.page)
-					name.push(common.page.name);
-
-				if (common.library)
-					name.push(common.library.name);
-
-				document.title = (name.length ? name.join(' / ') : common.title);
-			}
-
-			exports.refreshpages = function() {
-				var response = common.pages;
-				var arr = [];
-
-				for (var i = 0; i < common.library.groups.length; i++) {
-					var g = common.library.groups[i];
-					var item = { name: g };
-					item.items = response.findAll('group', g);
-					item.items.quicksort('sortindex');
-					arr.push(item);
-				}
-
-				var uncategorized = [];
-				for (var i = 0; i < response.length; i++) {
-					var item = response[i];
-					if (!item.group || common.library.groups.indexOf(item.group) === -1)
-						uncategorized.push(item);
-					item.linker = '/' + common.library.linker + '/' + item.id + '/';
-					item.draggable = W.user && W.user.sa;
-				}
-
-				arr.unshift({ name: '', items: uncategorized });
-				uncategorized.quicksort('sortindex');
-
-				SET('common.pages2', arr);
-				var pages = response.slice(0);
-				pages.quicksort('name');
-				SET('common.pagessorted', pages);
-			};
-
-			exports.movepage = function(list) {
-
-				if (!W.user || !W.user.sa)
-					return;
-
-				var id = [];
-				for (var i = 0; i < list.length; i++)
-					id.push(list[i].getAttribute('data-if'));
-				AJAX('GET /api/pages/reindex/?id=' + id.join(','), ASETTER('message/response', NOOP));
-			};
-
-			exports.movelibrary = function(list) {
-
-				if (!W.user || !W.user.sa)
-					return;
-
-				var id = [];
-				for (var i = 0; i < list.length; i++)
-					id.push(list[i].getAttribute('data-if'));
-				AJAX('GET /api/libraries/reindex/?id=' + id.join(','), ASETTER('message/response', NOOP));
-			};
-
-			exports.loadpage = function(id, callback) {
-
-				if (common.page && common.page.id === id) {
-					callback && callback();
-					return;
-				}
-
-				SET('common.page', common.pages.findItem('id', id));
-				SET('common.pageid', id);
-				SET('common.layout', '');
-				maketitle();
-
-				AJAX('GET /api/items/?library={0}&page={1}'.format(common.library.id, id), function(response) {
-					exports.set('items', response);
-					exports.upd('pageid');
-					callback && callback();
-				});
-			};
-
-			exports.editpage = function(el) {
-
-				var id = el.closest('a').attrd('if');
-				var opt = {};
-				opt.element = el;
-				opt.items = [];
-				opt.align = 'right';
-				opt.offsetY = -7;
-				opt.items.push({ id: 'add', name: '@(Add item)', icon: 'ti ti-plus-circle green', classname: 'b' });
-				opt.items.push('-');
-				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'ti ti-pencil' });
-				opt.items.push({ id: 'clone', name: '@(Clone)', icon: 'ti ti-clone' });
-				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'ti ti-remove red' });
-
-				opt.callback = function(item) {
-
-					if (item.id === 'add') {
-						exports.additem();
-						return;
-					}
-
-					if (item.id === 'edit') {
-						AJAX('GET /api/pages/{0}/'.format(id), function(response) {
-							SET('pageform @reset', response);
-							SET('common.form', 'pageform');
-						});
-					} else if (item.id === 'clone') {
-						SETTER('loading/show');
-						AJAX('GET /api/pages/{0}/clone/'.format(id), ASETTER('message/response', function() {
-							SETTER('loading/hide', 1000);
-							exports.refresh_libraries();
-						}));
-					} else if (item.id === 'remove') {
-						SETTER('approve/show', '@(Are you sure you want to remove selected page?)', '"trash-o" @(Remove)', function() {
-							AJAX('DELETE /api/pages/{0}/'.format(id), function() {
-								common.pages = common.pages.remove('id', id);
-								UPD('common.pages');
-								exports.refreshpages();
-							});
-						});
-					}
-				};
-
-				SETTER('menu/show', opt);
-			};
-
-			exports.editlibrary = function(el) {
-
-				if (!user.sa)
-					return;
-
-				var id = el.closest('.jR').attrd('if');
-				var opt = {};
-				opt.element = el;
-				opt.items = [];
-				opt.align = 'right';
-				opt.offsetY = -7;
-				opt.items.push({ id: 'add', name: '@(Add page)', icon: 'far fa-plus-circle green', classname: 'b' });
-				opt.items.push('-');
-				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'far fa-pencil' });
-				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'far fa-trash-o red' });
-
-				opt.callback = function(item) {
-
-					if (item.id === 'add') {
-						exports.addpage();
-						return;
-					}
-
-					if (item.id === 'edit') {
-						AJAX('GET /api/libraries/{0}/'.format(id), function(response) {
-							SET('libraryform @reset', response);
-							SET('common.form', 'libraryform');
-						});
-					} else if (item.id === 'remove') {
-						SETTER('approve/show', '@(Are you sure you want to remove selected library?)', '"trash-o" @(Remove)', function() {
-							AJAX('DELETE /api/libraries/{0}/'.format(id), function() {
-								common.libraries = common.libraries.remove('id', id);
-								common.privatelibraries = common.privatelibraries.remove('id', id);
-								UPD('common.libraries');
-								UPD('common.privatelibraries');
-								if (common.libraryid === id)
-									NULL('common.libraryid');
-							});
-						});
-					}
-
-				};
-
-				SETTER('menu/show', opt);
-			};
-
-			exports.edititem = function(el, id, e) {
-
-				var opt = {};
-
-				if (e) {
-					opt.x = e.pageX;
-					opt.y = e.pageY;
-				} else
-					opt.element = el;
-
-				opt.items = [];
-				opt.align = 'right';
-				opt.offsetY = -7;
-				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'far fa-pencil' });
-				opt.items.push({ id: 'clone', name: '@(Clone)', icon: 'far fa-clone' });
-				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'far fa-trash-o red' });
-
-				opt.callback = function(item) {
-					if (item.id === 'edit' || item.id === 'clone') {
-						AJAX('GET /api/items/{0}/'.format(id), function(response) {
-							if (item.id === 'clone')
-								response.id = '';
-							response.body = { type: 'markdown', body: response.body, linenumbers: false };
-							SET('itemform @reset', response);
-							SET('common.form', 'itemform');
-						});
-					} else if (item.id === 'remove') {
-						SETTER('approve/show', '@(Are you sure you want to remove selected item?)', '"trash-o" @(Remove)', function() {
-							AJAX('DELETE /api/items/{0}/'.format(id), function() {
-								common.items = common.items.remove('id', id);
-								UPD('common.items');
-							});
-						});
-					}
-				};
-
-				SETTER('menu/show', opt);
-			};
-
-			exports.options = function(el) {
-				var opt = {};
-				opt.element = el;
-				opt.items = [];
-
-				if (user.sa)
-					opt.items.push({ id: 'addlibrary', name: '@(Add library)', icon: 'far fa-book', classname: 'b' });
-
-				if (common.libraryid && (user.sa || user.libraries.indexOf(common.libraryid) !== -1)) {
-					opt.items.push({ id: 'addpage', name: '@(Add page)', icon: 'far fa-file-alt' });
-
-					if (common.page)
-						opt.items.push({ id: 'additem', name: '@(Add item)', icon: 'far fa-code-branch' });
-				}
-
-				if (W.user) {
-					opt.items.push({ id: 'profile', name: '@(My profile)', icon: 'far fa-user-circle' });
-					if (W.user.sa) {
-						opt.items.push({ id: 'users', name: '@(Users)', icon: 'far fa-user-friends' });
-						opt.items.push({ id: 'settings', name: '@(Settings)', classname: 'b', icon: 'far fa-wrench' });
-					}
-				}
-
-				if (user.sa) {
-					opt.items.push('-');
-					opt.items.push({ id: 'backup', name: '@(Backup)', icon: 'fas fa-cloud-download' });
-					opt.items.push({ id: 'restore', name: '@(Restore)', icon: 'far fa-cloud-upload-alt' });
-					opt.items.push({ id: 'clean', name: '@(Clean unused files)', icon: 'far fa-archive' });
-				}
-
-				opt.items.push('-');
-				opt.items.push({ id: 'logoff', name: '@(Sign out)', icon: 'fas fa-power-off red' });
-				opt.offsetY = -10;
-				opt.callback = function(item) {
-					exports[item.id]();
-				};
-
-				SETTER('menu/show', opt);
-			};
-
-			exports.backup = function() {
-				location.href = '/backup/';
-			};
-
-			exports.clean = function() {
-				SETTER('approve/show', '@(Are you sure you want to clean all unused files?)', '"far fa-archive" @(Clean)', function() {
-					AJAX('GET /api/clean/', ASETTER('message/response', function(response) {
-						SETTER('message/success', '@(Done, cleaned: <b>{0} files</b>.)'.format(response.value));
-					}));
-				});
-			};
-
-			exports.restore = function() {
-				var opt = {};
-				opt.multiple = false;
-				opt.callback = function(files, e) {
-
-					var fd = new FormData();
-					for (var i = 0; i < files.length; i++) {
-
-						var filename = files[i].name;
-						var index = filename.lastIndexOf('/');
-
-						if (index === -1)
-							index = filename.lastIndexOf('\\');
-
-						if (index !== -1)
-							filename = filename.substring(index + 1);
-
-						fd.append('file' + i, files[i], filename);
-					}
-
-					SETTER('approve/show', '@(Are you sure you want to import data?)', '"far fa-cloud-upload" @(Import)', function() {
-						SETTER('loading/show');
-						UPLOAD('/restore/', fd, ASETTER('message/response @hideloading', function() {
-							location.reload();
-						}));
-					});
-
-				};
-
-				SETTER('filebrowser/show', opt);
-			};
-
-			exports.logoff = function() {
-				location.href = '/logoff/';
-			};
-
-			exports.profile = function() {
+			if (isMOBILE) {
 				SETTER('loading/show');
 				SETTER('loading/hide', 1000);
-				AJAX('GET /api/profile/', ASETTER('message/response', function(response) {
-					SET('profileform @reset', response);
-					SET('common.form', 'profileform');
-				}));
-			};
+			}
 
-			exports.settings = function() {
-				user.sa && AJAX('GET /api/settings/', ASETTER('message/response', function(response) {
-					SET('settingsform @reset', response);
-					SET('common.form', 'settingsform');
-				}));
-			};
+			plugin.loadlibrary(libraryid, plugin.loadfirst);
+			plugin.set('layout', 'pages', 100);
 
-			exports.users = function() {
-				SET('common.form', 'usersform');
-			};
+		}, 'libraries');
 
-			exports.login = function() {
-				SET('common.form', 'login');
-			};
-
-			exports.refresh_libraries();
-			exports.refresh();
-
-			exports.loadfirst = function() {
-				if (common.library && WIDTH() !== 'xs') {
-
-					var pageid;
-
-					if (common.library.pageid) {
-						pageid = common.library.pageid;
-						if (pageid instanceof Array)
-							pageid = pageid[0];
-					}
-
-					if (!pageid)
-						pageid = common.pages && common.pages.length ? common.pages[0].id : '';
-
-					pageid && exports.loadpage(pageid);
-				}
-			};
-
-			ROUTE('/', ['libraries'], function() {
-				if (common.libraries2 && common.libraries2.length) {
-					var library = common.libraries2[0];
-					if (library.items && library.items.length)
-						REDIRECT('/' + library.items[0].linker + '/');
-				} else
-					SET('common.layout', 'libraries');
-			});
-
-			ROUTE('/{libraryid}/', ['libraries'], function(libraryid) {
-
-				if (isMOBILE) {
-					SETTER('loading/show');
-					SETTER('loading/hide', 1000);
-				}
-
-				exports.loadlibrary(libraryid, exports.loadfirst);
-				SET('common.layout', 'pages', 100);
-			});
-
-			ROUTE('/{libraryid}/{pageid}/', ['libraries'], function(libraryid, pageid) {
-				exports.loadlibrary(libraryid, function() {
-					exports.loadpage(pageid);
-					var id = location.hash.substring(1);
-					if (id) {
-						setTimeout(function() {
-							var el = $('.ui-items-topic[data-id="{0}"]'.format(id));
-							if (el.length) {
-								el.find('label').trigger('click');
+		ROUTE('/{libraryid}/{pageid}/', function(libraryid, pageid) {
+			var plugin = PLUGINS.pluginlibraries;
+			plugin.loadlibrary(libraryid, function() {
+				plugin.loadpage(pageid);
+				var id = location.hash.substring(1);
+				if (id) {
+					setTimeout(function() {
+						var el = $('.ui-items-topic[data-id="{0}"]'.format(id));
+						if (el.length) {
+							el.find('label').trigger('click');
+							el.closest('.ui-scrollbar-area').scrollTop(el.offset().top - 50);
+						} else {
+							el = $('#' + id);
+							if (el.length)
 								el.closest('.ui-scrollbar-area').scrollTop(el.offset().top - 50);
-							} else {
-								el = $('#' + id);
-								if (el.length)
-									el.closest('.ui-scrollbar-area').scrollTop(el.offset().top - 50);
-							}
-						}, 1000);
-					} else
-						VIEWBOX.scrollbar.scrollTop(0);
-				});
-			});
-
-			exports.layout = function(el) {
-				SET('common.layout', el.attrd('if'));
-			};
-
-			exports.permissions = function(id, path, el) {
-				var user = W.user;
-				el.tclass('admin', !!(id && user && user.libraries && user.libraries.indexOf(id) !== -1));
-			};
-
-			exports.search = function(el) {
-
-				if (!common.libraryid)
-					return;
-
-				var opt = {};
-
-				opt.id = common.libraryid;
-				opt.delay = 400;
-
-				opt.search = function(value, next) {
-					AJAX('GET /api/items/search/?library={0}&q={1}'.format(common.libraryid, encodeURIComponent(value)), function(response) {
-						for (var i = 0; i < response.length; i++) {
-							var item = response[i];
-							if (item.pageid) {
-								var page = common.pages.findValue('id', item.pageid[0], 'name');
-								if (page)
-									item.html = '<span class="gray">' + page + '</span> / ' + item.name;
-							}
 						}
-
-						next(response);
-					});
-				};
-
-				opt.callback = function(item) {
-					if (item.kind === 'page')
-						REDIRECT('/{0}/{1}/'.format(common.library.linker, item.id));
-					else
-						REDIRECT('/{0}/{1}/#{2}'.format(common.library.linker, item.pageid[0], item.id));
-				};
-
-				SETTER('spotlight/show', opt);
-			};
-
-		});
+					}, 1000);
+				} else
+					VIEWBOX.scrollbar.scrollTop(0);
+			});
+		}, 'libraries');
 
 		ON('@flag showloading', function() {
 			SETTER('loading/show');
@@ -709,10 +178,6 @@
 					setTimeout(fn, 100);
 			};
 			fn();
-		});
-
-		SETTER(true, 'shortcuts/register', 'F1', function() {
-			EXEC('common/search');
 		});
 
 		function htmldecode(text) {

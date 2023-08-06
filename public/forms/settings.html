@@ -1,48 +1,69 @@
-<div data---="box__common.form__if:~PATH~;icon:wrench;title:@(Settings);autofocus:true;submit:?/submit;scrollbar:1;width:700" class="hidden" data-scope="~PATH~">
+<ui-component name="box" path="common.form" config="if:~PATH~;icon:cog;title:@(Settings);autofocus:true;submit:?/submit;scrollbar:1;width:700" class="hidden ~PATH~" plugin="~PATH~">
 	<div>
 		<div class="padding">
 			<div class="row">
 				<div class="col-md-8 m">
-					<div data---="input__?.name__required:1;maxlength:50__''">@(Name)</div>
+					<ui-component name="input" path="?.name" config="required:1;maxlength:50" default="''">@(Name)</ui-component>
 					<div class="help">@(Type a name of documentation)</div>
 				</div>
 				<div class="col-md-4 m">
-					<div data---="input__?.color__required:1;type:color__'#4285F4'">@(Primary color)</div>
+					<ui-component name="input" path="?.color" config="required:1;type:color" default="'#4285F4'">@(Primary color)</ui-component>
 				</div>
 			</div>
-			<div data---="input__?.darkmode__type:checkbox" class="m">@(Enable dark-mode)</div>
-			<div data---="textboxlist__?.groups__movable:1;placeholder:@(Type a group name and press enter)" class="m"><b>@(Groups)</b></div>
-			<p class="fs12" style="margin-top:25px"><i class="far fa-lock-alt mr5"></i>@(If you want to secure documentation, fill out the password field below. Each visitor will have to enter the password for accessing the documents.)</p>
-			<div data---="input__?.password__maxlength:30;monospace:1__''">@(Password)</div>
+			<ui-component name="input" path="?.darkmode" config="type:checkbox">@(Enable dark-mode)</ui-component>
+			<ui-component name="input" path="?.secured" config="type:checkbox" class="m">@(Secure documentation for unauthorized users)</ui-component>
+			<hr />
+			<ui-component name="textboxlist" path="?.groups" config="movable:1;placeholder:@(Type a group name and press enter)"><b>@(Groups)</b></ui-component>
+			<br />
+			<div class="padding bg-smoke" style="border-radius:var(--radius)">
+				<div class="caption"><i class="ti ti-totaljs color mr5"></i>@(OpenPlatform)</div>
+				<div>
+					<div class="m">@(You can provide this application on the Total.js OpenPlatform. First, you must obtain tokens from the application registration form in the OpenPlatform instance.)</div>
+					<div class="grid-2">
+						<div class="m">
+							<ui-component name="input" path="?.op_reqtoken" config="camouflage:1;placeholder:@(Enter a token)">@(Request token)</ui-component>
+						</div>
+						<div class="m">
+							<ui-component name="input" path="?.op_restoken" config="camouflage:1;placeholder:@(Enter a token)">@(Response token)</ui-component>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<p class="fs12" style="margin-top:25px"><i class="ti ti-lock mr5"></i>@(If you want to secure documentation, fill out the password field below. Each visitor will have to enter the password for accessing the documents.)</p>
+			<ui-component name="input" path="?.password" config="maxlength:30;monospace:1" default="''">@(Password)</ui-component>
 			<div class="help"><span class="exec link" data-exec="?/password">@(Generate password)</span></div>
 		</div>
 	</div>
-	<nav data---="validation__?">
-		<button name="submit" disabled><i class="fa fa-check-circle"></i>@(SUBMIT)</button>
-		<button name="cancel">@(Cancel)</button>
+	<nav>
+		<ui-component name="validate" path="?">
+			<button name="submit" disabled><i class="ti ti-check-circle"></i>@(SUBMIT)</button>
+			<button name="cancel">@(Cancel)</button>
+		</ui-component>
 	</nav>
-</div>
+</ui-component>
 
 <script>
 
-	PLUGIN('~PATH~', function(exports) {
+	PLUGIN(function(exports) {
 
 		exports.password = function() {
-			SET('?.password', GUID(30));
+			exports.set('password', GUID(30));
 		};
 
 		exports.submit = function(hide) {
 			var model = exports.form;
 			model.url = location.origin;
-			user.sa && AJAX('POST /api/settings/', model, ASETTER('notify/response', '@(Settings have been saved successfully)', function() {
-				AJAX('GET /api/settings/groups/', function(response) {
-					common.maingroups = response;
+			user.sa && exports.tapi('settings_save ERROR @showloading', model, function() {
+				SETTER('notify/success', '@(Settings have been saved successfully)');
+				exports.tapi('settings_groups ERROR @showloading', function(response) {
+					SET('common.maingroups', response);
+					EXE('common/refresh_libraries');
+					NUL('common.form @hideloading');
 					APPEARANCE({ color: model.color, darkmode: model.darkmode });
-					EXEC('common/refresh_libraries');
-					NULL('common.form');
 					hide();
 				});
-			}));
+			});
 		};
 
 	});

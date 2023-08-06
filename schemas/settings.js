@@ -1,52 +1,60 @@
 NEWSCHEMA('Settings', function(schema) {
 
-	schema.define('name', String, true);
-	schema.define('url', 'URL', true);
-	schema.define('password', String);
-	schema.define('color', 'Color');
-	schema.define('darkmode', Boolean);
-
-	// schema.define('smtp', String);
-	// schema.define('smtp_options', 'JSON');
-	schema.define('groups', '[String]');
-
-	schema.setRead(function($) {
-		if ($.user.sa)
-			$.callback(MAIN.db.config);
-		else
-			$.invalid(401);
-	});
-
-	schema.setSave(function($) {
-
-		if (!$.user.sa) {
-			$.invalid(401);
-			return;
+	schema.action('read', {
+		name: 'Read settings',
+		action: function($) {
+			if ($.user.sa)
+				$.callback(MAIN.db.config);
+			else
+				$.invalid(401);
 		}
-
-		MAIN.db.config = $.model;
-		FUNC.save();
-		EXEC('-Settings --> load', NOOP);
-		$.success();
 	});
 
-	schema.addWorkflow('load', function($) {
+	schema.action('save', {
+		name: 'Save settings',
+		input: '*name:String, *url:URL, password:String, color:Color, darkmode:Boolean, secured:Boolean, groups:[String], op_restoken:String, op_reqtoken:String',
+		action: function($, model) {
 
-		var config = MAIN.db.config;
+			if (!$.user.sa) {
+				$.invalid(401);
+				return;
+			}
 
-		if (config.name)
-			CONF.name = config.name;
+			MAIN.db.config = model;
+			FUNC.save();
 
-		if (config.password)
-			CONF.contentpassword = config.password.sha256(CONF.admin_secret);
-		else
-			delete CONF.contentpassword;
-
-		$.success();
+			$.action('load').callback(ERROR('Settings.load'));
+			$.success();
+		}
 	});
 
-	schema.addWorkflow('groups', function($) {
-		$.callback(MAIN.db.config.groups);
+	schema.action('load', {
+		name: 'Load settings',
+		action: function($) {
+
+			var db = MAIN.db;
+			var config = db.config;
+
+			if (config.name)
+				CONF.name = config.name;
+
+			CONF.op_reqtoken = config.op_reqtoken;
+			CONF.op_restoken = config.op_restoken;
+
+			if (config.password)
+				CONF.contentpassword = config.password.sha256(CONF.private_secret);
+			else
+				delete CONF.contentpassword;
+
+			$.success();
+		}
+	});
+
+	schema.action('groups', {
+		name: 'List of groups',
+		action: function($) {
+			$.callback(MAIN.db.config.groups);
+		}
 	});
 
 });

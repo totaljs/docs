@@ -1,0 +1,99 @@
+<ui-component name="box" path="common.form" config="if:~PATH~;icon:ti ti-file;autofocus:true;reload:?/reload;scrollbar:1;submit:?/submit;width:600" class="hidden" plugin="~PATH~">
+	<div>
+		<div class="padding bg-smoke">
+			<div class="row">
+				<div class="col-md-6 m">
+					<ui-component name="input" path="?.name" config="required:1" default="''">@(Name)</ui-component>
+				</div>
+				<div class="col-md-6 m">
+					<ui-component name="input" path="?.group" config="dirsource:%groups;dirplaceholder:@(Search);dirempty:@(No group)" default="''">@(Group)</ui-component>
+				</div>
+			</div>
+		</div>
+		<div class="padding">
+			<ui-component name="input" path="?.title">@(Title)</ui-component>
+			<div class="help">@(A custom title for the content)</div>
+			<hr />
+			<div class="row">
+				<div class="col-md-4 m">
+					<ui-component name="input" path="?.version" config="maxlength:20;align:1" default="''">@(Version)</ui-component>
+				</div>
+				<div class="col-md-4 m">
+					<ui-component name="input" path="?.icon" config="type:icon" default="''">@(Icon)</ui-component>
+				</div>
+				<div class="col-md-4 m">
+					<ui-component name="input" path="?.color" config="type:color" default="''">@(Color)</ui-component>
+				</div>
+			</div>
+			<ui-component name="input" path="?.newbie" config="type:checkbox" default="false">@(Highlight as newbie)</ui-component>
+			<ui-component name="input" path="?.deprecated" config="type:checkbox" default="false">@(Deprecated)</ui-component>
+			<ui-component name="input" path="?.welcome" config="type:checkbox" default="false">@(Set as start page)</ui-component>
+		</div>
+	</div>
+	<nav>
+		<ui-component name="validate" path="?">
+			<button name="submit" disabled><i class="ti ti-check-circle"></i>@(SUBMIT)</button>
+			<button name="cancel">@(Cancel)</button>
+		</ui-component>
+	</nav>
+</ui-component>
+
+<script>
+
+	PLUGIN(function(exports) {
+
+		var caller;
+
+		exports.reload = function(com) {
+			caller = exports.caller;
+			var model = exports.model;
+			var id = model ? model.id : null;
+			com.reconfigure({ title: id ? '@(Update page)' : '@(Create page)' });
+			exports.tapi('libraries_groups/{0} ERROR'.format(model.libraryid), '%groups');
+		};
+
+		exports.submit = function(hide) {
+			var model = exports.form;
+			exports.tapi('pages_save ERROR', model, function(response) {
+
+				var newbie = false;
+
+				var librarycall = caller.model;
+				var item = librarycall.pages.items.findItem('id', model.id);
+				if (item) {
+					COPY(model, item);
+					caller.loadpage(item.id, null, true);
+				} else {
+					model.id = response.value;
+					model.sortindex = Date.now();
+					model.canedit = true;
+					newbie = true;
+					librarycall.pages.items.push(model);
+				}
+
+				caller.exec('refreshpages');
+
+				if (newbie) {
+					var library = librarycall.libraries.findItem('id', model.libraryid);
+					if (library) {
+						if (model.welcome)
+							library.pageid = model.id;
+						REDIRECT('/{0}/{1}/'.format(library.linker, model.id));
+					}
+				} else {
+
+					if (model.welcome) {
+						var library = librarycall.libraries.findItem('id', model.libraryid);
+						if (library)
+							library.pageid = model.id;
+					}
+
+					NAV.refresh();
+				}
+				hide();
+			});
+		};
+
+	});
+
+</script>

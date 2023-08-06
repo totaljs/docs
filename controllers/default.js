@@ -1,59 +1,20 @@
 exports.install = function() {
 
 	// Routing
-	ROUTE('GET        /                                          ', view_index);
-	ROUTE('GET        /{library}/                                ', view_index);
-	ROUTE('GET        /{library}/{page}/                         ', view_index);
+	ROUTE('GET        /                 ', view_index);
+	ROUTE('GET        /{library}/       ', view_index);
+	ROUTE('GET        /{library}/{page}/', view_index);
 
-	// Libraries
-	ROUTE('GET        /api/libraries/                *Libraries   --> query');
-	ROUTE('GET        /api/libraries/{id}/           *Libraries   --> read');
-	ROUTE('+POST      /api/libraries/                *Libraries   --> save');
-	ROUTE('+DELETE    /api/libraries/{id}/           *Libraries   --> remove');
-	ROUTE('+GET       /api/libraries/{id}/groups/    *Libraries   --> groups');
-	ROUTE('+GET       /api/libraries/reindex/        *Libraries   --> reindex');
-
-	// Pages
-	ROUTE('GET        /api/pages/                    *Pages       --> query');
-	ROUTE('GET        /api/pages/{id}/               *Pages       --> read');
-	ROUTE('+GET       /api/pages/{id}/clone/         *Pages       --> clone', [10000]);
-	ROUTE('+POST      /api/pages/                    *Pages       --> save');
-	ROUTE('+DELETE    /api/pages/{id}/               *Pages       --> remove');
-	ROUTE('+GET       /api/pages/reindex/            *Pages       --> reindex');
-
-	// Items
-	ROUTE('GET        /api/items/                    *Items       --> query');
-	ROUTE('GET        /api/items/{id}/               *Items       --> read');
-	ROUTE('+POST      /api/items/                    *Items       --> save');
-	ROUTE('+DELETE    /api/items/{id}/               *Items       --> remove');
-	ROUTE('GET        /api/items/search/             *Items       --> search');
-
-	// Users
-	ROUTE('+GET       /api/users/                    *Users       --> query');
-	ROUTE('+GET       /api/users/{id}/               *Users       --> read');
-	ROUTE('+POST      /api/users/                    *Users       --> insert');
-	ROUTE('+POST      /api/users/{id}/               *Users       --> update');
-	ROUTE('+DELETE    /api/users/{id}/               *Users       --> remove');
+	ROUTE('+GET       /api/clean/',        clean);
+	ROUTE('+GET       /api/files/',        files_browse);
+	ROUTE('+POST      /api/upload/',       upload, ['upload'], 1024 * 10);
+	ROUTE('+GET       /backup/',           backup, [1000 * 60]);
+	ROUTE('+POST      /restore/',          restore, ['upload', 1000 * 60], 1024 * 100); // Max. 100 MB
 
 	// Settings
-	ROUTE('+GET       /api/settings/                 *Settings    --> read');
-	ROUTE('+POST      /api/settings/                 *Settings    --> save');
-	ROUTE('+GET       /api/settings/groups/          *Settings    --> groups');
-
-	// Profile
-	ROUTE('+GET       /api/profile/                  *Profile     --> read');
-	ROUTE('+POST      /api/profile/                  *Profile     --> save');
-	ROUTE('POST       /api/login/                    *Login       --> exec');
-	ROUTE('POST       /api/request/                  *Request     --> exec');
-	ROUTE('POST       /api/password/                 *Password    --> exec');
-	ROUTE('+GET       /api/clean/',  clean);
-	ROUTE('+GET       /api/files/',  files_browse);
-
-	ROUTE('+POST     /api/upload/',  upload,  ['upload'], 1024 * 10);
-	ROUTE('GET       /logoff/',      logoff);
-
-	ROUTE('+GET      /backup/',      backup,  [1000 * 60]);
-	ROUTE('+POST     /restore/',     restore, ['upload', 1000 * 60], 1024 * 100); // Max. 100 MB
+	ROUTE('+API    /api/    -settings             *Settings   --> read');
+	ROUTE('+API    /api/    +settings_save        *Settings   --> save');
+	ROUTE('+API    /api/    -settings_groups      *Settings   --> groups');
 
 	ROUTE('FILE /download/*.*', files);
 };
@@ -61,10 +22,25 @@ exports.install = function() {
 function view_index() {
 	var self = this;
 
+	var plugins = [];
+	var language = (self.user ? self.user.language || '' : '');
+
+	for (var key in F.plugins) {
+		var item = F.plugins[key];
+		var obj = {};
+		obj.id = item.id;
+		obj.routes = item.routes;
+		obj.position = item.position;
+		obj.name = TRANSLATOR(language, item.name);
+		obj.icon = item.icon;
+		obj.import = item.import ? '/_{id}/{import}'.args(item) : '';
+		obj.hidden = item.hidden;
+		plugins.push(obj);
+	}
+
+	plugins.quicksort('position');
+
 	if (self.url === '/' && self.query.url && ((/^http(s)?:\/\/[a-z0-9]+/).test(self.query.url))) {
-
-		// NOSQL('external').insert({ id: UID(), url: self.query.url, ip: self.ip, ua: self.ua, dtcreated: NOW });
-
 		var opt = {};
 		opt.method = 'GET';
 		opt.url = self.query.url;
@@ -81,21 +57,10 @@ function view_index() {
 		REQUEST(opt);
 
 	} else {
-
-		if (MAIN.db.config && MAIN.db.config.password) {
-
-			if (BLOCKED(self, 10))
-				return;
-
-			if (self.cookie(CONF.password_cookie) !== CONF.contentpassword) {
-				self.view('login');
-				return;
-			}
-
-			BLOCKED(self, -1);
-		}
-
-		self.view('index');
+		if (MAIN.db.config.secured && !self.user)
+			self.throw401();
+		else
+			self.view('index', plugins);
 	}
 }
 
@@ -141,17 +106,6 @@ function upload() {
 		meta.url = '/download/' + id + '-' + id.makeid() + '-' + w + 'x' + h + '-1.' + file.extension;
 		self.json(meta);
 	});
-}
-
-function logoff() {
-	var self = this;
-
-	if (self.user) {
-		MAIN.session.remove(self.sessionid);
-		self.cookie(CONF.admin_cookie, '', '-1 day');
-	}
-
-	self.redirect('/');
 }
 
 function backup() {

@@ -1,0 +1,600 @@
+<ui-plugin>
+	<ui-bind path="?.layout" config=".visible:value==='libraries'" class="plibraries block">
+		<a href="/" class="logo">@{CONF.name}</a>
+		<ui-component name="viewbox" config="parent:window;scrollbar:1;visibleY:0;margin:47;scrollbarshadow:0" class="invisible">
+			<ui-component name="selected" path="?.libraryid" config="selector:.jR;datasource:?.groupped;delay:50">
+				<ui-component name="movable" config="selector:.jR;exec:?/movelibrary">
+					<nav class="nav nmt">
+						<ui-bind path="user" config="show" class="hidden block">
+							<div class="item options exec" data-exec="?/options"><i class="ti ti-cog"></i><div class="b">@(Options)</div></div>
+							<hr />
+						</ui-bind>
+						<ui-bind path="?.groupped" config="template" class="block">
+							<script type="text/html">
+								{{ foreach n in value }}
+									{{ if n.name }}
+										<div class="group">{{ n.name }}</div>
+									{{ fi }}
+									<div class="m">
+									{{ foreach m in n.items }}
+										<a href="/{{ m.linker }}/" class="jR" data-if="{{ m.id }}"{{ if m.draggable }} draggable="true"{{ fi }}><b class="exec" data-exec="?/editlibrary" data-prevent="true"><i class="ti ti-pencil"></i></b><i class="{{ if m.icon }}{{ m.icon }}{{ else }}ti ti-book{{ fi }}"{{ if m.color }} style="color:{{ m.color }}"{{ fi }}></i><span>{{ m.name }}{{ if m.newbie }}<b>@(new)</b>{{ fi }}</span></a>
+									{{ end }}
+									</div>
+								{{ end }}
+							</script>
+						</ui-bind>
+					</nav>
+				</ui-component>
+			</ui-component>
+		</ui-component>
+	</ui-bind>
+
+	<ui-bind path="?.layout" config=".visible:value==='pages'" class="ppages block">
+
+		<div class="search exec" data-exec="?/search">
+			<i class="ti ti-search"></i>
+			<div><span>F1</span>@(Search items)</div>
+		</div>
+
+		<ui-component name="viewbox" path="?.pages.groupped" config="parent:window;scrollbar:1;visibleY:0;margin:45;scrollbarshadow:0" class="invisible">
+			<ui-bind path="?.libraryid" config="exec:?/permissions" class="block">
+				<ui-component name="selected" path="?.pageid" config="selector:.jR;datasource:?.pages.groupped;delay:50">
+					<ui-component name="movable" config="selector:.jR;exec:?/movepage">
+						<nav class="nav nav2 nmt">
+							<ui-bind path="?.pages.groupped" config="template" class="block">
+								<script type="text/html">
+									{{ foreach n in value }}
+										{{ if n.name }}
+											<div class="group">{{ n.name }}</div>
+										{{ fi }}
+										<div class="m">
+										{{ foreach m in n.items }}
+											<a href="{{ m.linker }}" class="jR" data-if="{{ m.id }}"{{ if m.draggable }} draggable="true"{{ fi }}>{{ if m.canedit }}<b class="exec" data-exec="?/editpage" data-prevent="true"><i class="ti ti-pencil"></i></b>{{ fi }}<i class="{{ if m.icon }}{{ m.icon }}{{ else }}ti ti-file{{ fi }}"{{ if m.color }} style="color:{{ m.color }}"{{ fi }}></i><span>{{ m.name }}{{ if m.newbie }}<b>@(new)</b>{{ fi }}</span></a>
+										{{ end }}
+										</div>
+									{{ end }}
+								</script>
+							</ui-bind>
+						</nav>
+					</ui-component>
+				</ui-component>
+			</ui-bind>
+		</ui-component>
+	</ui-bind>
+
+	<ui-bind path="?.layout" config=".visible:value===''" class="pmain block">
+		<ui-component name="viewbox" path="?.page" config="parent:window;margin:0;scrollbar:1;scrolltop:1;scrollbarshadow:0;$assign:VIEWBOX" class="invisible">
+			<ui-bind path="?.libraryid" config="exec:?/permissions;show" class="hidden block">
+				<ui-bind path="?.page" config="show" class="hidden block">
+					<header>
+						<h1><ui-bind path="?.page" config="template;visible"><script type="text/html">{{ if value.title }}{{ value.title }}{{ else }}{{ value.name }}{{ fi }}</script></ui-bind></h1>
+					</header>
+					<ui-component name="items" path="?.items" config="edit:?/edititem"></ui-component>
+					<br />
+				</ui-bind>
+			</ui-bind>
+		</ui-component>
+	</ui-bind>
+
+	<section class="pbuttons">
+		<ui-component name="selected" path="?.layout" config="selector:button">
+			<nav class="mobilenavigation">
+				<button class="exec" data-exec="?/layout" data-if="libraries"><span>@(Libraries)</span></button>
+				<button class="exec" data-exec="?/layout" data-if="pages"><span>@(Pages)</span></button>
+				<button class="exec" data-exec="?/layout" data-if=""><span>@(Content)</span></button>
+			</nav>
+		</ui-component>
+	</section>
+</ui-plugin>
+
+<ui-component name="importer" path="common.form" config="url:/~ID~/forms/item.html;if:itemform"></ui-component>
+<ui-component name="importer" path="common.form" config="url:/~ID~/forms/page.html;if:pageform"></ui-component>
+<ui-component name="importer" path="common.form" config="url:/~ID~/forms/library.html;if:libraryform"></ui-component>
+
+<script>
+
+	PLUGIN(function(exports) {
+
+		exports.reload = function() {
+			exports.set('maingroups', PARSE('#groupsdata'));
+			exports.set('library', '');
+			exports.refresh_libraries();
+		};
+
+		exports.refresh_libraries = function(callback) {
+			exports.tapi('libraries ERROR', function(response) {
+
+				var model = exports.model;
+				var arr = [];
+				var private = [];
+
+				for (var g of model.maingroups) {
+					var item = { id: g, name: g };
+					item.items = response.findAll('group', g);
+					item.items.quicksort('sortindex');
+					arr.push(item);
+				}
+
+				var uncategorized = [];
+				for (var item of response) {
+
+					if (!item.group || !model.maingroups.includes(item.group))
+						uncategorized.push(item);
+
+					if (W.user) {
+						item.draggable = W.user.sa;
+						item.canedit = W.user.sa || W.user.permissions.includes(item.id);
+					}
+
+					if (item.private)
+						private.push(item);
+				}
+
+				uncategorized.quicksort('sortindex');
+				uncategorized.length && arr.unshift({ name: '', items: uncategorized });
+
+				exports.set('libraries', response);
+				SET('common.libraries', response);
+				exports.set('groupped', arr);
+				exports.set('private', private);
+				exports.upd('libraryid');
+
+				if (callback && typeof(callback) === 'function')
+					callback();
+
+			});
+		};
+
+		exports.addlibrary = function() {
+			SET('libraryform @default', {});
+			SET('common.form', 'libraryform');
+		};
+
+		exports.addpage = function() {
+			var model = exports.model;
+			var obj = {};
+			obj.libraryid = model.library.id;
+			SET('pageform @default', obj);
+			SET('common.form', 'pageform');
+		};
+
+		exports.additem = function() {
+			var model = exports.model;
+			var obj = {};
+			obj.pageid = [model.pageid];
+			obj.libraryid = model.library.id;
+			obj.type = model.lasttype || 'text';
+			obj.body = { type: 'markdown', body: '', linenumbers: false };
+			SET('itemform @default', obj);
+			SET('common.form', 'itemform');
+		};
+
+		exports.loadlibrary = function(id, callback, force) {
+
+			var model = exports.model;
+
+			if (!force && model.library && model.library.linker === id) {
+				callback && callback();
+				return;
+			}
+
+			if (!force) {
+				model.library = model.libraries.findItem('linker', id);
+				if (!model.library) {
+					callback && callback();
+					return;
+				}
+			}
+
+			model.url = '/{0}/'.format(id);
+
+			exports.tapi('pages/{id} ERROR'.args(model.library), function(response) {
+
+				for (var item of response) {
+
+					if (W.user) {
+						item.draggable = W.user.sa;
+						item.canedit = W.user.sa || W.user.permissions.includes(item.id);
+					}
+				}
+
+				if (!model.library.groups)
+					model.library.groups = EMPTYARRAY;
+
+				exports.set('libraryid', model.library.id);
+				exports.set('groups', model.library.groups);
+				exports.set('pages.items', response);
+
+				var pages = response.slice(0);
+				pages.quicksort('name');
+				exports.set('pages.sorted', pages);
+				exports.nul('items');
+				exports.nul('page');
+				callback && setTimeout(callback, 1);
+				exports.refreshpages();
+				maketitle(model.page, model.library, model.title);
+			});
+		};
+
+		function maketitle(page, library, title) {
+
+			var name = [];
+
+			if (page)
+				name.push(page.title || page.name);
+
+			if (library)
+				name.push(library.name);
+
+			document.title = (name.length ? name.join(' / ') : title);
+		}
+
+		exports.refreshpages = function() {
+
+			var model = exports.model;
+			var response = model.pages.items;
+			var arr = [];
+
+			if (model.library) {
+				for (var g of model.library.groups) {
+					var item = { name: g };
+					item.items = response.findAll('group', g);
+					item.items.quicksort('sortindex');
+					arr.push(item);
+				}
+				var uncategorized = [];
+				for (var i = 0; i < response.length; i++) {
+					var item = response[i];
+					if (!item.group || !model.library.groups.includes(item.group))
+						uncategorized.push(item);
+					item.linker = '/' + model.library.linker + '/' + item.id + '/';
+					item.draggable = W.user && W.user.sa;
+				}
+
+				arr.unshift({ name: '', items: uncategorized });
+				uncategorized.quicksort('sortindex');
+
+				var pages = response.slice(0);
+				pages.quicksort('name');
+				exports.set('pages.groupped', arr);
+				exports.set('pages.sorted', pages);
+			} else
+				exports.refresh_libraries();
+		};
+
+		exports.movepage = function(list) {
+
+			if (!W.user || !W.user.sa)
+				return;
+
+			var id = [];
+			for (var i = 0; i < list.length; i++)
+				id.push(list[i].getAttribute('data-if'));
+			exports.tapi('pages_reindex/?id={0} ERROR'.format(id.join(',')));
+		};
+
+		exports.movelibrary = function(list) {
+
+			if (!W.user || !W.user.sa)
+				return;
+
+			var id = [];
+			for (var i = 0; i < list.length; i++)
+				id.push(list[i].getAttribute('data-if'));
+			exports.tapi('libraries_reindex/?id={0} ERROR'.format(id.join(',')));
+		};
+
+		exports.loadpage = function(id, callback, force) {
+
+			var model = exports.model;
+
+			if (!force && model.page && model.page.id === id) {
+				maketitle(model.page, model.library, model.title);
+				callback && callback();
+				return;
+			}
+
+			if (!model.pages.items)
+				return;
+
+			exports.set('page', model.pages.items.findItem('id', id));
+			exports.set('pageid', id);
+			exports.set('layout', '');
+			maketitle(model.page, model.library, model.title);
+
+			exports.tapi('items/?library={0}&page={1} ERROR'. format(model.library.id, id), function(response) {
+				exports.set('items', response);
+				callback && callback();
+			})
+		};
+
+		exports.editpage = function(el) {
+
+			var model = exports.model;
+
+			var id = el.closest('a').attrd('if');
+			var opt = {};
+			opt.element = el;
+			opt.items = [];
+			opt.align = 'right';
+			opt.offsetY = -7;
+			opt.items.push({ id: 'add', name: '@(Add item)', icon: 'ti ti-plus-circle green', classname: 'b' });
+			opt.items.push('-');
+			opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'ti ti-pencil' });
+			opt.items.push({ id: 'clone', name: '@(Clone)', icon: 'ti ti-clone' });
+			opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'ti ti-remove red' });
+
+			opt.callback = function(item) {
+
+				if (item.id === 'add') {
+					exports.additem();
+					return;
+				}
+
+				if (item.id === 'edit') {
+					exports.tapi('pages_read/{0} ERROR'.format(id), function(response) {
+						SET('pageform @reset', response);
+						SET('common.form', 'pageform');
+					});
+				} else if (item.id === 'clone') {
+					SETTER('loading/show');
+					exports.tapi('pages_clone/{0} ERROR'.format(id), function() {
+						SETTER('loading/hide', 1000);
+						exports.refresh_libraries();
+					});
+				} else if (item.id === 'remove') {
+					SETTER('approve/show', '@(Are you sure you want to remove selected page?)', '"ti ti-trash" @(Remove)', function() {
+						exports.tapi('pages_remove/{0} ERROR'.format(id), function() {
+							model.pages.items = model.pages.items.remove('id', id);
+							exports.refreshpages();
+						});
+					});
+				}
+			};
+
+			SETTER('menu/show', opt);
+		};
+
+		exports.editlibrary = function(el) {
+			var model = exports.model;
+
+			var id = el.closest('.jR').attrd('if');
+			var opt = {};
+			opt.element = el;
+			opt.items = [];
+			opt.align = 'right';
+			opt.offsetY = -7;
+			opt.items.push({ id: 'add', name: '@(Add page)', icon: 'ti ti-plus-circle green', classname: 'b' });
+
+			if (user.sa) {
+				opt.items.push('-');
+				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'ti ti-pencil' });
+				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'ti ti-remove red' });
+			}
+
+			opt.callback = function(item) {
+
+				if (item.id === 'add') {
+					exports.addpage();
+					return;
+				}
+
+				if (item.id === 'edit') {
+					exports.tapi('libraries_read/{0} ERROR'.format(id), function(response) {
+						SET('libraryform @reset', response);
+						SET('common.form', 'libraryform');
+					});
+				} else if (item.id === 'remove') {
+					SETTER('approve/show', '@(Are you sure you want to remove selected library?)', '"ti ti-trash" @(Remove)', function() {
+						exports.tapi('libraries_remove/{0} ERROR'.format(id), function() {
+							if (model.libraryid === id)
+								NULL('pluginlibraries.libraryid');
+							exports.refresh_libraries();
+						});
+					});
+				}
+
+			};
+
+			SETTER('menu/show', opt);
+		};
+
+		exports.edititem = function(el, id, e) {
+
+			var model = exports.model;
+
+			var opt = {};
+
+			if (e) {
+				opt.x = e.pageX;
+				opt.y = e.pageY;
+			} else
+				opt.element = el;
+
+			opt.items = [];
+			opt.align = 'right';
+			opt.offsetY = -7;
+			opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'ti ti-pencil' });
+			opt.items.push({ id: 'clone', name: '@(Clone)', icon: 'ti ti-clone' });
+			opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'ti ti-remove red' });
+
+			opt.callback = function(item) {
+				if (item.id === 'edit' || item.id === 'clone') {
+					exports.tapi('items_read/{0} ERROR'.format(id), function(response) {
+						if (item.id === 'clone')
+							response.id = '';
+						response.body = { type: 'markdown', body: response.body, linenumbers: false };
+						SET('itemform @reset', response);
+						SET('common.form', 'itemform');
+					});
+				} else if (item.id === 'remove') {
+					SETTER('approve/show', '@(Are you sure you want to remove selected item?)', '"ti ti-remove" @(Remove)', function() {
+						exports.tapi('items_remove/{0} ERROR'.format(id), function() {
+							model.items = model.items.remove('id', id);
+							UPD('pluginlibraries.items');
+						});
+					});
+				}
+			};
+
+			SETTER('menu/show', opt);
+		};
+
+		exports.options = function(el) {
+			var model = exports.model;
+			var opt = {};
+			opt.element = el;
+			opt.items = [];
+
+			if (user.sa)
+				opt.items.push({ id: 'addlibrary', name: '@(Add library)', icon: 'ti ti-book', classname: 'b' });
+
+			if (model.libraryid && (user.sa || user.permissions.indexOf(model.libraryid) !== -1)) {
+				opt.items.push({ id: 'addpage', name: '@(Add page)', icon: 'ti ti-file' });
+				if (model.page)
+					opt.items.push({ id: 'additem', name: '@(Add item)', icon: 'ti ti-code-branch' });
+			}
+
+			if (W.user && W.user.sa)
+				opt.items.push({ id: 'settings', name: '@(Settings)', classname: 'b', icon: 'ti ti-cog' });
+
+			if (user.sa) {
+				opt.items.push('-');
+				opt.items.push({ id: 'backup', name: '@(Backup)', icon: 'ti ti-cloud-download' });
+				opt.items.push({ id: 'restore', name: '@(Restore)', icon: 'ti ti-cloud-upload' });
+				opt.items.push({ id: 'clean', name: '@(Clean unused files)', icon: 'ti ti-clean' });
+			}
+
+			opt.offsetY = -10;
+			opt.callback = function(item) {
+				exports[item.id]();
+			};
+
+			SETTER('menu/show', opt);
+		};
+
+		exports.loadfirst = function() {
+
+			var model = exports.model;
+
+			if (model.library && WIDTH() !== 'xs') {
+
+				var pageid;
+
+				if (model.library.pageid) {
+					pageid = model.library.pageid;
+					if (pageid instanceof Array)
+						pageid = pageid[0];
+				}
+
+				if (!pageid)
+					pageid = model.pages.items && model.pages.items.length ? model.pages.items[0].id : '';
+
+				pageid && exports.loadpage(pageid);
+			}
+		};
+
+		exports.search = function(el) {
+
+			var model = exports.model;
+			if (!model.libraryid)
+				return;
+
+			var opt = {};
+
+			opt.id = model.libraryid;
+			opt.delay = 400;
+
+			opt.search = function(value, next) {
+				exports.tapi('items_search/?library={0}&q={1}'.format(model.libraryid, encodeURIComponent(value)), function(response) {
+					for (var i = 0; i < response.length; i++) {
+						var item = response[i];
+						if (item.pageid) {
+							var page = model.pages.items.findValue('id', item.pageid[0], 'name');
+							if (page)
+								item.html = '<span class="gray">' + page + '</span> / ' + item.name;
+						}
+					}
+
+					next(response);
+				});
+			};
+
+			opt.callback = function(item) {
+				if (item.kind === 'page')
+					REDIRECT('/{0}/{1}/'.format(model.library.linker, item.id));
+				else
+					REDIRECT('/{0}/{1}/#{2}'.format(model.library.linker, item.pageid[0], item.id));
+			};
+
+			SETTER('spotlight/show', opt);
+		};
+
+		exports.backup = function() {
+			location.href = '/backup/';
+		};
+
+		exports.clean = function() {
+			SETTER('approve/show', '@(Are you sure you want to clean all unused files?)', '"ti ti-archive" @(Clean)', function() {
+				AJAX('GET /api/clean/ ERROR', function(response) {
+					SETTER('message/success', '@(Done, cleaned: <b>{0} files</b>.)'.format(response.value));
+				});
+			});
+		};
+
+		exports.restore = function() {
+			var opt = {};
+			opt.multiple = false;
+			opt.callback = function(files, e) {
+
+				var fd = new FormData();
+				for (var i = 0; i < files.length; i++) {
+
+					var filename = files[i].name;
+					var index = filename.lastIndexOf('/');
+
+					if (index === -1)
+						index = filename.lastIndexOf('\\');
+
+					if (index !== -1)
+						filename = filename.substring(index + 1);
+
+					fd.append('file' + i, files[i], filename);
+				}
+
+				SETTER('approve/show', '@(Are you sure you want to import data?)', '"ti ti-cloud-upload" @(Import)', function() {
+					SETTER('loading/show');
+					UPLOAD('/restore/ ERROR', fd, function() {
+						SETTER('loading/hide');
+						location.reload();
+					});
+				});
+
+			};
+
+			SETTER('filebrowser/show', opt);
+		};
+
+		exports.layout = function(el) {
+			exports.set('layout', el.attrd('if'));
+		};
+
+		exports.permissions = function(id, path, el) {
+			var user = W.user;
+			el.tclass('admin', !!(id && user && user.permissions && user.permissions.indexOf(id) !== -1));
+		};
+
+		exports.settings = function() {
+			user.sa && exports.tapi('settings ERROR', function(response) {
+				SET('settingsform @reset', response);
+				SET('common.form', 'settingsform');
+			});
+		};
+
+	});
+
+	SETTER(true, 'shortcuts/register', 'F1', function() {
+		EXEC('pluginlibraries/search');
+	});
+
+</script>

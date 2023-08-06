@@ -7,7 +7,7 @@ $monospace  : Menlo,Menlo2,Consolas,monospace;
 }
 
 html,body { overflow: hidden; padding: 0; margin: 0; height: 100%; }
-body { background-color: #FFF; color: #000; font-smoothing: antialiased; }
+body { background-color: #FFF; color: #000; }
 footer { font-size: 11px; color: #A0A0A0; margin: 0; border-top: 1px solid #F0F0F0; padding: 0 0 0 10px; line-height: 35px; height: 35px; text-align: center; }
 footer a { color: #777; }
 footer b { color: #000; }
@@ -83,12 +83,12 @@ header > h1 { border-bottom-color: #404040; }
 .ui-dark .nav2 .group { border-bottom-color: #404040; }
 .nav .item.options { background-color: #F8F8F8; }
 .ui-dark .nav .item.options { background-color: #272727; }
-.nav .item { height: 26px; cursor: pointer; margin: 2px 8px 3px; border-radius: var(--radius); font-size: 12px; }
+.nav .item { height: 30px; cursor: pointer; margin: 2px 8px 3px; border-radius: var(--radius); font-size: 12px; }
 .nav .item > span { float: right; width: 24px; font-size: 12px; padding: 5px 5px 0 0; text-align: right; color: gray; }
 .nav .item > span:hover { color: black; }
 .nav .item:hover { background-color: #F0F0F0; color: black; }
-.nav .item > i { float: left; width: 18px; font-size: 14px; padding: 6px 0 0 0; margin: 0 5px; color: gray; text-align: center; }
-.nav .item > div { margin: 0 40px 0 32px; line-height: 26px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.nav .item > i { float: left; width: 18px; font-size: 14px; padding: 7px 0 0 0; margin: 0 5px; color: gray; text-align: center; }
+.nav .item > div { margin: 0 40px 0 32px; line-height: 30px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
 .nav a > span b { background-color: #F00000; color: #FFF; margin: 0 0 0 5px; font-size: 8px; padding: 1px 3px; border-radius: var(--radius); font-family: Arial; position: relative; display: inline-block; line-height: 10px; vertical-align: middle; text-decoration: none; }
 .nav .selected { color: white !important; background-color: var(--color) !important; }
 .nav .selected i { color: white !important; }
@@ -96,12 +96,12 @@ header > h1 { border-bottom-color: #404040; }
 .nav .selected i.green { color: #68B25B !important; }
 .nav hr { margin: 10px 0; border-color: #E0E0E0; }
 .nav .light { color: gray; }
-.nav a { height: 28px; cursor: pointer; margin: 3px 8px 3px; border-radius: var(--radius); font-size: 13px; display: block; color: #000; }
+.nav a { height: 30px; cursor: pointer; margin: 3px 8px 3px; border-radius: var(--radius); font-size: 13px; display: block; color: #000; }
 .nav a:hover { background-color: #F0F0F0; color: black; text-decoration: none; }
-.nav a > b { float: right; width: 18px; font-size: 11px; color: gray; margin: 4px 0 0; display: none; }
+.nav a > b { float: right; width: 18px; font-size: 11px; color: #999; margin: 6px 0 0; display: none; }
 .admin .nav a > b { display: block; }
 .nav a > i { float: left; width: 18px; font-size: 14px; padding: 7px 0 0 0; margin: 0 5px; color: gray; text-align: center; }
-.nav a > span { margin: 0 5px 18px 32px; line-height: 28px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: block; }
+.nav a > span { margin: 0 5px 18px 32px; line-height: 30px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: block; }
 
 .ui-dark .nav .group { color: #D0D0D0; }
 .ui-dark .nav2 .group { color: #FFF; }
@@ -161,6 +161,7 @@ hr { border-color: #E0E0E0; }
 .markdown { padding: 0; font-size: 16px; line-height: 22px; font-family: Arial; color: #404040; overflow-x: hidden; }
 .markdown-small .markdown { font-size: 14px; line-height: 19px; overflow-y: hidden; }
 .markdown-container > *:last-child { margin-bottom: 0; }
+.markdown-container { overflow-y: hidden; }
 .markdown code { font-family: $monospace; }
 .markdown h1 { cursor: default; margin: 0 0 20px; font-size: 34px; padding: 0 0 13px; border-bottom: 3px solid #E0E0E0; color: black; line-height: 38px; font-family: Arial; font-weight: normal; line-height: 32px; font-weight: normal; }
 .markdown h2 { cursor: default; margin: 0 0 18px; font-weight: bold; font-size: 24px; padding: 8px 0; border-bottom: 2px solid #E0E0E0; color: black; line-height: 28px; font-family: Arial; }
@@ -339,3 +340,6 @@ dd:before { content: ':'; margin-right: 8px; color: gray; }
 	75% { color: white; }
 	100% { color: #8c42f6; }
 }
+
+.ui-directory-checkbox { line-height: 15px; }
+.ui-searchinput { border-radius: var(--radius); }

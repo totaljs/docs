@@ -1,19 +1,6 @@
 MAIN.version = 1;
-MAIN.session = SESSION();
 MAIN.fs = FILESTORAGE('files');
 MAIN.db = { items: [] };
-
-MAIN.session.ondata = function(meta, next) {
-	NOSQL('users').read().fields('-password').where('isdisabled', false).id(meta.id).callback(next);
-};
-
-AUTH(function($) {
-	var opt = {};
-	opt.name = CONF.admin_cookie;
-	opt.key = CONF.admin_secret;
-	opt.expire = '1 month';
-	MAIN.session.getcookie($, opt, $.done());
-});
 
 function save() {
 	MAIN.db.version = MAIN.version;
@@ -38,7 +25,13 @@ FUNC.load = function(callback) {
 
 FUNC.refresh = function() {
 	MAIN.private = {};
+	OpenPlatform.permissions = [];
+
 	for (var item of MAIN.db.items) {
+
+		if (item.kind === 'library')
+			OpenPlatform.permissions.push({ id: item.id, name: item.name });
+
 		if (item.private && item.kind === 'library')
 			MAIN.private[item.id] = 1;
 	}

@@ -1,57 +1,58 @@
-<div data---="box__common.form__if:~PATH~;icon:far fa-code-branch;autofocus:true;reload:?/reload;scrollbar:1;submit:?/submit;width:900" class="hidden" data-scope="~PATH~">
+<ui-component name="box" path="common.form" config="if:~PATH~;icon:ti ti-code-branch;autofocus:true;reload:?/reload;scrollbar:1;submit:?/submit;width:900" class="hidden" plugin="~PATH~">
 	<div>
 		<div class="padding bg-smoke">
 			<div class="row">
 				<div class="col-md-6 m">
-					<div data---="input__?.name__required:1__''">@(Name)</div>
+					<ui-component name="input" path="?.name" config="required:1" default="''">@(Name)</ui-component>
 				</div>
 				<div class="col-md-3 m">
-					<div data---="input__?.type__required:1;dirsource:text|@(Text),property|@(Property),delegate|@(Delegate),method|@(Method),event|@(Event),command|@(Command),rest|@(REST endpoint),faq|@(FAQ),help|@(Help),glossary|@(Glossary);dirplaceholder:@(Search)__''">@(Type)</div>
+					<ui-component name="input" path="?.type" config="required:1;dirsource:text|@(Text),property|@(Property),delegate|@(Delegate),method|@(Method),event|@(Event),command|@(Command),config|@(Config),rest|@(REST endpoint),faq|@(FAQ),help|@(Help),glossary|@(Glossary);dirplaceholder:@(Search)" default="''">@(Type)</ui-component>
 				</div>
 				<div class="col-md-3 m">
-					<div data---="input__?.pageid__dirsource:common.pagessorted;multiple:1;dirplaceholder:@(Search);required:1">@(Section)</div>
+					<ui-component name="input" path="?.pageid" config="dirsource:pluginlibraries.pages.sorted;multiple:1;dirplaceholder:@(Search);required:1">@(Section)</ui-component>
 				</div>
 			</div>
 			<div class="row">
 				<div class="col-md-6 m">
-					<div data---="input__?.changelog__''">@(Changelog)</div>
+					<ui-component name="input" path="?.changelog" default="''">@(Changelog)</ui-component>
 				</div>
 				<div class="col-md-3 m">
-					<div data---="input__?.version__maxlength:20;align:1__''">@(Version)</div>
+					<ui-component name="input" path="?.version" config="maxlength:20;align:1" default="''">@(Version)</ui-component>
 				</div>
 			</div>
 		</div>
 		<div class="padding npb">
 			<div class="row">
 				<div class="col-md-3 m">
-					<div data---="input__?.icon__type:icon__''">@(Icon)</div>
+					<ui-component name="input" path="?.icon" config="type:icon" default="''">@(Icon)</ui-component>
 				</div>
 				<div class="col-md-3 m">
-					<div data---="input__?.color__type:color__''">@(Color)</div>
+					<ui-component name="input" path="?.color" config="type:color" default="''">@(Color)</ui-component>
 				</div>
 				<div class="col-md-6 m">
-					<div data---="input__?.note__null__''">@(Note)</div>
+					<ui-component name="input" path="?.note" default="''">@(Note)</ui-component>
 				</div>
 			</div>
 			<div class="relative mr10">
-				<div data---="input__?.newbie__type:checkbox__false">@(Highlight as newbie)</div>
+				<ui-component name="input" path="?.newbie" config="type:checkbox" default="false">@(Highlight as newbie)</ui-component>
 			</div>
 			<div class="relative mr10">
-				<div data---="input__?.deprecated__type:checkbox__false">@(Deprecated)</div>
+				<ui-component name="input" path="?.deprecated" config="type:checkbox" default="false">@(Deprecated)</ui-component>
 			</div>
-			<div data-bind="?.type__show:value==='text'" class="hidden relative">
-				<div data---="input__?.bottom__type:checkbox__false">@(Put to bottom)</div>
-			</div>
-			<!-- <div data---="codemirror__?.body__required:1;contextmenu:?/contextmenu;type:markdown;linenumbers:0;parent:auto;minheight:300;margin:370;drop:?/drop;$assign:EDITOR__''" class="m">@(Body)</div> -->
+			<ui-bind path="?.type" config="show:value==='text'" class="hidden relative">
+				<ui-component name="input" path="?.bottom" config="type:checkbox" default="false">@(Put to bottom)</ui-component>
+			</ui-bind>
 		</div>
 		<hr class="nmb" />
-		<div data---="cloudeditor__?.body__required:1;contextmenu:?/contextmenu;parent:auto;linenumbers:0;minheight:300;margin:306;drop:?/drop;$assign:EDITOR__''"></div>
+		<ui-component name="cloudeditor" path="?.body" config="required:1;contextmenu:?/contextmenu;parent:auto;linenumbers:0;minheight:300;margin:306;drop:?/drop;$assign:EDITOR" default="''"></ui-component>
 	</div>
-	<nav data---="validate__?">
-		<button name="submit" disabled><i class="fa fa-check-circle"></i>@(SUBMIT)</button>
-		<button name="cancel">@(Cancel)</button>
+	<nav>
+		<ui-component name="validate" path="?">
+			<button name="submit" disabled><i class="ti ti-check-circle"></i>@(SUBMIT)</button>
+			<button name="cancel">@(Cancel)</button>
+		</ui-component>
 	</nav>
-</div>
+</ui-component>
 
 <script>
 
@@ -88,17 +89,19 @@
 		return keywords;
 	}
 
-	PLUGIN('~PATH~', function(exports) {
+	PLUGIN(function(exports) {
 
 		var editor;
 		var filelist = null;
+		var caller;
 
 		WAIT('EDITOR', function() {
 			editor = EDITOR.editor;
 		});
 
 		exports.reload = function(com) {
-			var model = GET('?');
+			caller = exports.caller;
+			var model = exports.model;
 			var id = model ? model.id : null;
 			com.reconfigure({ title: id ? '@(Update item)' : '@(Add item)' });
 		};
@@ -195,7 +198,6 @@
 
 		exports.contextmenu = function(e) {
 
-
 			var items = [];
 			var sel = e.selections;
 			var text = sel.join('');
@@ -205,15 +207,15 @@
 			var tmp;
 
 			if (can) {
-				items.push({ name: '@(Copy)', icon: '!far fa-copy', command: 'copy' });
+				items.push({ name: '@(Copy)', icon: '!ti ti-copy', command: 'copy' });
 				items.push('-');
 			}
 
-			items.push({ name: '@(Insert color)', icon: 'fill-drip colorize', value: 'colorpicker' });
-			items.push({ name: '@(Insert icon)', icon: 'far fa-icons', value: 'faicons' });
-			items.push({ name: '@(Insert file)', icon: 'far fa-file-alt', value: 'file' });
-			items.push({ name: '@(Link item)', icon: 'far fa-link', value: 'link' });
-			items.push({ name: '@(Generate topics)', icon: 'fas fa-list-ul', value: 'topics' });
+			items.push({ name: '@(Insert color)', icon: 'ti ti-fill colorize', value: 'colorpicker' });
+			items.push({ name: '@(Insert icon)', icon: 'ti ti-icons', value: 'icons' });
+			items.push({ name: '@(Insert file)', icon: 'ti ti-file', value: 'file' });
+			items.push({ name: '@(Link item)', icon: 'ti ti-link', value: 'link' });
+			items.push({ name: '@(Generate topics)', icon: 'ti ti-list', value: 'topics' });
 
 			SETTER('menu/showxy', e.x + 5, e.y - 15, items, function(selected) {
 
@@ -230,19 +232,20 @@
 					return;
 				}
 
-				if (selected.value === 'colorpicker' || selected.value === 'faicons') {
+				if (selected.value === 'colorpicker' || selected.value === 'icons') {
 					var opt = {};
 					opt.x = e.x - 15;
 					opt.y = e.y + 5;
 					opt.callback = function(val) {
 						EDITOR.replaceselection(val);
 					};
-					setTimeout(ASETTER(selected.value + '/show', opt), 100);
+					setTimeout(SETTER(selected.value + '/show', opt), 100);
 					return;
 				}
 
 				if (selected.value === 'file') {
 
+					var librarycall = caller.model;
 					var opt = {};
 
 					opt.x = e.x - 15;
@@ -268,7 +271,7 @@
 						return;
 					}
 
-					AJAX('GET /api/files/', function(response) {
+					exports.ajax('GET /api/files/ ERROR', function(response) {
 
 						for (var file of response) {
 							file.filename = file.name;
@@ -277,7 +280,7 @@
 								file.name += ' ({width}x{height})'.arg(file);
 						}
 
-						response.unshift({ id: 'upload', template: '<i class="far fa-cloud-upload mr5"></i><b>@(Upload)</b>' });
+						response.unshift({ id: 'upload', template: '<i class="ti ti-cloud-upload mr5"></i><b>@(Upload)</b>' });
 						opt.items = response;
 						SETTER('directory/show', opt);
 					});
@@ -288,6 +291,7 @@
 				if (selected.value === 'link') {
 
 					var opt = {};
+					var librarycall = caller.model;
 
 					opt.x = e.x - 15;
 					opt.y = e.y + 5;
@@ -295,12 +299,14 @@
 					opt.placeholder = '@(Search in this library)';
 					opt.raw = true;
 					opt.key = 'html';
+
 					opt.callback = function(selected) {
+
 						var url = '';
 						if (selected.kind === 'page')
-							url = '/{0}/{1}/'.format(common.library.linker, selected.id);
+							url = '/{0}/{1}/'.format(librarycall.library.linker, selected.id);
 						else
-							url = '/{0}/{1}/#{2}'.format(common.library.linker, selected.pageid[0], selected.id);
+							url = '/{0}/{1}/#{2}'.format(librarycall.library.linker, selected.pageid[0], selected.id);
 
 						var name = selected.name;
 						if ((/\(|\[/).test(name))
@@ -309,11 +315,11 @@
 					};
 
 					opt.items = function(q, next) {
-						AJAX('GET /api/items/search/?library={0}&q={1}'.format(common.libraryid, encodeURIComponent(q)), function(response) {
+						exports.tapi('items_search/?library={0}&q={1} ERROR'.format(librarycall.libraryid, encodeURIComponent(q)), function(response) {
 							for (var item of response) {
 								item.html = item.name;
 								if (item.pageid) {
-									var page = common.pages.findValue('id', item.pageid[0], 'name');
+									var page = librarycall.pages.items.findValue('id', item.pageid[0], 'name');
 									if (page)
 										item.html = '<span class="gray">' + page + '</span> / ' + item.name;
 								}
@@ -338,37 +344,42 @@
 			opt.callback = function(icon) {
 				EDITOR.replaceselection(icon);
 			};
-			SETTER('faicons/show', opt);
+			SETTER('icons/show', opt);
 		};
 
 		exports.submit = function(hide) {
-			var model = GET('? @reset @clone @showloading');
+			var librarycall = caller.model;
+			var model = CLONE(exports.form);
 			EDITOR.save(function(lines) {
 				model.body = lines;
-				common.lasttype = model.type;
+				librarycall.lasttype = model.type;
 				model.keywords = parseKeywords(model.body).join(' ');
-				AJAX('POST /api/items/', model, ASETTER('message/response @hideloading', function(response) {
+				exports.tapi('items_save @showloading ERROR', model, function(response) {
+
+					SETTER('loading/hide');
+
 					if (model.id) {
-						var index = common.items.findIndex('id', model.id);
+						var index = librarycall.items.findIndex('id', model.id);
 						if (index !== -1) {
-							var item = common.items[index];
-							if (model.pageid.indexOf(common.page.id) !== -1)
+							var item = librarycall.items[index];
+							if (model.pageid.indexOf(librarycall.page.id) !== -1)
 								COPY(model, item);
 							else
-								common.items.splice(index, 1);
-							common.items.quicksort('name');
-							UPD('common.items');
+								librarycall.items.splice(index, 1);
+							librarycall.items.quicksort('name');
+							caller.upd('items');
 						}
 					} else {
 						model.id = response.value;
 						model.dtcreated = new Date();
 						model.creator = user.name;
-						common.items.push(model);
-						common.items.quicksort('name');
-						UPD('common.items');
+						librarycall.items.push(model);
+						librarycall.items.quicksort('name');
+						caller.upd('items');
 					}
+					location.hash = model.id;
 					hide();
-				}));
+				});
 			});
 		};
 

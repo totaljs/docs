@@ -6,6 +6,7 @@ cp -a ../config config
 cp -a ../controllers/ controllers
 cp -a ../definitions/ definitions
 cp -a ../modules/ modules
+cp -a ../plugins/ plugins
 cp -a ../schemas/ schemas
 cp -a ../public/ public
 cp -a ../views/ views

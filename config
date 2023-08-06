@@ -1,6 +1,2 @@
 allow_custom_titles          : true
-
-admin_cookie     (generate)  : 10
-admin_secret     (generate)  : 10
-admin_password   (generate)  : 10
-password_cookie  (generate)  : 10
+private_secret   (generate)  : 10

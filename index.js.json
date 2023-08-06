@@ -1,0 +1,47 @@
+{
+	"pid": 29137,
+	"date": "2023-08-01T11:46:59.735Z",
+	"port": 8000,
+	"ip": "0.0.0.0",
+	"stats": [
+		{
+			"id": null,
+			"version": {
+				"node": "v19.9.0",
+				"total": "4",
+				"build": 4088,
+				"app": "1"
+			},
+			"pid": 29137,
+			"thread": "",
+			"mode": "debug",
+			"overload": 0,
+			"date": "2023-08-01T11:50:59.753Z",
+			"memory": 14.86,
+			"rm": 7,
+			"fm": 6,
+			"wm": 0,
+			"em": 0,
+			"mm": 0,
+			"om": 16,
+			"dm": 0,
+			"um": 0.007,
+			"pm": 0,
+			"sm": 0,
+			"cm": 0,
+			"dbrm": 0,
+			"dbwm": 0,
+			"usage": 0,
+			"requests": 123,
+			"pending": 0,
+			"external": 0,
+			"errors": 0,
+			"timeouts": 0,
+			"online": 0,
+			"uptime": 5,
+			"download": 0.004,
+			"upload": 0.079,
+			"status": []
+		}
+	]
+}
