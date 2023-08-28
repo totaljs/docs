@@ -24,7 +24,7 @@ exports.install = function() {
 
 	// Items
 	ROUTE('API     /api/     -items                   *Items       --> query');
-	ROUTE('API     /api/     +items_read/{id}         *Items       --> read');
+	ROUTE('API     /api/     -items_read/{id}         *Items       --> read');
 	ROUTE('+API    /api/     +items_save              *Items       --> save');
 	ROUTE('+API    /api/     +items_remove/{id}       *Items       --> remove');
 	ROUTE('API     /api/     -items_search            *Items       --> search');

@@ -81,7 +81,7 @@
 		DEF.dateformat = 'yyyy-MM-dd HH:mm';
 		DEF.api = '/api/';
 
-		if (common.openplatform)
+		if (W.APP)
 			NAV.custom();
 
 		ON('request', function(opt) {
@@ -99,7 +99,6 @@
 			};
 
 		});
-
 
 		ROUTE('/', function() {
 			var plugin = PLUGINS.pluginlibraries;
@@ -195,29 +194,6 @@
 			}
 			return text;
 		}
-
-		ON('markdown', function(el) {
-			return;
-			var arr = el[0].tagName === 'BODY' ? el.find('.markdown pre code') : el.find('pre code');
-			for (var t of arr) {
-				if (!t.$mdcodemirror) {
-					t.$mdcodemirror = true;
-					var el = $(t);
-					var type = 'application/ld+json';
-
-					if (el.hclass('lang-js'))
-						type = 'text/javascript';
-					else if (el.hclass('lang-html'))
-						type = 'text/html';
-					else if (el.hclass('lang-sql'))
-						type = 'text/x-sql';
-
-					el.aclass('cm-s-default');
-					var code = FUNC.strim(el.html()).trim().replace(/&gt;|&lt;|&quot;|&#39;|&amp;/g, htmldecode);
-					CodeMirror.runMode(code.replace(/\t/g, '  '), type, el[0]);
-				}
-			}
-		});
 
 		NAV.clientside('.jR');
 
