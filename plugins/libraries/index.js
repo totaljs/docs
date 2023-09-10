@@ -11,7 +11,7 @@ exports.install = function() {
 	ROUTE('+API    /api/     +libraries_save          *Libraries   --> save');
 	ROUTE('+API    /api/     +libraries_remove/{id}   *Libraries   --> remove');
 	ROUTE('+API    /api/     -libraries_groups/{id}   *Libraries   --> groups');
-	ROUTE('+API    /api/     +libraries_reindex       *Libraries   --> reindex');
+	ROUTE('+API    /api/     -libraries_reindex       *Libraries   --> reindex');
 
 	// Pages
 	ROUTE('API     /api/     -pages/{libraryid}       *Pages       --> list');

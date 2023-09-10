@@ -1,5 +1,3 @@
-const TS = (new Date(2020, 7, 1)).getTime();
-
 NEWSCHEMA('Pages', function(schema) {
 
 	schema.define('id', UID);
