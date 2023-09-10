@@ -1,2 +1,3 @@
 allow_custom_titles          : true
+default_uid                  : f
 private_secret   (generate)  : 10
