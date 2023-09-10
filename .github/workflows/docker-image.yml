@@ -34,5 +34,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: totalplatform/docs:latest
           push: true
-          secrets: |
+          secrets:
             github_token=${{ secrets.ACCESS_TOKEN }}
