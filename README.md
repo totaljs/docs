@@ -1,6 +1,7 @@
 # Documentation Tool
 
-- [Chat support](https://platform.totaljs.com/?open=messenger)
+[![Made in EU](https://cdn.componentator.com/eu-small.png)](https://european-union.europa.eu/)
+
 - [Join __Total.js Telegram__](https://t.me/totalplatform)
 - [Support](https://www.totaljs.com/support/)
 
