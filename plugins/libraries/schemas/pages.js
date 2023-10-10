@@ -81,6 +81,7 @@ NEWSCHEMA('Pages', function(schema) {
 	schema.action('save', {
 		name: 'Save page',
 		action: function($, model) {
+
 			if (!$.user.sa && $.user.permissions.indexOf(model.libraryid) === -1) {
 				$.invalid(401);
 				return;
@@ -99,9 +100,6 @@ NEWSCHEMA('Pages', function(schema) {
 
 				item = MAIN.db.items.findItem('id', model.id);
 				if (item && item.kind === 'page') {
-
-					// @TODO: diff pre groupy a neexistujúce groupy vymazať s obsahom z DB
-
 					model.updater = $.user.name;
 					COPY(model, item);
 					FUNC.save();
@@ -134,6 +132,7 @@ NEWSCHEMA('Pages', function(schema) {
 		params: '*id:UID',
 		action: function($) {
 			var params = $.params;
+
 			if (!$.user.sa) {
 				$.invalid(401);
 				return;
