@@ -1,6 +1,6 @@
 <ui-plugin>
 	<ui-bind path="?.layout" config=".visible:value==='libraries'" class="plibraries block">
-		<a href="/" class="logo">@{CONF.name}</a>
+		<a href="/" class="logo"><ui-bind path="common.name" config="text"></ui-bind></a>
 		<ui-component name="viewbox" config="parent:window;scrollbar:1;visibleY:0;margin:47;scrollbarshadow:0" class="invisible">
 			<ui-component name="selected" path="?.libraryid" config="selector:.jR;datasource:?.groupped;delay:50">
 				<ui-component name="movable" config="selector:.jR;exec:?/movelibrary">

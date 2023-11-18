@@ -74,6 +74,7 @@
 		var common = { admin: true, credentials: PARSE('#logindata') };
 		var user = PARSE('#userdata');
 
+		common.name = '@{CONF.name}';
 		common.openplatform = NAV.query.openplatform;
 		common.plugins = PARSE('#pluginsdata');
 		common.page = 'pluginlibraries';
