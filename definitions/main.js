@@ -18,7 +18,7 @@ FUNC.load = function(callback) {
 			response = { items: [], config: { groups: [] }};
 		MAIN.db = response;
 		FUNC.refresh();
-		EXEC('-Settings --> load', NOOP);
+		EXEC('Settings/load').callback(ERROR('Settings/Load'));
 		callback && callback();
 	});
 };
@@ -35,6 +35,7 @@ FUNC.refresh = function() {
 		if (item.private && item.kind === 'library')
 			MAIN.private[item.id] = 1;
 	}
+
 };
 
 FUNC.load();

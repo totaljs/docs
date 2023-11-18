@@ -1,60 +1,56 @@
-NEWSCHEMA('Settings', function(schema) {
+NEWACTION('Settings/read', {
+	name: 'Read settings',
+	action: function($) {
+		if ($.user.sa)
+			$.callback(MAIN.db.config);
+		else
+			$.invalid(401);
+	}
+});
 
-	schema.action('read', {
-		name: 'Read settings',
-		action: function($) {
-			if ($.user.sa)
-				$.callback(MAIN.db.config);
-			else
-				$.invalid(401);
+NEWACTION('Settings/save', {
+	name: 'Save settings',
+	input: '*name:String, *url:URL, password:String, color:Color, darkmode:Boolean, secured:Boolean, groups:[String], op_restoken:String, op_reqtoken:String',
+	action: function($, model) {
+
+		if (!$.user.sa) {
+			$.invalid(401);
+			return;
 		}
-	});
 
-	schema.action('save', {
-		name: 'Save settings',
-		input: '*name:String, *url:URL, password:String, color:Color, darkmode:Boolean, secured:Boolean, groups:[String], op_restoken:String, op_reqtoken:String',
-		action: function($, model) {
+		MAIN.db.config = model;
+		FUNC.save();
 
-			if (!$.user.sa) {
-				$.invalid(401);
-				return;
-			}
+		$.action('Settings/load').callback(ERROR('Settings/load'));
+		$.success();
+	}
+});
 
-			MAIN.db.config = model;
-			FUNC.save();
+NEWACTION('Settings/load', {
+	name: 'Load settings',
+	action: function($) {
 
-			$.action('load').callback(ERROR('Settings.load'));
-			$.success();
-		}
-	});
+		var db = MAIN.db;
+		var config = db.config;
 
-	schema.action('load', {
-		name: 'Load settings',
-		action: function($) {
+		if (config.name)
+			CONF.name = config.name;
 
-			var db = MAIN.db;
-			var config = db.config;
+		CONF.op_reqtoken = config.op_reqtoken;
+		CONF.op_restoken = config.op_restoken;
 
-			if (config.name)
-				CONF.name = config.name;
+		if (config.password)
+			CONF.contentpassword = config.password.sha256(CONF.private_secret);
+		else
+			delete CONF.contentpassword;
 
-			CONF.op_reqtoken = config.op_reqtoken;
-			CONF.op_restoken = config.op_restoken;
+		$.success();
+	}
+});
 
-			if (config.password)
-				CONF.contentpassword = config.password.sha256(CONF.private_secret);
-			else
-				delete CONF.contentpassword;
-
-			$.success();
-		}
-	});
-
-	schema.action('groups', {
-		name: 'List of groups',
-		action: function($) {
-			$.callback(MAIN.db.config.groups);
-		}
-	});
-
+NEWACTION('Settings/groups', {
+	name: 'List of groups',
+	action: function($) {
+		$.callback(MAIN.db.config.groups);
+	}
 });

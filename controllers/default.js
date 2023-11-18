@@ -7,23 +7,22 @@ exports.install = function() {
 
 	ROUTE('+GET       /api/clean/',        clean);
 	ROUTE('+GET       /api/files/',        files_browse);
-	ROUTE('+POST      /api/upload/',       upload, ['upload'], 1024 * 10);
-	ROUTE('+GET       /backup/',           backup, [1000 * 60]);
-	ROUTE('+POST      /restore/',          restore, ['upload', 1000 * 60], 1024 * 100); // Max. 100 MB
+	ROUTE('+POST      /api/upload/ @upload  <10MB',        upload);
+	ROUTE('+GET       /backup/              <60s',         backup);
+	ROUTE('+POST      /restore/    @upload  <100MB <60s',  restore);
 
 	// Settings
-	ROUTE('+API    /api/    -settings             *Settings   --> read');
-	ROUTE('+API    /api/    +settings_save        *Settings   --> save');
-	ROUTE('+API    /api/    -settings_groups      *Settings   --> groups');
+	ROUTE('+API    /api/    -settings             --> Settings/read');
+	ROUTE('+API    /api/    +settings_save        --> Settings/save');
+	ROUTE('+API    /api/    -settings_groups      --> Settings/groups');
 
 	ROUTE('FILE /download/*.*', files);
 };
 
-function view_index() {
-	var self = this;
+function view_index($) {
 
 	var plugins = [];
-	var language = (self.user ? self.user.language || '' : '');
+	var language = ($.user ? $.user.language || '' : '');
 
 	for (var key in F.plugins) {
 		var item = F.plugins[key];
@@ -31,7 +30,7 @@ function view_index() {
 		obj.id = item.id;
 		obj.routes = item.routes;
 		obj.position = item.position;
-		obj.name = TRANSLATOR(language, item.name);
+		obj.name = TRANSLATE(language, item.name);
 		obj.icon = item.icon;
 		obj.import = item.import ? '/_{id}/{import}'.args(item) : '';
 		obj.hidden = item.hidden;
@@ -40,49 +39,48 @@ function view_index() {
 
 	plugins.quicksort('position');
 
-	if (self.url === '/' && self.query.url && ((/^http(s)?:\/\/[a-z0-9]+/).test(self.query.url))) {
+	if ($.url === '/' && $.query.url && ((/^http(s)?:\/\/[a-z0-9]+/).test($.query.url))) {
 		var opt = {};
 		opt.method = 'GET';
-		opt.url = self.query.url;
+		opt.url = $.query.url;
 		opt.dnscache = true;
 		opt.limit = 100;
 		opt.timeout = 3000;
 		opt.callback = function(err, response) {
 			if (err)
-				self.json(err);
+				$.json(err);
 			else
-				self.view('external', response.body);
+				$.view('external', response.body);
 		};
 
 		REQUEST(opt);
 
 	} else {
-		if (MAIN.db.config.secured && !self.user)
-			self.throw401();
+		if (MAIN.db.config.secured && !$.user)
+			$.invalid(401);
 		else
-			self.view('index', plugins);
+			$.view('index', plugins);
 	}
 }
 
 const isIMAGE = { jpg: 1, png: 1, gif: 1, svg: 1 };
 
-function files(req, res) {
-	var arr = req.split[1].split('-');
+function files($) {
+	var arr = $.split[1].split('-');
 	var id = arr[0];
 	var hash = arr[0].makeid();
 	if (arr[1] === hash)
-		res.filefs('files', id, !isIMAGE[req.extension]);
+		$.filefs('files', id, !isIMAGE[$.ext]);
 	else
-		res.throw404();
+		$.invalid(404);
 }
 
-function upload() {
+function upload($) {
 
-	var self = this;
-	var file = self.files[0];
+	var file = $.files[0];
 
 	if (!file) {
-		self.json(null);
+		$.json(null);
 		return;
 	}
 
@@ -96,7 +94,7 @@ function upload() {
 	FILESTORAGE('files').save(id, file.filename, file.stream(), function(err, meta) {
 
 		if (err) {
-			self.invalid('error-filetype', err + '');
+			$.invalid('error-filetype', err + '');
 			return;
 		}
 
@@ -104,13 +102,11 @@ function upload() {
 		var h = meta.height || 0;
 
 		meta.url = '/download/' + id + '-' + id.makeid() + '-' + w + 'x' + h + '-1.' + file.extension;
-		self.json(meta);
+		$.json(meta);
 	});
 }
 
-function backup() {
-
-	var $ = this;
+function backup($) {
 
 	if (!$.user.sa) {
 		$.invalid(401);
@@ -127,8 +123,7 @@ function backup() {
 	});
 }
 
-function restore() {
-	var $ = this;
+function restore($) {
 
 	if (!$.user.sa) {
 		$.invalid(401);
@@ -143,12 +138,10 @@ function restore() {
 	});
 }
 
-async function clean() {
+async function clean($) {
 
-	var self = this;
-
-	if (!self.user.sa) {
-		self.invalid(401);
+	if (!$.user.sa) {
+		$.invalid(401);
 		return;
 	}
 
@@ -180,10 +173,10 @@ async function clean() {
 		MAIN.fs.remove(id, next);
 	});
 
-	self.success(true, rem.length);
+	$.success(rem.length);
 }
 
-async function files_browse() {
+async function files_browse($) {
 
 	var files = await MAIN.fs.browse2();
 	var index = files.findIndex('id', 'meta');
@@ -192,5 +185,5 @@ async function files_browse() {
 	for (var file of files)
 		file.url = '/download/' + file.id + '-' + file.id.makeid() + '-' + (file.width || 0) + 'x' + (file.height || 0) + '-1.' + file.ext;
 
-	this.json(files);
+	$.json(files);
 }

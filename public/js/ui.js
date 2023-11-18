@@ -1302,7 +1302,8 @@ COMPONENT('markdown', 'copyclipboard:Copy to clipboard', function(self, config) 
 
 	})();
 
-}, ['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.0/highlight.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.0/styles/github.min.css']);
+});
+// }, ['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.0/highlight.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.2.0/styles/github.min.css']);
 
 COMPONENT('codemirror', 'linenumbers:true;required:false;trim:false;tabs:true;height:200;minheight:200', function(self, config, cls) {
 

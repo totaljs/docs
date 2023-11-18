@@ -297,9 +297,14 @@
 			if (!model.pages.items)
 				return;
 
-			exports.set('page', model.pages.items.findItem('id', id));
+			var page = model.pages.items.findItem('id', id);
+			if (!page)
+				page = null;
+
+			exports.set('page', page);
 			exports.set('pageid', id);
 			exports.set('layout', '');
+
 			maketitle(model.page, model.library, model.title);
 
 			exports.tapi('items/?library={0}&page={1} ERROR'. format(model.library.id, id), function(response) {
@@ -369,6 +374,7 @@
 			if (user.sa) {
 				opt.items.push('-');
 				opt.items.push({ id: 'edit', name: '@(Edit)', icon: 'ti ti-pencil' });
+				opt.items.push({ id: 'clone', name: '@(Clone)', icon: 'ti ti-clone' });
 				opt.items.push({ id: 'remove', name: '@(Remove)', icon: 'ti ti-remove red' });
 			}
 
@@ -379,7 +385,16 @@
 					return;
 				}
 
-				if (item.id === 'edit') {
+				if (item.id === 'clone') {
+					exports.tapi('libraries_clone/{0} ERROR'.format(id), function(response) {
+						exports.refresh_libraries(function() {
+							exports.tapi('libraries_read/{0} ERROR'.format(response.value), function(response) {
+								SET('libraryform @reset', response);
+								SET('common.form', 'libraryform');
+							});
+						});
+					});
+				} else if (item.id === 'edit') {
 					exports.tapi('libraries_read/{0} ERROR'.format(id), function(response) {
 						SET('libraryform @reset', response);
 						SET('common.form', 'libraryform');
