@@ -1,0 +1,21 @@
+<ui-component name="importer" path="common.form" config="if:formcredentials;url:/~ID~/form.html"></ui-component>
+
+<script>
+
+	ON('menu', function(opt) {
+
+		opt.items.push('-');
+		opt.items.push(Thelpers.encode(user.name));
+		opt.items.push({ id: 'account', name: '@(Change credentials)', icon: 'ti ti-key', callback: function() {
+			TAPI('admin_read ERROR', function(response) {
+				SET('formcredentials @reset', response);
+				SET('*form', 'formcredentials');
+			});
+		}});
+
+		opt.items.push({ id: 'logout', name: '@(Logout)', icon: 'ti ti-power-off red', callback: function() {
+			TAPI('logout @showloading', () => location.href = '/');
+		}});
+	});
+
+</script>
