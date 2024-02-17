@@ -80,7 +80,7 @@
 		common.page = 'pluginlibraries';
 
 		DEF.dateformat = 'yyyy-MM-dd HH:mm';
-		DEF.api = '/api/';
+		DEF.api = '@{CONF.$api}';
 
 		if (W.APP)
 			NAV.custom();
@@ -91,6 +91,25 @@
 		});
 
 		PLUGIN('common', function(exports) {
+
+			var model = exports.model;
+
+			(function() {
+				model.plugins.quicksort('position');
+				model.plugins.forEach(function(plugin) {
+
+					if (plugin.id === 'libraries')
+						return;
+
+					plugin.url = model.root + plugin.id + '/';
+					if (!plugin.hidden) {
+						ROUTE(plugin.url, () => exports.set('page', 'plugin' + plugin.id), 'init');
+						plugin.routes && plugin.routes.forEach(item => ROUTE('@{#}' + item.url, () => exports.set('page', 'plugin' + plugin.id + item.html), 'init'));
+					}
+
+					plugin.import && $(document.body).append('<ui-import config="url:{0};id:_{1}"></ui-import>'.format(plugin.import, plugin.id));
+				});
+			})();
 
 			exports.copytoclipboard = function(el) {
 				var lines = el.parent().prev().text().split('\n');

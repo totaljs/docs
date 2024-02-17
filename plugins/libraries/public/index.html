@@ -288,6 +288,11 @@
 
 			var model = exports.model;
 
+			if (!model.pages) {
+				REDIRECT('/..');
+				return;
+			}
+
 			if (!force && model.page && model.page.id === id) {
 				maketitle(model.page, model.library, model.title);
 				callback && callback();
@@ -480,9 +485,14 @@
 				opt.items.push({ id: 'clean', name: '@(Clean unused files)', icon: 'ti ti-clean' });
 			}
 
+			EMIT('menu', opt);
+
 			opt.offsetY = -10;
 			opt.callback = function(item) {
-				exports[item.id]();
+				if (item.callback)
+					item.callback();
+				else
+					exports[item.id]();
 			};
 
 			SETTER('menu/show', opt);

@@ -5,16 +5,16 @@ exports.install = function() {
 	ROUTE('GET        /{library}/       ', view_index);
 	ROUTE('GET        /{library}/{page}/', view_index);
 
-	ROUTE('+GET       /api/clean/',        clean);
-	ROUTE('+GET       /api/files/',        files_browse);
-	ROUTE('+POST      /api/upload/ @upload  <10MB',        upload);
-	ROUTE('+GET       /backup/              <60s',         backup);
-	ROUTE('+POST      /restore/    @upload  <100MB <60s',  restore);
+	ROUTE('+GET       ?clean/', clean);
+	ROUTE('+GET       ?files/', files_browse);
+	ROUTE('+POST      ?upload/ @upload <10MB', upload);
+	ROUTE('+GET       /backup/ <60s', backup);
+	ROUTE('+POST      /restore/ @upload <100MB <60s', restore);
 
 	// Settings
-	ROUTE('+API    /api/    -settings             --> Settings/read');
-	ROUTE('+API    /api/    +settings_save        --> Settings/save');
-	ROUTE('+API    /api/    -settings_groups      --> Settings/groups');
+	ROUTE('+API   ?   -settings             --> Settings/read');
+	ROUTE('+API   ?   +settings_save        --> Settings/save');
+	ROUTE('+API   ?   -settings_groups      --> Settings/groups');
 
 	ROUTE('FILE /download/*.*', files);
 };
@@ -24,17 +24,19 @@ function view_index($) {
 	var plugins = [];
 	var language = ($.user ? $.user.language || '' : '');
 
-	for (var key in F.plugins) {
-		var item = F.plugins[key];
-		var obj = {};
-		obj.id = item.id;
-		obj.routes = item.routes;
-		obj.position = item.position;
-		obj.name = TRANSLATE(language, item.name);
-		obj.icon = item.icon;
-		obj.import = item.import ? '/_{id}/{import}'.args(item) : '';
-		obj.hidden = item.hidden;
-		plugins.push(obj);
+	for (let key in F.plugins) {
+		let item = F.plugins[key];
+		if (!item.visible || item.visible($.user)) {
+			let obj = {};
+			obj.id = item.id;
+			obj.routes = item.routes;
+			obj.position = item.position;
+			obj.name = TRANSLATE(language, item.name);
+			obj.icon = item.icon;
+			obj.import = item.import ? '/_{id}/{import}'.args(item) : '';
+			obj.hidden = item.hidden;
+			plugins.push(obj);
+		}
 	}
 
 	plugins.quicksort('position');

@@ -1,8 +1,25 @@
-const USER = { id: 'admin', name: 'John Connor', sa: true };
+const ADMIN = { id: 'admin', sa: true, name: 'Admin', permissions: [] };
+const BOT = { id: 'bot', sa: true, name: 'Bot', permissions: [] };
 
 AUTH(function($) {
-	if (CONF.op_restoken && CONF.op_reqtoken)
+	var token = $.headers['x-token'];
+	if (token) {
+
+		if (BLOCKED($, 10)) {
+			$.invalid();
+			return;
+		}
+
+		if (token === CONF.token) {
+			BLOCKED($, -1);
+			$.success(BOT);
+		}
+
+	} else if (CONF.op_reqtoken && CONF.op_restoken)
 		OpenPlatform.auth($);
+	else if (FUNC.authadmin)
+		FUNC.authadmin($);
 	else
-		$.success(USER);
+		$.success(ADMIN);
+
 });
