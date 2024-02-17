@@ -81,9 +81,10 @@
 
 		DEF.dateformat = 'yyyy-MM-dd HH:mm';
 		DEF.api = '@{CONF.$api}';
+		DEF.fallback = '@{#}/cdn/j-{0}.html';
+		DEF.versionhtml = '@{CONF.version}';
 
-		if (W.APP)
-			NAV.custom();
+		W.APP && NAV.custom();
 
 		ON('request', function(opt) {
 			if (common.openplatform)
