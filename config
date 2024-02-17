@@ -1,2 +1,3 @@
 $customtitles                : true
+$api                         : /api/
 private_secret   (generate)  : 10
