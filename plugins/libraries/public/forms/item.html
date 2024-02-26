@@ -113,7 +113,7 @@
 			for (var i = 0, length = files.length; i < length; i++)
 				data.append('file' + i, files[i]);
 
-			UPLOAD('/api/upload/', data, function(response, err) {
+			UPLOAD('[api]upload/', data, function(response, err) {
 
 				var file = response;
 				var md;
@@ -170,7 +170,7 @@
 				}
 
 				SETTER('loading/show');
-				UPLOAD('/api/upload/', fd, function(response, err) {
+				UPLOAD('[api]upload/', fd, function(response, err) {
 
 					var file = response;
 					var md;
@@ -271,7 +271,7 @@
 						return;
 					}
 
-					exports.ajax('GET /api/files/ ERROR', function(response) {
+					exports.ajax('GET [api]files/ ERROR', function(response) {
 
 						for (var file of response) {
 							file.filename = file.name;

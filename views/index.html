@@ -84,6 +84,8 @@
 		DEF.fallback = '@{#}/cdn/j-{0}.html';
 		DEF.versionhtml = '@{CONF.version}';
 
+		ENV('api', DEF.api);
+
 		W.APP && NAV.custom();
 
 		ON('request', function(opt) {

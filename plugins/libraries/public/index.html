@@ -561,7 +561,7 @@
 
 		exports.clean = function() {
 			SETTER('approve/show', '@(Are you sure you want to clean all unused files?)', '"ti ti-archive" @(Clean)', function() {
-				AJAX('GET /api/clean/ ERROR', function(response) {
+				AJAX('GET [api]clean/ ERROR', function(response) {
 					SETTER('message/success', '@(Done, cleaned: <b>{0} files</b>.)'.format(response.value));
 				});
 			});
