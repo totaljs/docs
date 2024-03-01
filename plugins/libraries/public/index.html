@@ -190,11 +190,15 @@
 
 			exports.tapi('pages/{id} ERROR'.args(model.library), function(response) {
 
-				for (var item of response) {
+				var canedit = false;
 
+				if (W.user)
+					canedit = W.user.sa || W.user.permissions.includes(model.library.id);
+
+				for (var item of response) {
 					if (W.user) {
 						item.draggable = W.user.sa;
-						item.canedit = W.user.sa || W.user.permissions.includes(item.id);
+						item.canedit = canedit;
 					}
 				}
 
@@ -606,7 +610,8 @@
 
 		exports.permissions = function(id, path, el) {
 			var user = W.user;
-			el.tclass('admin', !!(id && user && user.permissions && user.permissions.indexOf(id) !== -1));
+			var is = !!(id && user && user.permissions && user.permissions.includes(id));
+			el.tclass('admin', is);
 		};
 
 		exports.settings = function() {
