@@ -86,7 +86,7 @@
 
 		ENV('api', DEF.api);
 
-		W.APP && NAV.custom();
+		W.APP && NAV.custom(false);
 
 		ON('request', function(opt) {
 			if (common.openplatform)
