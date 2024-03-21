@@ -1,7 +1,6 @@
 exports.icon = 'ti ti-key';
 exports.name = '@(Admin)';
 exports.position = 100;
-exports.visible = () => !CONF.op_reqtoken || !CONF.op_restoken;
 exports.import = 'extensions.html';
 exports.hidden = true;
 
@@ -68,8 +67,8 @@ NEWACTION('Admin/save', {
 		var session = {};
 		session.id = user.login;
 		session.expire = NOW.add('1 month');
-		$.cookie(user.cookie, ENCRYPTREQ($, session, user.salt), session.expire);
 
+		$.cookie(user.cookie, ENCRYPTREQ($, session, user.salt), session.expire);
 		$.success();
 	}
 });
@@ -106,7 +105,10 @@ NEWACTION('Admin/logout', {
 });
 
 function login($) {
-	$.view('#admin/login');
+	if (CONF.op_reqtoken && CONF.op_restoken)
+		$.fallback(401);
+	else
+		$.view('#admin/login');
 }
 
 if (!Storage.user) {
@@ -118,3 +120,5 @@ if (!Storage.user) {
 		Storage.set('user', { id: 'admin', name: 'John Connor', login: login, password: password.sha256(salt), raw: password, sa: true, cookie: cookie, salt: salt });
 	})();
 }
+
+CONF.op_cookie = Storage.user.cookie;
