@@ -802,7 +802,7 @@ COMPONENT('markdown', 'copyclipboard:Copy to clipboard', function(self, config) 
 					} else
 						W.hljs.highlightBlock(block);
 
-					$(t).parent().parent().append('<div class="help"><span class="link exec" data-exec="common/copytoclipboard"><i class="ti ti-copy"></i>{0}</span></div>'.format(config.copyclipboard));
+					$(t).parent().parent().prepend('<div class="copytoclipboard"><span class="link exec" data-exec="common/copytoclipboard" title="{0}"><i class="ti ti-copy"></i></span></div>'.format(config.copyclipboard));
 				}
 			});
 

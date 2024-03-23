@@ -343,3 +343,5 @@ dd:before { content: ':'; margin-right: 8px; color: gray; }
 
 .ui-directory-checkbox { line-height: 15px; }
 .ui-searchinput { border-radius: var(--radius); }
+.copytoclipboard { position: absolute; right: 0; background-color: #E8E8E8; padding: 7px 8px; border-radius: var(--radius); }
+.markdown-code { position: relative; }

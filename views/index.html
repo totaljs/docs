@@ -119,6 +119,7 @@
 				for (var i = 0; i < lines.length; i++)
 					lines[i] = lines[i].replace(/^\s+/g, text => text.replace(/\s{4}/g, '\t'));
 				SETTER('clipboard/copy', lines.join('\n'));
+				SETTER('notify/success', '@(Copied)');
 			};
 
 		});
