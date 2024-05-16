@@ -1,5 +1,12 @@
 NEWSCHEMA('@Page', 'id:UID,*libraryid:UID,group,*name,title,icon:Icon,color:Color,version,newbie:Boolean,deprecated:Boolean,welcome:Boolean,sortindex:Number');
 
+function unauthorized($, id) {
+	if (!$.user)
+		return true;
+	if (!$.user.sa && !$.user.permissions.includes('admin') && !$.user.permissions.includes(id || 'x'))
+		return true;
+}
+
 NEWACTION('Pages/list', {
 	name: 'List of pages',
 	action: function($) {
@@ -8,7 +15,7 @@ NEWACTION('Pages/list', {
 		var db = MAIN.db;
 
 		if (MAIN.private[params.libraryid]) {
-			if (!$.user || (!$.user.sa && (!$.user.permissions || $.user.permissions.includes(params.libraryid)))) {
+			if (unauthorized($, params.libraryid)) {
 				$.callback([]);
 				return;
 			}
@@ -32,7 +39,7 @@ NEWACTION('Pages/query', {
 		var id = $.query.library;
 
 		if (MAIN.private[id]) {
-			if (!$.user || (!$.user.sa && (!$.user.permissions || $.user.permissions.indexOf(id) === -1))) {
+			if (unauthorized($, id)) {
 				$.callback([]);
 				return;
 			}
@@ -70,7 +77,7 @@ NEWACTION('Pages/save', {
 	input: '@Page',
 	action: function($, model) {
 
-		if (!$.user.sa && $.user.permissions.indexOf(model.libraryid) === -1) {
+		if (unauthorized($, model.libraryid)) {
 			$.invalid(401);
 			return;
 		}
@@ -121,7 +128,7 @@ NEWACTION('Pages/remove', {
 	action: function($) {
 		var params = $.params;
 
-		if (!$.user.sa) {
+		if (unauthorized($)) {
 			$.invalid(401);
 			return;
 		}
@@ -133,7 +140,7 @@ NEWACTION('Pages/remove', {
 			var item = MAIN.db.items[index];
 			if (item) {
 				if ((item.kind === 'page' && item.id === params.id) || (item.kind === 'item' && item.pageid && item.pageid.indexOf($.id) !== -1)) {
-					if ($.user.sa || $.user.permissions.indexOf(item.libraryid) !== -1) {
+					if (!unauthorized($, item.libraryid)) {
 						count++;
 						MAIN.db.items.splice(index, 1);
 					} else

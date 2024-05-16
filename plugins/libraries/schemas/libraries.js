@@ -1,5 +1,12 @@
 NEWSCHEMA('@Library', 'id:UID,*name,group,*linker,icon:Icon,color:Color,newbie:Boolean,groups:[String],private:Boolean');
 
+function unauthorized($, id) {
+	if (!$.user)
+		return true;
+	if (!$.user.sa && !$.user.permissions.includes('admin') && !$.user.permissions.includes(id || 'x'))
+		return true;
+}
+
 NEWACTION('Libraries/list', {
 	name: 'List of libraries',
 	action: function($) {
@@ -9,7 +16,7 @@ NEWACTION('Libraries/list', {
 
 		for (var item of db.items) {
 			if (item.kind === 'library') {
-				if (!item.private || ($.user && ($.user.sa || ($.user.permissions && $.user.permissions.includes(item.id)))))
+				if (!item.private || !unauthorized($, item.id))
 					arr.push(item);
 			}
 		}
@@ -30,7 +37,7 @@ NEWACTION('Libraries/read', {
 
 		var item = db.items.findItem('id', params.id);
 		if (item && item.kind === 'library') {
-			if (!item.private || ($.user && ($.user.sa || ($.user.permissions && $.user.permissions.includes(item.id))))) {
+			if (!item.private || !unauthorized($, item.id)) {
 				$.callback(item);
 				return;
 			}
@@ -45,7 +52,7 @@ NEWACTION('Libraries/save', {
 	input: '@Library',
 	action: async function($, model) {
 
-		if (!$.user.sa) {
+		if (unauthorized($)) {
 			$.invalid(401);
 			return;
 		}
@@ -81,7 +88,7 @@ NEWACTION('Libraries/remove', {
 	action: function($) {
 		var params = $.params;
 
-		if (!$.user.sa) {
+		if (unauthorized($)) {
 			$.invalid(401);
 			return;
 		}
@@ -242,7 +249,7 @@ NEWACTION('Libraries/db', {
 		}
 
 		if (MAIN.private[libraryid]) {
-			if (!$.user || (!$.user.sa && (!$.user.permissions || $.user.permissions.indexOf(libraryid) === -1))) {
+			if (unauthorized($, libraryid)) {
 				$.callback([]);
 				return;
 			}

@@ -123,7 +123,7 @@
 
 					if (W.user) {
 						item.draggable = W.user.sa;
-						item.canedit = W.user.sa || W.user.permissions.includes(item.id);
+						item.canedit = W.user.sa || W.user.permissions.includes(item.id) || W.user.permissions.includes('admin');
 					}
 
 					if (item.private)
@@ -190,15 +190,10 @@
 
 			exports.tapi('pages/{id} ERROR'.args(model.library), function(response) {
 
-				var canedit = false;
-
-				if (W.user)
-					canedit = W.user.sa || W.user.permissions.includes(model.library.id);
-
-				for (var item of response) {
-					if (W.user) {
+				if (W.user) {
+					for (var item of response) {
 						item.draggable = W.user.sa;
-						item.canedit = canedit;
+						item.canedit = W.user.sa || model.library.canedit;
 					}
 				}
 
@@ -610,8 +605,7 @@
 
 		exports.permissions = function(id, path, el) {
 			var user = W.user;
-			var is = !!(id && user && user.permissions && user.permissions.includes(id));
-			el.tclass('admin', is);
+			el.tclass('admin', !!(id && user && user.permissions && (user.permissions.includes(id) || user.permissions.includes('admin'))));
 		};
 
 		exports.settings = function() {

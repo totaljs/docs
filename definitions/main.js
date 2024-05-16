@@ -25,7 +25,8 @@ FUNC.load = function(callback) {
 
 FUNC.refresh = function() {
 	MAIN.private = {};
-	OpenPlatform.permissions = [];
+
+	OpenPlatform.permissions = [{ id: 'admin', name: 'Admin' }];
 
 	for (var item of MAIN.db.items) {
 

@@ -1,5 +1,12 @@
 NEWSCHEMA('@Item', 'id:UID,pageid:[UID],libraryid:UID,type:{text|property|delegate|method|event|command|rest|faq|help|glossary},icon:Icon,color:Color,version,keywords,newbie:Boolean,bottom:Boolean,deprecated:Boolean,changelog,*name,note,body');
 
+function unauthorized($, id) {
+	if (!$.user)
+		return true;
+	if (!$.user.sa && !$.user.permissions.includes('admin') && !$.user.permissions.includes(id))
+		return true;
+}
+
 NEWACTION('Items/query', {
 	name: 'Items query',
 	query: '*library:UID,*page:UID,q:String',
@@ -8,7 +15,7 @@ NEWACTION('Items/query', {
 		var query = $.query;
 
 		if (MAIN.private[query.library]) {
-			if (!$.user || (!$.user.sa && (!$.user.permissions || $.user.permissions.indexOf(query.library) === -1))) {
+			if (unauthorized(query.library)) {
 				$.callback([]);
 				return;
 			}
@@ -60,9 +67,11 @@ NEWACTION('Items/read', {
 NEWACTION('Items/save', {
 	name: 'Save item',
 	input: '@Item',
+	user: true,
 	action: function($, model) {
-		if (!$.user.sa && $.user.permissions.indexOf(model.libraryid) === -1) {
-			$.invalid('@(Invalid permissions)');
+
+		if (unauthorized($, model.libraryid)) {
+			$.invalid(401);
 			return;
 		}
 
@@ -94,11 +103,18 @@ NEWACTION('Items/save', {
 NEWACTION('Items/remove', {
 	name: 'Remove item',
 	params: '*id:UID',
+	user: true,
 	action: function($) {
 		var params = $.params;
 		var index = MAIN.db.items.findIndex('id', params.id);
 		var item = MAIN.db.items[index];
-		if (item && item.kind === 'item' && ($.user.sa || $.user.permissions.indexOf(item.libraryid) !== -1)) {
+		if (item && item.kind === 'item') {
+
+			if (unauthorized($, item.libraryid)) {
+				$.invalid(401);
+				return;
+			}
+
 			MAIN.db.items.splice(index, 1);
 			FUNC.save();
 			$.success();
@@ -111,10 +127,11 @@ NEWACTION('Items/search', {
 	name: 'Search item',
 	query: '*library:UID,q:String',
 	action: function($) {
+
 		var query = $.query;
 
 		if (MAIN.private[query.library]) {
-			if (!$.user || (!$.user.sa && (!$.user.permissions || $.user.permissions.indexOf(query.library) === -1))) {
+			if (unauthorized($, query.library)) {
 				$.callback([]);
 				return;
 			}
