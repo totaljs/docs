@@ -1,10 +1,20 @@
 NEWSCHEMA('@Library', 'id:UID,*name,group,*linker,icon:Icon,color:Color,newbie:Boolean,groups:[String],private:Boolean');
 
 function unauthorized($, id) {
+
 	if (!$.user)
 		return true;
-	if (!$.user.sa && !$.user.permissions.includes('admin') && !$.user.permissions.includes(id || 'x'))
-		return true;
+
+	if ($.user.sa)
+		return false;
+
+	if ($.user.permissions.includes('admin'))
+		return false;
+
+	if (id && $.user.permissions.includes(id))
+		return false;
+
+	return true;
 }
 
 NEWACTION('Libraries/list', {

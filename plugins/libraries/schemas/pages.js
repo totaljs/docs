@@ -1,14 +1,25 @@
 NEWSCHEMA('@Page', 'id:UID,*libraryid:UID,group,*name,title,icon:Icon,color:Color,version,newbie:Boolean,deprecated:Boolean,welcome:Boolean,sortindex:Number');
 
 function unauthorized($, id) {
+
 	if (!$.user)
 		return true;
-	if (!$.user.sa && !$.user.permissions.includes('admin') && !$.user.permissions.includes(id || 'x'))
-		return true;
+
+	if ($.user.sa)
+		return false;
+
+	if ($.user.permissions.includes('admin'))
+		return false;
+
+	if (id && $.user.permissions.includes(id))
+		return false;
+
+	return true;
 }
 
 NEWACTION('Pages/list', {
 	name: 'List of pages',
+	params: 'libraryid:String',
 	action: function($) {
 
 		var params = $.params;
@@ -179,7 +190,7 @@ NEWACTION('Pages/clone', {
 	name: 'Clone pages',
 	params: '*id:UID',
 	action: function($) {
-		var params = $.params;
+		// var params = $.params;
 		$.invalid(501);
 	}
 });

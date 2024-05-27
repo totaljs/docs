@@ -1,10 +1,20 @@
 NEWSCHEMA('@Item', 'id:UID,pageid:[UID],libraryid:UID,type:{text|property|delegate|method|event|command|rest|faq|help|glossary},icon:Icon,color:Color,version,keywords,newbie:Boolean,bottom:Boolean,deprecated:Boolean,changelog,*name,note,body');
 
 function unauthorized($, id) {
+
 	if (!$.user)
 		return true;
-	if (!$.user.sa && !$.user.permissions.includes('admin') && !$.user.permissions.includes(id))
-		return true;
+
+	if ($.user.sa)
+		return false;
+
+	if ($.user.permissions.includes('admin'))
+		return false;
+
+	if (id && $.user.permissions.includes(id))
+		return false;
+
+	return true;
 }
 
 NEWACTION('Items/query', {
@@ -15,7 +25,7 @@ NEWACTION('Items/query', {
 		var query = $.query;
 
 		if (MAIN.private[query.library]) {
-			if (unauthorized(query.library)) {
+			if (unauthorized($, query.library)) {
 				$.callback([]);
 				return;
 			}
