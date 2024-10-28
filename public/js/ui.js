@@ -792,7 +792,7 @@ COMPONENT('markdown', 'copyclipboard:Copy to clipboard', function(self, config) 
 						block.classList.add('hljs');
 					} else if (block.classList.contains('lang-scr' + 'ipt')) {
 						try {
-							var code = block.innerHTML.replace(/&(lt|gt);/g, text => text.substring(1, 3) === 'lt' ? '<' : '>');
+							var code = block.innerHTML.replace(/&(lt|gt);/g, text => text.substring(1, 3) === 'lt' ? '<' : '>').replace(/\&amp;/g, '&');
 							var parent = block.parentNode.parentNode;
 							parent.innerHTML = '';
 							lines = new Function('el', 'var element=el;' + code)($(parent));
