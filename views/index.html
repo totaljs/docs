@@ -115,7 +115,8 @@
 			})();
 
 			exports.copytoclipboard = function(el) {
-				var lines = el.parent().prev().text().split('\n');
+				let mc = el.closest('.markdown-code');
+				var lines = mc.find('code').text().split('\n');
 				for (var i = 0; i < lines.length; i++)
 					lines[i] = lines[i].replace(/^\s+/g, text => text.replace(/\s{4}/g, '\t'));
 				SETTER('clipboard/copy', lines.join('\n'));
