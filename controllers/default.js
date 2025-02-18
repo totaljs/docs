@@ -125,7 +125,7 @@ function backup($) {
 
 	MAIN.fs.backup(PATH.temp(filename), function(err, meta) {
 		if (meta)
-			$.file('~' + meta.filename, filename);
+			$.file(meta.filename, filename);
 		else
 			$.invalid(err);
 	});

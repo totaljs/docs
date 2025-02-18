@@ -9,6 +9,6 @@ CONF.op_icon = 'ti ti-book-open';
 ON('ready', function() {
 
 	// Icons
-	COMPONENTATOR('ui', 'exec,centered,searchinput,search,directory,input,locale,message,errorhandler,viewbox,icons,menu,validate,validation,checkboxlist,loading,spotlight,movable,textboxlist,approve,radiobutton,clipboard,shortcuts,importer,backtotop,layout,selected,form,ready,box,cloudeditor,tabmenu,colorpicker,notify,filebrowser,page,autofill,enter,miniform', true);
+	COMPONENTATOR('ui', 'exec,centered,search,searchinput,directory,input,locale,message,errorhandler,viewbox,icons,menu,validate,validation,checkboxlist,loading,spotlight,movable,textboxlist,approve,radiobutton,clipboard,shortcuts,importer,backtotop,layout,selected,form,ready,box,cloudeditor,tabmenu,colorpicker,notify,filebrowser,page,autofill,enter,miniform', true);
 
 });
