@@ -38,7 +38,7 @@ $monospace  : Menlo,Menlo2,Consolas,monospace;
 .admin .ui-items-edit { display: block; }
 
 .ui-items-topic label .version { margin-right: 10px; }
-.ui-items-topic label .method { min-width: 50px; position: relative; display: inline-block; font-weight: bold; color: #FFF; margin-right: 10px; border-radius: var(--radius); text-align: center; padding: 0 3px; }
+.ui-items-topic label .method { min-width: 65px; position: relative; display: inline-block; font-weight: bold; color: #FFF; margin-right: 10px; border-radius: var(--radius); text-align: center; padding: 0 3px; font-size: 13px; }
 .ui-items-topic label .url { }
 .ui-items-topic label .query { color: #999; }
 
