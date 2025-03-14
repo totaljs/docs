@@ -555,7 +555,11 @@
 		};
 
 		exports.backup = function() {
-			location.href = '/backup/';
+			var url = '/backup/';
+			if (common.openplatform)
+				url = QUERIFY(url, { openplatform: common.openplatform });
+			
+			location.href = url;
 		};
 
 		exports.clean = function() {
